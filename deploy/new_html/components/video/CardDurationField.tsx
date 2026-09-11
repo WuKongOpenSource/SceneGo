@@ -10,16 +10,18 @@ export interface CardDurationFieldProps {
     onClear: () => void;
     disabled?: boolean;
     maxDuration?: number;
+    minDuration?: number;
     variant?: 'compact' | 'seedance15';
 }
 
 export const CardDurationField: React.FC<CardDurationFieldProps> = ({
-    duration, userOverride, onChange, onClear, disabled, maxDuration, variant = 'compact',
+    duration, userOverride, onChange, onClear, disabled, maxDuration, minDuration, variant = 'compact',
 }) => {
     const maxSec = maxDuration ?? DURATION_MAX_SEC;
+    const minSec = minDuration ?? DURATION_MIN_SEC;
     if (variant === 'seedance15') {
-        const marks = Array.from(new Set([DURATION_MIN_SEC, 5, 10, maxSec]))
-            .filter(mark => mark >= DURATION_MIN_SEC && mark <= maxSec)
+        const marks = Array.from(new Set([minSec, 5, 10, maxSec]))
+            .filter(mark => mark >= minSec && mark <= maxSec)
             .sort((a, b) => a - b);
         return (
             <VideoControlPopover title="Seedance 1.5 Pro 时长设置" disabled={disabled} width={280} label={<><Clock3 size={12} /><span className="font-semibold">{duration} 秒</span></>}>
@@ -27,7 +29,7 @@ export const CardDurationField: React.FC<CardDurationFieldProps> = ({
                     <div className="mb-2 flex items-center justify-between gap-2">
                         <div>
                             <div className="text-[10px] font-semibold text-n700">选择视频生成时长</div>
-                            <div className="text-[9px] text-n100">{DURATION_MIN_SEC}–{maxSec} 秒</div>
+                            <div className="text-[9px] text-n100">{minSec}–{maxSec} 秒</div>
                         </div>
                         <div className="flex h-8 w-12 items-center justify-center rounded-lg bg-n20 text-xs font-semibold text-n800">
                             {duration}<span className="ml-0.5 text-[9px] font-normal text-n100">s</span>
@@ -35,7 +37,7 @@ export const CardDurationField: React.FC<CardDurationFieldProps> = ({
                     </div>
                     <input
                         type="range"
-                        min={DURATION_MIN_SEC}
+                        min={minSec}
                         max={maxSec}
                         step={1}
                         value={duration}
@@ -64,7 +66,7 @@ export const CardDurationField: React.FC<CardDurationFieldProps> = ({
                     <span className="inline-flex items-center gap-1 rounded-lg border border-n40 bg-n20 px-2 py-1">
                         <input
                             type="number"
-                            min={DURATION_MIN_SEC}
+                            min={minSec}
                             max={maxSec}
                             step={1}
                             value={duration}
@@ -73,7 +75,7 @@ export const CardDurationField: React.FC<CardDurationFieldProps> = ({
                             onChange={e => {
                                 const n = parseInt(e.target.value, 10);
                                 if (!Number.isFinite(n)) return;
-                                onChange(Math.max(DURATION_MIN_SEC, Math.min(maxSec, n)), true);
+                                onChange(Math.max(minSec, Math.min(maxSec, n)), true);
                             }}
                         />
                         <span className="text-n100">秒</span>

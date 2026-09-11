@@ -205,7 +205,7 @@ export function mapRuntimeNotificationToTask(n: TaskNotification): RegisteredTas
     const timestamp = Number.isFinite(n.timestamp) ? n.timestamp : Date.now();
     const rawTitle = stripStatusSuffix(n.message || taskId);
     const status: GlobalTaskStatus = n.status === 'failed' ? 'failed' : 'completed';
-    const kind = inferKindFromCategoryAndTitle(n.type, `${rawTitle} ${n.taskType || ''} ${n.taskId || n.id}`);
+    const kind = inferKindFromCategoryAndTitle(n.type, `${rawTitle} ${n.taskType || ''} ${n.taskId || n.id}`, { modelName: n.modelName, provider: n.provider });
 
     return {
         taskId,

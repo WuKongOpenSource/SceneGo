@@ -76,6 +76,8 @@ export interface MergedCardSnapshot {
 }
 
 export interface TaskStatus {
+  canCancel?: boolean;
+  cancelDeadline?: number;
   state?: TaskState;
   taskId?: string;
   progress?: number;
@@ -101,6 +103,7 @@ export interface TaskStatus {
 }
 
 export interface VideoTask {
+    cancel_deadline?: number;
     can_cancel?: boolean;
   task_id: string;
   status: 'queued' | 'pending' | 'running' | 'processing' | 'completed' | 'failed' | 'cancelled';

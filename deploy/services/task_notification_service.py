@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from services.task_read_service import public_task_error
+from services.seedance_task_identity import seedance_task_identity
 
 
 class TaskNotificationServiceError(RuntimeError):
@@ -71,6 +72,7 @@ def _enrich_task_row_from_data(row: Dict[str, Any], *, include_empty_entity: boo
         if value or include_empty_entity:
             row[key] = value or ""
 
+    row.update(seedance_task_identity({**row, **task_data}))
     return _sanitize_task_row_errors(row, task_data)
 
 
@@ -162,7 +164,10 @@ async def _reconcile_active_tasks_with_queue(
         merged_row = dict(task_row)
         from core.task_dispatch_guard import can_cancel_task
 
-        merged_row["status"] = queue_status or merged_row.get("status")
+        from core.video_submission_grace import cancel_deadline, public_execution_status
+        merged_row["status"] = public_execution_status(redis_task) or merged_row.get("status")
+        if cancel_deadline(redis_task):
+            merged_row["cancel_deadline"] = cancel_deadline(redis_task)
         merged_row["can_cancel"] = can_cancel_task(redis_task)
         merged_row["progress"] = _task_progress_value(redis_task, queue_status)
         queue_data = _normalize_task_data(getattr(redis_task, "data", None))
@@ -181,6 +186,7 @@ async def _reconcile_active_tasks_with_queue(
         ):
             if queue_data.get(key):
                 merged_row[key] = queue_data[key]
+        merged_row.update(seedance_task_identity({**merged_row, **queue_data}))
         started_at = getattr(redis_task, "started_at", None)
         if started_at is not None:
             merged_row["started_at"] = started_at

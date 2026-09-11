@@ -457,7 +457,7 @@ def _seedance_manifest(
         "parameter_rules": {
             "resolution": resolutions or ["480p", "720p", "1080p"],
             "ratio": ["adaptive", "16:9", "4:3", "1:1", "3:4", "9:16", "21:9"],
-            "duration": {"type": "integer", "minimum": 2, "maximum": max_duration},
+            "duration": {"type": "integer", "minimum": 4, "maximum": max_duration},
             "normalization_policy": "reject_or_explain",
         },
     }

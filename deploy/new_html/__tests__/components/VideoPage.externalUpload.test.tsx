@@ -48,6 +48,30 @@ async function uploadToPage() {
 }
 
 describe('VideoPage external video persistence', () => {
+  it.each([false, true])('asks before a short generation and submits only on confirmation=%s', async accepted => {
+    const confirm = vi.fn(() => accepted);
+    vi.stubGlobal('confirm', confirm);
+    vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: {
+      ...emptySession, task_groups: [{ uuid: 'card', ids: ['i'], model: 'Seedance15', videoSegmentId: 'seg-real', duration: 5, durationUserOverride: true }],
+      uploaded_images: [{ id: 'i', storyboardItemId: 's', url: '/first.png', filename: '', uploadTime: 0 }],
+      storyboard_meta: { s: { plannedDurationMs: 3000, audioDurationMs: 2000 } },
+      seedance_params: { card: { sub_model: 'agent_plan', prompt: '完整动作', duration: 5, media_inputs: [{ kind: 'image', url: '/first.png', role: 'first_frame' }] } },
+    } });
+    fetchMock.mockImplementation(async (url: string) => ({ ok: true, status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }), json: async () => url.endsWith('/api/generate')
+        ? { task_id: 'short-task' } : { success: true, tasks: [], models: [], balance: 100 } }));
+    render(<VideoPage sessionScope="ep-1" episodeId="ep-1" storyboardItems={[{ item_id: 's', planned_duration_ms: 10000, audio_duration_ms: 10200 }]} />);
+    await screen.findByText(/脚本 10秒 · 配音 10.2秒 · 校准 10.7秒 · 选用 5秒/);
+    fireEvent.click(await screen.findByRole('button', { name: /^生成$/ }));
+    await waitFor(() => expect(confirm).toHaveBeenCalledWith(expect.stringContaining('10.7秒')));
+    if (accepted) {
+      await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/api/generate'))).toBe(true));
+      const call = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/api/generate'))!;
+      expect(JSON.parse(call[1].body).duration).toBe(5);
+    } else {
+      expect(fetchMock.mock.calls.some(([url, options]) => options?.method === 'POST' && (String(url).endsWith('/api/generate') || String(url).includes('/video-segments')))).toBe(false);
+    }
+  });
   it.each([1, 4, 8, 9, 12])('keeps %i results in full-height rows, with two rows above the prompt', async count => {
     vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: {
       ...emptySession, task_groups: [{ uuid: 'card', ids: ['i'], model: 'Seedance15' }],
@@ -60,6 +84,10 @@ describe('VideoPage external video persistence', () => {
     expect(grid.querySelectorAll('[title="设为美化使用"]')).toHaveLength(count);
     const prompt = screen.getByTestId('video-result-prompt');
     expect(grid.compareDocumentPosition(prompt) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(prompt).toHaveClass('mt-auto', 'min-h-0', 'overflow-y-auto');
+    expect(prompt.parentElement).toHaveClass('flex', 'flex-1', 'flex-col', 'min-h-0', 'overflow-hidden');
+    expect(screen.getAllByText('图生视频', { exact: false })).toHaveLength(2);
+    expect(screen.queryByText(/\b(I2V|MORPH)\b/i)).not.toBeInTheDocument();
   });
   it.each(['Seedance15', 'Seedance2'] as const)('pairs %s current prompts, restores both frames on reload and splits without losing history', async model => {
     const shared = '视频提示词：分镜2-1至分镜2-2，共同风格';
@@ -69,6 +97,7 @@ describe('VideoPage external video persistence', () => {
     vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: {
       ...emptySession, task_groups: sources.map(s => ({ uuid: s.item_id, ids: [s.item_id], model, duration: 3 })),
       uploaded_images: sources.map(s => ({ id: s.item_id, storyboardItemId: s.item_id, url: `/${s.item_id}.png`, filename: '', uploadTime: 0 })),
+      storyboard_meta: { s1: { plannedDurationMs: 3000 }, s2: { plannedDurationMs: 3000, audioDurationMs: 2500 } },
       seedance_params: Object.fromEntries(sources.map((s, i) => [s.item_id, {
         sub_model: model === 'Seedance15' ? 'agent_plan' : 'standard', prompt: prompts[i], duration: 3, resolution: '720p', media_inputs: [],
       }])),
@@ -78,10 +107,14 @@ describe('VideoPage external video persistence', () => {
     const view = render(<VideoPage {...props} />);
     fireEvent.click((await screen.findAllByTitle('与下一张卡片组成首尾帧任务'))[0]);
     await screen.findByText('已合并为首尾帧任务');
+    expect(screen.getAllByText('首尾帧过渡', { exact: false })).toHaveLength(2);
     const saved = vi.mocked(saveWorkspaceSession).mock.calls.at(-1)![0];
     const pair = saved.task_groups[0];
     const expected = `镜头2-1\n动作说明：手工推门。\n镜头2-2\n动作说明：手工抬眼。\n对白：你好。\n${shared}`;
     expect(saved.seedance_params?.[pair.uuid].prompt).toBe(expected);
+    expect(pair.duration).toBe(6);
+    expect(saved.seedance_params?.[pair.uuid].duration).toBe(6);
+    expect(screen.getByTestId('video-timing-summary')).toHaveTextContent('脚本 6秒 · 配音 2.5秒 · 校准 6秒 · 选用 6秒');
     expect(saved.image_prompts.s1).toBe(expected);
     expect(saved.seedance_params?.[pair.uuid].media_inputs).toEqual([
       { kind: 'image', role: 'first_frame', url: '/s1.png' }, { kind: 'image', role: 'last_frame', url: '/s2.png' },

@@ -20,6 +20,7 @@ import { formatPublicTaskText } from '../utils/publicTaskTerminology';
 import { getModelDisplayName } from '../services/videoModelService';
 import { buildNotificationTargetUrl } from '../services/notificationNavigation';
 import { getNotificationModelLabel } from '../services/notificationLabels';
+import { useCancellationSeconds } from '../hooks/useCancellationSeconds';
 
 
 const STATUS_THEME = {
@@ -56,7 +57,7 @@ function getKindIcon(kind: TaskKind): React.FC<{ size?: number; className?: stri
 
 
 const KIND_LABEL: Record<string, string> = {
-    seedance: getModelDisplayName('Seedance2'),
+    seedance: 'Seedance 视频生成',
     'seedance-fast': getModelDisplayName('Seedance2Fast'),
     'seedance-mini': getModelDisplayName('Seedance2Mini'),
     'seedance-1.5': getModelDisplayName('Seedance15'),
@@ -377,12 +378,15 @@ interface TaskItemProps {
 }
 
 const TaskItem: React.FC<TaskItemProps> = ({ task, onNavigate, onRemove, removeLabel, removeIconKind }) => {
-    const canCancel = task.metadata?.canCancel ?? (task.status === 'pending' || task.status === 'queued');
+    const deadline = Number(task.metadata?.cancelDeadline) || undefined;
+    const seconds = useCancellationSeconds(deadline);
+    const active = ['pending', 'queued', 'running'].includes(task.status);
+    const canCancel = (!deadline || seconds > 0) && (task.metadata?.canCancel ?? (task.status === 'pending' || task.status === 'queued'));
     const cancelling = task.metadata?.cancelPending === true;
     const theme = STATUS_THEME[task.status] || STATUS_THEME.queued;
     const KindIcon = getKindIcon(task.kind);
     const kindLabel = getNotificationModelLabel(task) || KIND_LABEL[task.kind] || task.kind;
-    const statusText = statusLabel(task);
+    const statusText = active && deadline ? (seconds ? `可撤销 · ${seconds} 秒后提交 API` : '生成中 · 不可取消') : statusLabel(task);
 
     return (
         <div
@@ -405,7 +409,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onNavigate, onRemove, removeL
                 {/* Title row */}
                 <div className="flex items-center gap-1.5">
                     <KindIcon size={11} className="text-n300 shrink-0" />
-                    <span className="text-sm font-medium text-n800 truncate">{sanitizeProcessingTerminology(formatPublicTaskText(task.title, task.kind))}</span>
+                    <span className="text-sm font-medium text-n800 truncate">{sanitizeProcessingTerminology(task.kind.startsWith('seedance') && getNotificationModelLabel(task) || formatPublicTaskText(task.title, task.kind))}</span>
                     <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] tabular-nums ${theme.bg} ${theme.text} ${theme.border} border`}>
                         {sanitizeProcessingTerminology(kindLabel)}
                     </span>

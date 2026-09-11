@@ -14,6 +14,9 @@ export interface DurationFieldForGroupProps {
     onPatchGroup: (uuid: string, patch: Partial<TaskGroup>) => void;
     disabled?: boolean;
     maxDuration?: number;
+    minDuration?: number;
+    targetDurationMs?: number | null;
+    followTiming?: boolean;
     variant?: 'compact' | 'seedance15';
 }
 
@@ -23,6 +26,9 @@ export const DurationFieldForGroup: React.FC<DurationFieldForGroupProps> = ({
     onPatchGroup,
     disabled,
     maxDuration,
+    minDuration,
+    targetDurationMs,
+    followTiming,
     variant,
 }) => {
     const dur = useReactiveDuration({
@@ -31,6 +37,9 @@ export const DurationFieldForGroup: React.FC<DurationFieldForGroupProps> = ({
         meta: meta || {},
         currentDuration: group.duration,
         maxDuration,
+        minDuration,
+        targetDurationMs,
+        followTiming,
         onChange: (duration, durationUserOverride) =>
             onPatchGroup(group.uuid, { duration, durationUserOverride }),
     });
@@ -43,6 +52,7 @@ export const DurationFieldForGroup: React.FC<DurationFieldForGroupProps> = ({
             onClear={dur.clearOverride}
             disabled={disabled}
             maxDuration={maxDuration}
+            minDuration={minDuration}
             variant={variant}
         />
     );

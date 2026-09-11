@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import logging
 import time
+from core.video_submission_grace import cancel_deadline
 from datetime import datetime
 from typing import Any
 
@@ -16,6 +17,9 @@ def can_cancel_task(task: Any) -> bool:
     dispatch = getattr(task, "dispatch_state", "")
     if status == "cancelled":
         return getattr(task, "refund_status", "") == "pending"
+    deadline = cancel_deadline(task)
+    if deadline and time.time() >= deadline:
+        return False
     if dispatch == "submitted" or getattr(task, "prompt_id", None):
         return False
     if status in {"pending", "queued"}:
@@ -29,6 +33,8 @@ async def claim_for_preparation(redis: Any, key: str, processing_key: str, task_
     script = """
     local status = redis.call('HGET', KEYS[1], 'status')
     if status ~= 'pending' and status ~= 'queued' then return 0 end
+    local data = cjson.decode(redis.call('HGET', KEYS[1], 'data') or '{}')
+    if tonumber(data.cancel_deadline or 0) > tonumber(ARGV[3]) then return 0 end
     redis.call('HSET', KEYS[1], 'status', 'processing', 'started_at', ARGV[2])
     if redis.call('HGET', KEYS[1], 'dispatch_state') ~= 'submitted' then
         redis.call('HSET', KEYS[1], 'dispatch_state', 'preparing')
@@ -43,10 +49,12 @@ async def claim_for_preparation(redis: Any, key: str, processing_key: str, task_
 async def begin_submission(redis: Any, key: str) -> bool:
     script = """
     if redis.call('HGET', KEYS[1], 'status') ~= 'processing' then return 0 end
+    local data = cjson.decode(redis.call('HGET', KEYS[1], 'data') or '{}')
+    if tonumber(data.cancel_deadline or 0) > tonumber(ARGV[1]) then return 0 end
     redis.call('HSET', KEYS[1], 'dispatch_state', 'submitted')
     return 1
     """
-    return bool(await redis.eval(script, 1, key))
+    return bool(await redis.eval(script, 1, key, time.time()))
 
 
 async def save_task_unless_cancelled(redis: Any, key: str, mapping: dict, ttl: int) -> None:
@@ -64,6 +72,9 @@ async def cancel_before_submission(redis: Any, key: str, refund_key: str, task_i
     script = """
     local status = redis.call('HGET', KEYS[1], 'status')
     if status == 'cancelled' then return 1 end
+    local data = cjson.decode(redis.call('HGET', KEYS[1], 'data') or '{}')
+    local deadline = tonumber(data.cancel_deadline or 0)
+    if deadline > 0 and deadline <= tonumber(ARGV[3]) then return 0 end
     if redis.call('HGET', KEYS[1], 'dispatch_state') == 'submitted' then return 0 end
     local prompt = redis.call('HGET', KEYS[1], 'prompt_id')
     if prompt and prompt ~= '' then return 0 end

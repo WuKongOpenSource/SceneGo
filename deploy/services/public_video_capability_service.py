@@ -166,7 +166,7 @@ async def get_public_video_capabilities(
             parameter_rules={
                 "resolution": resolutions,
                 "ratio": ["adaptive", "16:9", "9:16", "1:1", "4:3", "3:4"],
-                "duration": {"type": "integer", "minimum": 1, "maximum": 15, "default": 5},
+                "duration": {"type": "integer", "minimum": 4, "maximum": 12 if key == "Seedance15" else 15, "default": 5},
                 "generate_audio": {"type": "boolean", "default": True},
                 "normalization_policy": "reject_or_explain",
             },

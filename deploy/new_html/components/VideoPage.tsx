@@ -40,6 +40,7 @@ import {
     type VideoModel,
     validateSeedanceMediaInputs,
     getSeedanceOutputError,
+    getSeedanceDurationError,
     normalizeSeedanceOutputResolution,
 } from '../services/videoModelService';
 import {
@@ -134,6 +135,9 @@ import { GpuNodeSelector, type GpuNodeSelection } from '@runtime/GpuNodeSelector
 import { InlineCreditEstimate } from './InlineCreditEstimate';
 import { extractSpokenDialogue } from '../utils/scriptPipelineParsers';
 import { clampSec, DURATION_MAX_SEC, SEEDANCE_AGENT_PLAN_MAX_DURATION_SEC } from '../utils/durationMapping';
+import { getVideoDurationShortfall, mergeVideoTimingMetadata, resolveVideoGroupTiming, resolveVideoSelectedSeconds } from '../utils/videoGroupTiming';
+import { VideoTimingSummary } from './video/VideoTimingSummary';
+import { VideoCancellationControl, VideoGenerationPhase } from './video/VideoCancellationControl';
 import {
     mergeStoryboardVideoPrompts,
     upgradeLegacyStoryboardVideoPrompt,
@@ -743,16 +747,14 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         };
     }, [seedanceSupportsMultimodal]);
 
+    const timingMetadata = useMemo(() => mergeVideoTimingMetadata(storyboardMetaByItemId, storyboardItems || []),
+        [storyboardMetaByItemId, storyboardItems]);
+    const getGroupTiming = useCallback((group: TaskGroup) => resolveVideoGroupTiming(group, uploadedImages, timingMetadata),
+        [uploadedImages, timingMetadata]);
     const resolveSeedanceDurationForGroup = useCallback((group: TaskGroup | undefined): number => {
-        const itemId = group?.ids?.[0];
-        const meta = itemId ? storyboardMetaByItemId[itemId] : undefined;
-        const reactiveDur = meta ? computeReactiveDurationFromMeta(meta) : undefined;
-        return clampSec(
-            group?.duration ?? reactiveDur ?? 3,
-            3,
-            getSeedanceMaxDuration(group?.model),
-        );
-    }, [getSeedanceMaxDuration, storyboardMetaByItemId]);
+        if (!group) return 5;
+        return resolveVideoSelectedSeconds(group, getGroupTiming(group), 4, getSeedanceMaxDuration(group.model));
+    }, [getSeedanceMaxDuration, getGroupTiming]);
 
     const syncSeedanceDuration = useCallback((group: TaskGroup | undefined, params: SeedanceParams): SeedanceParams => {
         if (!group) return params;
@@ -847,8 +849,13 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
     const setSeedanceParams = useCallback((uuid: string, next: SeedanceParams) => {
         const group = taskGroups.find(g => g.uuid === uuid);
+        if (group && next.duration != null && next.duration !== resolveSeedanceDurationForGroup(group)) {
+            setTaskGroups(previous => previous.map(item => item.uuid === uuid ? { ...item, duration: next.duration, durationUserOverride: true } : item));
+            setSeedanceParamsByUuid(previous => ({ ...previous, [uuid]: next }));
+            return;
+        }
         setSeedanceParamsByUuid(prev => ({ ...prev, [uuid]: syncSeedanceDuration(group, next) }));
-    }, [taskGroups, syncSeedanceDuration]);
+    }, [taskGroups, syncSeedanceDuration, resolveSeedanceDurationForGroup]);
 
 
 
@@ -1512,16 +1519,17 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         });
 
         return await saveWorkspaceSession({
-            task_groups: patch?.task_groups ?? taskGroups,
+            task_groups: (patch?.task_groups ?? taskGroups).map(group => isSeedanceVideoModel(group.model)
+                ? { ...group, duration: resolveSeedanceDurationForGroup(group) } : group),
             uploaded_images: validImages,
             image_prompts: patch?.image_prompts ?? imagePrompts,
             tasks_status: cleanedStatus,
             seedance_params: patch?.seedance_params ?? seedanceParamsForSession,
-            storyboard_meta: storyboardMetaByItemId,
+            storyboard_meta: timingMetadata,
 
             dashscope_params: patch?.dashscope_params ?? dashScopeParamsByUuid as any,
         } as any, sessionScope);
-    }, [taskGroups, uploadedImages, imagePrompts, tasksStatus, sessionScope, seedanceParamsForSession, storyboardMetaByItemId, dashScopeParamsByUuid]);
+    }, [taskGroups, uploadedImages, imagePrompts, tasksStatus, sessionScope, seedanceParamsForSession, timingMetadata, resolveSeedanceDurationForGroup, dashScopeParamsByUuid]);
 
 
 
@@ -1993,20 +2001,21 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             uuid: generateUUID(),
             ids: [groupA.ids[0], groupB.ids[0]],
             model: groupA.model,
-            duration: groupA.duration,
-            durationUserOverride: groupA.durationUserOverride,
+            duration: (groupA.duration || 5) + (groupB.duration || 5),
+            durationUserOverride: false,
             shotType: groupA.shotType,
             h3SageAttention: groupA.h3SageAttention,
             candidateImages: [...(groupA.candidateImages || []), ...(groupB.candidateImages || [])],
             firstLastFrom: children,
         };
+        if (isSeedanceVideoModel(newGroup.model)) newGroup.duration = resolveSeedanceDurationForGroup(newGroup);
         const nextGroups = [...taskGroups];
         nextGroups.splice(index, 2, newGroup);
         const nextPrompts = { ...imagePrompts, [groupA.ids[0]]: prompt };
         const nextSeed = { ...seedanceParamsByUuid };
         const nextDash = { ...dashScopeParamsByUuid };
         if (children[0].seedanceParams) nextSeed[newGroup.uuid] = {
-            ...children[0].seedanceParams, prompt, reference_mode: 'first_last', media_inputs: media,
+            ...children[0].seedanceParams, duration: newGroup.duration, prompt, reference_mode: 'first_last', media_inputs: media,
         };
         if (children[0].dashScopeParams) nextDash[newGroup.uuid] = { ...children[0].dashScopeParams, prompt, media_inputs: media };
         const nextStatuses = { ...tasksStatus };
@@ -2022,7 +2031,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             dashscope_params: nextDash, tasks_status: nextStatuses });
         showToast('已合并为首尾帧任务');
     }, [taskGroups, tasksStatus, uploadedImages, imagePrompts, seedanceParamsByUuid, dashScopeParamsByUuid,
-        getSeedanceParams, getDashScopeParams, getEffectiveGroupPrompt, getGroupShotRange, saveSession, showToast]);
+        getSeedanceParams, getDashScopeParams, getEffectiveGroupPrompt, getGroupShotRange, resolveSeedanceDurationForGroup, saveSession, showToast]);
 
     const unlinkGroup = useCallback((index: number) => {
         const group = taskGroups[index];
@@ -2123,6 +2132,8 @@ export const VideoPage: React.FC<VideoPageProps> = ({
     }, [getStoryboardItemIdForImageId, storyboardMetaByItemId]);
 
     const getGroupMergeDuration = useCallback((group: TaskGroup): number => {
+        const timing = getGroupTiming(group);
+        if (timing.targetMs != null && !group.durationUserOverride) return timing.targetMs / 1000;
         const fromSnapshots = (group.mergedFrom || [])
             .map(child => Number(child.duration))
             .filter(duration => Number.isFinite(duration) && duration > 0);
@@ -2148,7 +2159,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         }
 
         return 5;
-    }, [getMetaDurationSecondsForImageId]);
+    }, [getMetaDurationSecondsForImageId, getGroupTiming]);
 
     const getDownwardMergePlan = useCallback((index: number, selectedEndIndex?: number) => {
         const group = taskGroups[index];
@@ -2333,8 +2344,8 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             next.splice(index, groupsToMerge.length, {
                 ...current,
                 ids: mergedIds,
-                duration: plan.totalDuration,
-                durationUserOverride: true,
+                duration: Math.ceil(plan.totalDuration),
+                durationUserOverride: groupsToMerge.some(group => group.durationUserOverride),
                 mergedFrom,
                 firstLastFrom: undefined,
                 candidateImages: groupsToMerge.flatMap(group => group.candidateImages || []),
@@ -2935,11 +2946,14 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
         if (isSeedanceModel(group.model)) {
             const params = getSeedanceParams(group.uuid, group.model);
-            const outputError = getSeedanceOutputError(params.sub_model, params.resolution);
+            const outputError = getSeedanceOutputError(params.sub_model, params.resolution)
+                || getSeedanceDurationError(params.sub_model, params.duration);
             if (outputError) {
                 showToast(outputError);
                 return null;
             }
+            const shortfall = getVideoDurationShortfall(getGroupTiming(group), params.duration ?? 5);
+            if (shortfall && !window.confirm(shortfall)) return null;
         }
         const segmentId = await ensureVideoSegmentId(group);
         if (episodeId && !segmentId) {
@@ -3251,7 +3265,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             }));
             return null;
         }
-    }, [taskGroups, uploadedImages, imagePrompts, showToast, getSeedanceParams, getDashScopeParams, getEffectiveGroupPrompt, ensureVideoSegmentId, episodeId, prepareSeedanceParamsForCapability, getCharacterNameForGroup, getVideoVoiceReferenceForGroup, seedanceSupportsMultimodal, getVideoModelUnavailableReason, isVideoModelAvailable, defaultMiniMaxVideoModel, isSeedanceModel, videoCapabilities]);
+    }, [taskGroups, uploadedImages, imagePrompts, showToast, getSeedanceParams, getDashScopeParams, getGroupTiming, getEffectiveGroupPrompt, ensureVideoSegmentId, episodeId, prepareSeedanceParamsForCapability, getCharacterNameForGroup, getVideoVoiceReferenceForGroup, seedanceSupportsMultimodal, getVideoModelUnavailableReason, isVideoModelAvailable, defaultMiniMaxVideoModel, isSeedanceModel, videoCapabilities]);
 
     const runTask = useCallback((uuid: string): Promise<string | null> => {
         const pending = pendingSubmissions.current.get(uuid);
@@ -3386,12 +3400,13 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             }
             resolveBatchVideoTask(uuid, 'failed');
         },
-        onProgress: (progress: number, status: 'queued' | 'running' | 'processing' | 'completed' | 'failed' | 'cancelled') => {
+        onProgress: (progress: number, status: 'queued' | 'running' | 'processing' | 'completed' | 'failed' | 'cancelled', undo?: { canCancel?: boolean; cancelDeadline?: number }) => {
             setTasksStatus(prev => ({
                 ...prev,
                 [uuid]: {
                     ...prev[uuid],
                     state: status === 'queued' ? 'pending' : 'processing',
+                    ...undo,
                     progress,
                 },
             }));
@@ -4077,7 +4092,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase text-center ${
                         isPair ? 'bg-p50 text-p400' : 'bg-b50 text-b400'
                     }`}>
-                        {isPair ? 'Morph' : 'I2V'}
+                        {isPair ? '首尾帧过渡' : '图生视频'}
                     </span>
                     <span
                         className="text-[10px] text-n100 text-center truncate"
@@ -4341,7 +4356,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase text-center ${
                         isPair ? 'bg-p50 text-p400' : 'bg-b50 text-b400'
                     }`}>
-                        {isPair ? 'Morph' : 'I2V'}
+                        {isPair ? '首尾帧过渡' : '图生视频'}
                     </span>
                     <VideoModelPicker
                         value={group.model}
@@ -4603,7 +4618,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase border mr-2 ${
                             isPair ? 'bg-p50 text-p400 border-p75' : 'bg-b50 text-b400 border-b75'
                         }`}>
-                            {isPair ? 'Morph' : 'I2V'}
+                            {isPair ? '首尾帧过渡' : '图生视频'}
                         </span>
 
 
@@ -4802,6 +4817,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 })()}
 
 
+                {isSeedanceModel(group.model) && <VideoTimingSummary timing={getGroupTiming(group)} selectedSeconds={resolveSeedanceDurationForGroup(group)} />}
                 <div className={`${CARD_BODY_SCROLL_CLASS} flex flex-col`}>
                     {isPlaceholderCard ? (
                         <textarea
@@ -4827,6 +4843,9 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                                     meta={img1.storyboardItemId ? storyboardMetaByItemId[img1.storyboardItemId] : undefined}
                                     onPatchGroup={patchTaskGroup}
                                     maxDuration={getSeedanceMaxDuration(group.model)}
+                                    minDuration={4}
+                                    targetDurationMs={getGroupTiming(group).targetMs}
+                                    followTiming={getGroupTiming(group).targetMs != null}
                                     variant={group.model === 'Seedance15' ? 'seedance15' : 'compact'}
                                 />}
                                 onPreviewMedia={(url, kind) => {
@@ -4958,7 +4977,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 return (
                     <div className="text-xs text-warning flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        排队中
+                        <VideoGenerationPhase deadline={status.cancelDeadline} />
                     </div>
                 );
             }
@@ -5100,7 +5119,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                                         <div className="relative w-8 h-8 mb-2">
                                             <div className="absolute inset-0 border-2 border-t-indigo-500 border-r-indigo-500 border-b-transparent border-l-transparent rounded-full animate-spin" />
                                         </div>
-                                        <div className="text-primary text-[10px] font-medium">{isQueued ? '排队中...' : '生成中'}</div>
+                                        <div className="text-primary text-[10px] font-medium"><VideoGenerationPhase deadline={status.cancelDeadline} fallback={isQueued ? '排队中...' : '生成中'} /></div>
                                         {!isQueued && <div className="text-n100 text-[9px]">{status.progress || 0}%</div>}
                                     </div>
                                 )}
@@ -5116,7 +5135,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                     <div className={RESULT_MEDIA_GRID_CLASS} data-testid="video-result-grid">
                         <div className="h-full rounded border border-warning/30 flex flex-col items-center justify-center bg-warning/5">
                             <Clock className="w-5 h-5 mb-1 text-warning" />
-                            <div className="text-warning text-[10px] font-medium">排队中...</div>
+                            <div className="text-warning text-[10px] font-medium"><VideoGenerationPhase deadline={status.cancelDeadline} /></div>
                         </div>
                         {renderEmptyResultSlots(3)}
                     </div>
@@ -5170,7 +5189,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                                 分段 {String(shotRange.start.segmentNo).padStart(2, '0')}
                             </span>
                         )}
-                        <span className="text-xs font-bold text-n700">{shotRange.label} {isPair ? 'Morph' : 'I2V'}</span>
+                        <span className="text-xs font-bold text-n700">{shotRange.label} {isPair ? '首尾帧过渡' : '图生视频'}</span>
                         {renderStatusBadge()}
                         {activeVideoVoiceReference && (
                             <span
@@ -5248,12 +5267,17 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 </div>
 
 
+                {status.state === 'failed' && status.error && <p role="alert" className="shrink-0 py-1 text-xs text-danger">{status.error}</p>}
+                {status.taskId && status.cancelDeadline && ['pending', 'running', 'processing'].includes(status.state || '') && <VideoCancellationControl
+                    taskId={status.taskId} deadline={status.cancelDeadline} canCancel={status.canCancel}
+                    onError={showToast} onCancelled={() => { stopVideoPoll(group.uuid); resolveBatchVideoTask(group.uuid, 'failed'); setTasksStatus(previous => ({ ...previous,
+                        [group.uuid]: { ...previous[group.uuid], state: 'idle', taskId: undefined, cancelDeadline: undefined, canCancel: false, progress: 0 } })); showToast('任务已取消，未提交 API'); }} />}
                 <div className="shrink-0 mb-1">
                     {renderVisual()}
                 </div>
 
 
-                <div className={`${CARD_BODY_SCROLL_CLASS} flex flex-col`}>
+                <div className="flex flex-1 min-h-0 flex-col overflow-hidden pt-2 pr-0.5">
                     <div
                         data-testid="video-result-prompt"
                         className={RESULT_PROMPT_READONLY_CLASS}

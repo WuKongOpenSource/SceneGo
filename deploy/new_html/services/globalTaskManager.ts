@@ -212,6 +212,7 @@ export class GlobalTaskManager {
                     taskType: t.task_type || undefined,
                     status: t.status === 'processing' ? 'running' : t.status,
                     canCancel: t.can_cancel,
+                    cancelDeadline: t.cancel_deadline,
                     displayName: t.display_name || t.task_type,
                     projectId: t.project_id || '',
                     sourcePage: this.normalizeTaskSourcePage(t.source_page, t.entity_type),

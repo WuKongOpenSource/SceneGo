@@ -80,7 +80,10 @@ export function formatPublicTaskText(value: unknown, kind?: TaskKind): string {
   replace(/(?:doubao[\s_-]*)?seedance[\s_-]*1[.\s_-]?5(?:[\s_-]*pro)?(?:\s*·\s*首尾帧视频模型)?/gi, getModelDisplayName('Seedance15'));
   replace(/(?:doubao[\s_-]*)?seedance[\s_-]*2(?:[.\s_-]*0)?[\s_-]*fast(?:[\s_-]*\d+)?/gi, getModelDisplayName('Seedance2Fast'));
   replace(/(?:doubao[\s_-]*)?seedance[\s_-]*2(?:[.\s_-]*0)?[\s_-]*mini(?:[\s_-]*\d+)?/gi, getModelDisplayName('Seedance2Mini'));
-  replace(/(?:doubao[\s_-]*)?seedance(?:[\s_-]*2(?:[.\s_-]*0)?(?:[\s_-]*\d+)?)?/gi, getModelDisplayName('Seedance2'));
+  replace(/(?:doubao[\s_-]*)?seedance[\s_-]*2(?:[.\s_-]*0)?(?:[\s_-]*\d+)?/gi, getModelDisplayName('Seedance2'));
+  replace(/(?:doubao[\s_-]*)?seedance(?:_(?:morph|multi|i2v|t2v)|\s+视频生成)?/gi,
+    kind === 'seedance-1.5' ? getModelDisplayName('Seedance15') : kind === 'seedance-fast' ? getModelDisplayName('Seedance2Fast')
+      : kind === 'seedance-mini' ? getModelDisplayName('Seedance2Mini') : 'Seedance 视频生成');
   replace(/wan[\s_-]*2(?:\.\d+)?(?:[\s_-]*i2v)?/gi, getModelDisplayName('大能'));
   replace(/happy[\s_-]*horse(?:[\s_.-]*1\.0[\s_-]*r2v)?/gi, getModelDisplayName('HappyHorse'));
   replace(/kling(?:[\/\s_-]*kling[\s_-]*v?3(?:[\s_-]*(?:omni|video[\s_-]*generation))?)?/gi, getModelDisplayName('Kling'));

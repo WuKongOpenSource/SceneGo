@@ -102,6 +102,17 @@ export interface SeedanceParams {
 
 export type SeedanceVideoModel = 'Seedance15' | 'Seedance2' | 'Seedance2Fast' | 'Seedance2Mini';
 
+export function getSeedanceDurationError(subModel: SeedanceParams['sub_model'], value?: number): string | null {
+  const duration = value ?? 5;
+  const max = subModel === 'agent_plan' ? 12 : 15;
+  return Number.isInteger(duration) && duration >= 4 && duration <= max ? null
+    : `Seedance ${subModel === 'agent_plan' ? '1.5 Pro' : '2.0'} 需要 4–${max} 秒整数时长，当前选用 ${duration} 秒；请调整后生成。`;
+}
+
+export function seedanceModelForSubModel(subModel: SeedanceParams['sub_model']): SeedanceVideoModel {
+  return subModel === 'agent_plan' ? 'Seedance15' : subModel === 'fast' ? 'Seedance2Fast' : subModel === 'mini' ? 'Seedance2Mini' : 'Seedance2';
+}
+
 export function normalizeSeedanceOutputResolution(value?: string | null): string {
   return String(value ?? '').trim().toLowerCase() || '720p';
 }

@@ -306,7 +306,7 @@ class TaskDAO:
         query = """
             SELECT task_id, task_type, status, project_id, category,
                    source_page, source_item_id, display_name,
-                   created_at, completed_at, result_data, task_data
+                   created_at, completed_at, result_data, task_data, error_message
             FROM tasks
             WHERE user_id = $1 AND status IN ('completed', 'failed')
               AND ($2::timestamp IS NULL OR completed_at > $2)

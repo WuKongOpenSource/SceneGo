@@ -215,7 +215,7 @@ export const SeedanceMultimodalPanel: React.FC<Props> = ({
                     </select>
                 </label>
             </VideoControlPopover>
-            {durationControl || <VideoDurationControl value={value.duration || 5} min={3} max={isAgentPlan ? 12 : 15} onChange={duration => patch({ duration })} disabled={disabled} ariaLabel="视频时长" />}
+            {durationControl || <VideoDurationControl value={value.duration || 5} min={4} max={isAgentPlan ? 12 : 15} onChange={duration => patch({ duration })} disabled={disabled} ariaLabel="视频时长" />}
             <VideoControlPopover title="素材管理" dismissKey={pickerOpen} disabled={disabled} label={<><Plus size={12} />素材 {value.media_inputs.length}</>}>
                 {referenceList}
                 <div className="flex flex-wrap gap-2">

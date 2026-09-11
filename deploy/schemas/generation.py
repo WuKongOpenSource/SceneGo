@@ -2,6 +2,7 @@
 from typing import Optional, List, Dict, Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from services.seedance_output_contract import seedance_output_resolution
+from services.seedance_task_identity import seedance_task_identity
 
 
 class GenerateRequest(BaseModel):
@@ -10,7 +11,7 @@ class GenerateRequest(BaseModel):
     def validate_seedance_output(cls, values):
         if isinstance(values, dict) and str(values.get('task_type') or '').startswith('seedance_'):
             # Resolve the model-specific default before shared field defaults.
-            return {**values, 'resolution': seedance_output_resolution(values.get('resolution'), values.get('sub_model'))}
+            return {**values, **seedance_task_identity(values), 'resolution': seedance_output_resolution(values.get('resolution'), values.get('sub_model'))}
         return values
 
 

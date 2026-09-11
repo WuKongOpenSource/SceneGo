@@ -32,7 +32,7 @@ export interface VideoPollCompletePayload {
 
 export interface VideoPollCallbacks {
 
-    onProgress?: (progress: number, status: VideoPollStatus) => void;
+    onProgress?: (progress: number, status: VideoPollStatus, undo?: { canCancel?: boolean; cancelDeadline?: number }) => void;
 
     onComplete?: (payload: VideoPollCompletePayload) => void;
 
@@ -121,10 +121,11 @@ function buildPollFn(uuid: string): () => Promise<void> {
                     taskRegistry.update(entry.backendTaskId, {
                         status: regStatus,
                         progress: normalized,
-                        metadata: { canCancel: status.can_cancel },
+                        metadata: { canCancel: status.can_cancel, cancelDeadline: status.cancel_deadline },
                     });
                 } catch { /* noop */ }
-                cbs?.onProgress?.(rawProgress, mapped);
+                if (status.cancel_deadline) cbs?.onProgress?.(rawProgress, mapped, { canCancel: status.can_cancel, cancelDeadline: status.cancel_deadline });
+                else cbs?.onProgress?.(rawProgress, mapped);
             }
         } catch (error: any) {
             if (!isCurrent()) return;

@@ -96,11 +96,11 @@ describe('GenerationPage storyboard rail layout', () => {
     expect(source).toContain('line-clamp-2 min-h-10');
   });
 
-  it('uses segmented hierarchical shot labels and marks only segment starts', () => {
+  it('places segment headings outside the selectable shot cards while keeping hierarchical labels', () => {
     expect(source).toContain('buildStoryboardSegmentLookup(');
     expect(source).toContain('segmentInfo?.localShotLabel');
-    expect(source).toContain('segmentInfo?.isFirstInSegment');
-    expect(source).toContain('分段 <span className="font-mono text-warning">');
+    expect(source).toMatch(/<StoryboardShotListEntry key=\{item.id\} segment=\{segmentInfo\}>\s*<div\s*data-testid="storyboard-shot-card"/);
+    expect(source).not.toContain('segmentInfo?.isFirstInSegment');
   });
 });
 

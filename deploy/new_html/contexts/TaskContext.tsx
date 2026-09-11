@@ -83,6 +83,11 @@ function inferRuntimeTaskKind(task: GlobalTask): TaskKind {
   const name = `${task.displayName || ''} ${task.taskType || ''} ${task.id || ''}`.toLowerCase();
   const toolKind = inferImageToolKind(name);
   if (toolKind) return toolKind;
+  const videoModel = String(task.modelName || '').toLowerCase();
+  if (videoModel === 'seedance15') return 'seedance-1.5';
+  if (videoModel === 'seedance2fast') return 'seedance-fast';
+  if (videoModel === 'seedance2mini') return 'seedance-mini';
+  if (videoModel === 'seedance2' || /seedance/.test(name)) return 'seedance';
   if (category.includes('image') || name.includes('image') || name.includes('图像') || name.includes('生图')) {
     if (name.includes('doubao') || name.includes('豆包')) return 'doubao-image';
     if (name.includes('gemini') || name.includes('ai 生图任务')) return 'gemini-image';
@@ -252,6 +257,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 progress: t.progress,
                 metadata: {
                   canCancel: t.canCancel,
+                  cancelDeadline: t.cancelDeadline,
                   ...(t.provider ? { provider: t.provider } : {}),
                   ...(t.modelName ? { modelName: t.modelName } : {}),
                 },
@@ -260,6 +266,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
               existing.status !== t.status
               || existing.progress !== t.progress
               || existing.metadata?.canCancel !== t.canCancel
+              || existing.metadata?.cancelDeadline !== t.cancelDeadline
               || existing.error
               || (inferImageToolKind(t.taskType || t.displayName || '') && existing.kind !== inferRuntimeTaskKind(t))
               || (t.provider && existing.metadata?.provider !== t.provider)
@@ -275,6 +282,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 error: undefined,
                 metadata: {
                   canCancel: t.canCancel,
+                  cancelDeadline: t.cancelDeadline,
                   ...(t.provider ? { provider: t.provider } : {}),
                   ...(t.modelName ? { modelName: t.modelName } : {}),
                 },

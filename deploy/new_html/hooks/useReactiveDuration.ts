@@ -8,6 +8,9 @@ export interface UseReactiveDurationProps {
     meta: Partial<StoryboardMeta>;
     currentDuration?: number;
     maxDuration?: number;
+    minDuration?: number;
+    targetDurationMs?: number | null;
+    followTiming?: boolean;
     /** Called with (newDuration, override) whenever the hook decides duration must change.
      *  Caller should patch task_groups[groupUuid] = { duration, durationUserOverride: override }. */
     onChange: (duration: number, override: boolean) => void;
@@ -21,11 +24,14 @@ export interface UseReactiveDurationResult {
 }
 
 export function useReactiveDuration(p: UseReactiveDurationProps): UseReactiveDurationResult {
-    const reactive = computeReactiveDuration({
+    const fromMeta = computeReactiveDuration({
         audioDurationMs: p.meta.audioDurationMs,
         plannedDurationMs: p.meta.plannedDurationMs,
     }, p.maxDuration);
-    const boundedCurrent = clampSec(p.currentDuration ?? reactive, reactive, p.maxDuration);
+    const bound = (n: number) => Math.max(p.minDuration ?? 3, clampSec(n, 5, p.maxDuration));
+    const reactive = bound(p.targetDurationMs != null ? Math.ceil(p.targetDurationMs / 1000)
+        : p.followTiming === false ? p.currentDuration ?? 5 : fromMeta);
+    const boundedCurrent = p.currentDuration != null && p.durationUserOverride ? p.currentDuration : reactive;
 
     // When override is OFF, sync reactive value into the upstream state via onChange.
     useEffect(() => {
@@ -43,17 +49,13 @@ export function useReactiveDuration(p: UseReactiveDurationProps): UseReactiveDur
     }, [boundedCurrent, p.currentDuration, p.durationUserOverride, p.groupUuid]);
 
     const setUserDuration = useCallback(
-        (sec: number) => p.onChange(clampSec(sec, reactive, p.maxDuration), true),
-        [p.onChange, p.maxDuration, reactive],
+        (sec: number) => p.onChange(Math.max(p.minDuration ?? 3, clampSec(sec, reactive, p.maxDuration)), true),
+        [p.onChange, p.maxDuration, p.minDuration, reactive],
     );
 
     const clearOverride = useCallback(() => {
-        const next = computeReactiveDuration({
-            audioDurationMs: p.meta.audioDurationMs,
-            plannedDurationMs: p.meta.plannedDurationMs,
-        }, p.maxDuration);
-        p.onChange(next, false);
-    }, [p.onChange, p.meta.audioDurationMs, p.meta.plannedDurationMs, p.maxDuration]);
+        p.onChange(reactive, false);
+    }, [p.onChange, reactive]);
 
     return {
         duration: p.durationUserOverride ? boundedCurrent : reactive,

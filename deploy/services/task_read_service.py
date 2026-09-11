@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 from typing import Any, Optional
 from core.task_dispatch_guard import can_cancel_task
+from core.video_submission_grace import cancel_deadline, public_execution_status
 
 
 _TERMINAL_STATUSES = {"completed", "failed", "cancelled", "timeout"}
@@ -150,7 +151,8 @@ def format_queue_task_status(task: Any) -> dict[str, Any]:
         # produced the file, never from the card's mutable current selection.
         "task_type": task.task_type,
         "data": task.data,
-        "status": task.status.value,
+        "status": public_execution_status(task),
+        **({"cancel_deadline": cancel_deadline(task)} if cancel_deadline(task) else {}),
         "can_cancel": can_cancel_task(task),
         "refund_status": getattr(task, "refund_status", "") or None,
         "progress": _queue_progress(task),
@@ -204,7 +206,8 @@ def format_queue_task_summary(task: Any) -> dict[str, Any]:
     return {
         "task_id": task.task_id,
         "task_type": task.task_type,
-        "status": task.status.value,
+        "status": public_execution_status(task),
+        **({"cancel_deadline": cancel_deadline(task)} if cancel_deadline(task) else {}),
         "can_cancel": can_cancel_task(task),
         "progress": _queue_progress(task),
         "result": task.result,

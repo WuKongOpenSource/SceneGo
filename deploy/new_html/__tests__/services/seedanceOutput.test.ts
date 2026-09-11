@@ -12,6 +12,17 @@ vi.mock('../../services/httpClient', async (importOriginal) => ({
 beforeEach(() => vi.mocked(apiFetch).mockReset());
 
 describe.each([['workspace', submitSeedanceTask], ['public', submitPublicSeedanceTask]] as const)('%s Seedance output request contract', (_name, submit) => {
+  it.each([3, 3.5, 13, NaN])('rejects unsupported 1.5 Pro duration %s before HTTP', async duration => {
+    await expect(submit({ sub_model: 'agent_plan', prompt: '', duration, media_inputs: [] })).rejects.toThrow('4–12');
+    expect(apiFetch).not.toHaveBeenCalled();
+  });
+  it('records 1.5 Pro identity and both frames at the exact calibrated duration', async () => {
+    vi.mocked(apiFetch).mockResolvedValue(new Response(JSON.stringify({ task_id: 'created' }), { status: 200 }));
+    await submit({ sub_model: 'agent_plan', prompt: '动作', duration: 6, media_inputs: [
+      { kind: 'image', url: '/a.png', role: 'first_frame' }, { kind: 'image', url: '/b.png', role: 'last_frame' },
+    ] });
+    expect(JSON.parse(String(vi.mocked(apiFetch).mock.calls[0][1]?.body))).toMatchObject({ model: 'Seedance15', sub_model: 'agent_plan', duration: 6, task_type: 'seedance_morph' });
+  });
   it.each([undefined, null, '', '720P', ' 720p '])('submits the visible 720p default for %s', async resolution => {
     vi.mocked(apiFetch).mockResolvedValue(new Response(JSON.stringify({ task_id: 'created' }), { status: 200 }));
     const params = { sub_model: 'mini', prompt: 'pan slowly', duration: 15, resolution,

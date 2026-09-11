@@ -36,6 +36,7 @@ import type { TaskKind } from '../types';
 import { generateThumbnail } from '../utils/imageOptimization';
 import { recommendDoubaoImageSize } from '../utils/doubaoImageSize';
 import { buildStoryboardSegmentLookup } from '../utils/storyboardSegments';
+import { StoryboardShotListEntry } from './StoryboardShotListEntry';
 import { loadShotImages, clearImageCache, getCachedBlobUrl, setCachedBlobUrl, removeImageFromCache, getImageThumbnailUrl } from '../services/imageLoaderService';
 import { saveRunningTask, removeRunningTask, getRecoverableTasks } from '../services/taskRecovery';
 import { usePersistedPageState } from '../hooks/usePersistedPageState';
@@ -2903,8 +2904,8 @@ export const GenerationPage: React.FC<GenerationPageProps> = ({
                        const thumb = rawThumb ? getImageThumbnailUrl(rawThumb, 144, 96) : undefined;
 
                        return (
+                           <StoryboardShotListEntry key={item.id} segment={segmentInfo}>
                            <div
-                               key={item.id}
                                data-testid="storyboard-shot-card"
                                data-storyboard-shot-id={item.id}
                                ref={(element) => {
@@ -2935,11 +2936,6 @@ export const GenerationPage: React.FC<GenerationPageProps> = ({
                                      {isChecked ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4" />}
                                  </button>
                                  <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                                   {segmentInfo?.isFirstInSegment && (
-                                     <span className="inline-flex shrink-0 items-baseline gap-1 rounded border border-warning/30 bg-y50 px-1.5 py-0.5 text-[9px] font-semibold text-n500">
-                                       分段 <span className="font-mono text-warning">{String(segmentInfo.segmentNo).padStart(2, '0')}</span>
-                                     </span>
-                                   )}
                                    <span className={`min-w-0 truncate text-sm font-semibold ${isSelected ? 'text-n800' : 'text-n700 group-hover:text-n800'}`}>
                                      {shotLabel}
                                    </span>
@@ -3015,6 +3011,7 @@ export const GenerationPage: React.FC<GenerationPageProps> = ({
                                 </div>
                                 </div>
                             </div>
+                           </StoryboardShotListEntry>
                        );
                    })}
 

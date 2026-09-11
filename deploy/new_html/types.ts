@@ -555,6 +555,7 @@ export interface RegisteredTask {
 }
 
 export interface GlobalTask {
+  cancelDeadline?: number;
   canCancel?: boolean;
   id: string;
   category: TaskCategory;

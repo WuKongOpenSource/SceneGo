@@ -11,6 +11,8 @@ import {
   normalizeSeedanceMediaForSubmission,
   normalizeSeedanceOutputResolution,
   getSeedanceOutputError,
+  getSeedanceDurationError,
+  seedanceModelForSubModel,
   seedanceSubModelForVideoModel,
   type DashScopeVideoParams,
   type SeedanceMediaInput,
@@ -158,7 +160,8 @@ export async function submitTask(
     };
     if (imageFilenameEnd) body.image_path_end = imageFilenameEnd;
   } else if (isSeedanceVideoModel(model)) {
-    const outputError = getSeedanceOutputError(seedanceSubModelForVideoModel(model), generationOptions?.resolution);
+    const outputError = getSeedanceOutputError(seedanceSubModelForVideoModel(model), generationOptions?.resolution)
+      || getSeedanceDurationError(seedanceSubModelForVideoModel(model), generationOptions?.duration);
     if (outputError) throw new Error(outputError);
     const media: SeedanceMediaInput[] = [];
     if (imageFilename) {
@@ -178,6 +181,8 @@ export async function submitTask(
     body = {
       task_type: inferSeedanceTaskType(media),
       sub_model: seedanceSubModelForVideoModel(model),
+      model,
+      duration: generationOptions?.duration ?? 5,
       resolution: normalizeSeedanceOutputResolution(generationOptions?.resolution),
       prompt,
       media_inputs: media,
@@ -306,7 +311,8 @@ export async function submitSeedanceTask(
   draftTaskId?: string,
   agentPlanCompat = false,
 ): Promise<{ task_id: string }> {
-  const outputError = getSeedanceOutputError(params.sub_model, params.resolution);
+  const outputError = getSeedanceOutputError(params.sub_model, params.resolution)
+    || getSeedanceDurationError(params.sub_model, params.duration);
   if (outputError) throw new Error(outputError);
   const mediaInputs = normalizeSeedanceMediaForSubmission(params.media_inputs, agentPlanCompat);
   const audioError = params.sub_model !== 'agent_plan' && seedanceAudioError(mediaInputs, params.reference_audio_policy);
@@ -314,6 +320,7 @@ export async function submitSeedanceTask(
   const body: Record<string, any> = {
     task_type: inferSeedanceTaskType(mediaInputs, !!draftTaskId),
     sub_model: params.sub_model,
+    model: seedanceModelForSubModel(params.sub_model),
     model_scope: params.model_scope,
     prompt: params.prompt,
     media_inputs: mediaInputs,

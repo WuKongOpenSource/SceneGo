@@ -211,6 +211,17 @@ def validate_seedance_generation_options(params: Mapping[str, Any] | None) -> No
     if _infer_family(data) != "seedance":
         return
     tier = _seedance_tier(data)
+    raw_duration = data.get("duration")
+    if raw_duration is None:
+        raw_duration = data.get("duration_seconds", 5)
+    try:
+        duration = float(raw_duration)
+    except (TypeError, ValueError):
+        duration = 0.0
+    max_duration = 12 if tier == "1.5" else 15
+    if not 4 <= duration <= max_duration or not duration.is_integer():
+        label = "1.5 Pro" if tier == "1.5" else "2.0"
+        raise ValueError(f"Seedance {label} 需要 4–{max_duration} 秒整数时长，请调整后生成")
     resolution = _resolution(data, "720P")
     if tier in {"fast", "mini"} and resolution not in {"480P", "720P"}:
         label = "Fast" if tier == "fast" else "Mini"

@@ -86,6 +86,8 @@ class OnlineProviderTaskService:
             except InsufficientCreditsError as exc:
                 raise HTTPException(status_code=402, detail=f"创作点数不足：{exc}") from exc
 
+            from core.video_submission_grace import set_video_submission_grace
+            set_video_submission_grace(task_type, task_data)
             task = OnlineProviderTask(
                 task_id,
                 task_type,

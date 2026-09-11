@@ -73,6 +73,16 @@ def _agent_plan_duration_limit_message(duration: int) -> str:
 
 
 def _validate_payload_duration(payload: Dict[str, Any]) -> None:
+    model = str(payload.get("model") or "").lower()
+    if "seedance" in model and any(version in model for version in ("1.5", "1-5", "2-0", "2.0")):
+        raw = payload.get("duration")
+        if raw is not None:
+            try:
+                seconds = float(raw)
+            except (TypeError, ValueError):
+                seconds = 0.0
+            if seconds < 4 or not seconds.is_integer():
+                raise ValueError(f"Seedance 当前模型需要至少 4 秒的整数时长，当前请求 {raw} 秒；本次未提交。")
     if payload.get("model") != SEEDANCE_AGENT_PLAN_MODEL:
         return
     raw_duration = payload.get("duration")

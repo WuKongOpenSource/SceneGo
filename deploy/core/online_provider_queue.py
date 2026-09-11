@@ -92,7 +92,9 @@ class OnlineProviderQueue:
                     f"{USER_TASK_PREFIX}{task.user_id}",
                     USER_INDEX_EXPIRE_SECONDS,
                 )
-            await self.redis.zadd(PENDING_KEY, {task.task_id: self._priority_score(task, now)})
+            from core.video_submission_grace import enqueue_with_grace, cancel_deadline
+            await enqueue_with_grace(self.redis, PENDING_KEY, f"{TASK_PREFIX}{task.task_id}",
+                                     task.task_id, self._priority_score(task, now), cancel_deadline(task))
             await self._persist_create(task)
             return True
         except Exception as exc:
@@ -110,6 +112,8 @@ class OnlineProviderQueue:
             raise ValueError("OnlineProviderQueue only supports external_only=True")
         try:
             await retry_cancelled_refunds(self, TASK_PREFIX)
+            from core.video_submission_grace import promote_ready
+            await promote_ready(self.redis, PENDING_KEY, TASK_PREFIX)
             result = await self.redis.zpopmin(PENDING_KEY, count=1)
             if not result:
                 return None
