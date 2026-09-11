@@ -1,109 +1,124 @@
 import asyncio
 import base64
 import io
+import shutil
 import wave
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
-
 from services import audio_transcription_service as service
+from services.subtitle_word_timing import word_timestamps_to_cues
 
 
-def wav_data_uri(duration_ms=500):
-    frames = b"\x00\x00" * int(16_000 * duration_ms / 1000)
+def wav_data_uri(duration_ms=800, value=200):
     buffer = io.BytesIO()
-    with wave.open(buffer, "wb") as output:
+    with wave.open(buffer, 'wb') as output:
         output.setnchannels(1)
         output.setsampwidth(2)
-        output.setframerate(16_000)
-        output.writeframes(frames)
-    return "data:audio/wav;base64," + base64.b64encode(buffer.getvalue()).decode("ascii")
+        output.setframerate(16000)
+        output.writeframes(value.to_bytes(2, 'little', signed=True) * (16 * duration_ms))
+    return 'data:audio/wav;base64,' + base64.b64encode(buffer.getvalue()).decode()
 
 
-def test_normalize_transcription_segments_validates_and_orders_provider_json():
-    value = '```json\n{"segments":[{"start_ms":800,"end_ms":1200,"text":" 后句 "},{"start_ms":0,"end_ms":500,"text":"前句"},{"start_ms":900,"end_ms":850,"text":"坏数据"}]}\n```'
-    assert service.normalize_transcription_segments(value, duration_ms=1000) == [
-        {"start_ms": 0, "end_ms": 500, "text": "前句"},
-        {"start_ms": 800, "end_ms": 1000, "text": "后句"},
-    ]
+def clip(**kwargs):
+    return {'clip_id': 'v1', 'audio_url': '/api/files/f1/download', 'media_kind': 'video', 'source_offset_ms': 200, 'duration_ms': 500, **kwargs}
 
 
-def test_trim_audio_data_uri_applies_the_requested_clip_boundary():
-    trimmed = service._trim_audio_data_uri(
-        wav_data_uri(800),
-        source_offset_ms=200,
-        duration_ms=300,
-    )
-    assert trimmed.startswith("data:audio/wav;base64,")
-    assert len(base64.b64decode(trimmed.split(",", 1)[1])) > 100
+@pytest.fixture
+def configured(monkeypatch):
+    monkeypatch.setenv('SUBTITLE_TRANSCRIPTION_ENGINE', 'whisper')
+    config = SimpleNamespace(api_key='test-key', endpoint='https://example.test/v1beta', requests_kwargs=lambda: {})
+    monkeypatch.setattr(service, 'resolve_provider', lambda *a, **kw: config)
+    monkeypatch.setattr(service, 'provider_audio_or_video_reference', AsyncMock(return_value=wav_data_uri()))
+    monkeypatch.setattr(service, '_extract_audio', lambda *args: (b'audio', 500))
+    return config
 
 
-@pytest.mark.asyncio
-async def test_transcription_uses_authorized_audio_and_returns_clip_relative_timestamps(monkeypatch):
-    config = SimpleNamespace(
-        provider="gemini-text",
-        api_key="test-key",
-        endpoint="https://example.test/v1",
-        model_name="gemini-2.5-flash",
-        requests_kwargs=lambda: {},
-    )
-    post = AsyncMock(return_value={"candidates": [{"content": {"parts": [{
-        "text": '{"segments":[{"start_ms":100,"end_ms":600,"text":"你好"}]}',
-    }]}}]})
-    monkeypatch.setattr(service, "resolve_provider", lambda *args, **kwargs: config)
-    monkeypatch.setattr(service, "provider_audio_or_video_reference", AsyncMock(return_value=wav_data_uri()))
-    monkeypatch.setattr(service, "_trim_audio_data_uri", lambda *args, **kwargs: wav_data_uri(300))
-    monkeypatch.setattr(service, "_post_json_request_async", post)
-
-    result = await service.transcribe_timeline_audio([{
-        "clip_id": "voice-1",
-        "audio_url": "/api/files/file_voice/download",
-        "source_offset_ms": 200,
-        "duration_ms": 800,
-    }], file_dao=object())
-
-    assert result == [{
-        "clip_id": "voice-1", "start_ms": 100, "end_ms": 600, "text": "你好",
-    }]
-    assert post.await_args.kwargs["url"] == (
-        "https://example.test/v1beta/models/gemini-2.5-flash:generateContent"
-    )
-    parts = post.await_args.kwargs["payload"]["contents"][0]["parts"]
-    assert parts[1]["inlineData"]["mimeType"] == "audio/wav"
-    assert parts[1]["inlineData"]["data"]
+@pytest.mark.parametrize('endpoint', ['https://example.test/v1', 'https://example.test/v1beta', 'https://example.test/v1/chat/completions', 'https://example.test/v1beta/openai', 'https://example.test/v1/audio/transcriptions'])
+def test_endpoint_uses_same_configured_gateway(endpoint):
+    assert service.transcription_endpoint(endpoint) == 'https://example.test/v1/audio/transcriptions'
 
 
-@pytest.mark.asyncio
-async def test_transcription_splits_long_audio_into_bounded_native_requests(monkeypatch):
-    config = SimpleNamespace(
-        provider="gemini-text",
-        api_key="test-key",
-        endpoint="https://example.test/v1beta",
-        model_name="gemini-2.5-flash",
-        requests_kwargs=lambda: {},
-    )
-    post = AsyncMock(return_value={"candidates": [{"content": {"parts": [{
-        "text": '{"segments":[{"start_ms":0,"end_ms":1000,"text":"片段"}]}',
-    }]}}]})
-    trims = []
-    monkeypatch.setattr(service, "resolve_provider", lambda *args, **kwargs: config)
-    monkeypatch.setattr(service, "provider_audio_or_video_reference", AsyncMock(return_value=wav_data_uri()))
+def test_capability_requires_explicit_opt_in(monkeypatch):
+    monkeypatch.delenv('SUBTITLE_TRANSCRIPTION_ENGINE', raising=False)
+    assert service.transcription_capability()['available'] is False
 
-    def fake_trim(*_args, **kwargs):
-        trims.append((kwargs["source_offset_ms"], kwargs["duration_ms"]))
-        return wav_data_uri(100)
 
-    monkeypatch.setattr(service, "_trim_audio_data_uri", fake_trim)
-    monkeypatch.setattr(service, "_post_json_request_async", post)
+@pytest.mark.skipif(not shutil.which('ffmpeg') or not shutil.which('ffprobe'), reason='media tools unavailable')
+def test_extract_preserves_crop_duration_and_skips_silence():
+    content, duration = service._extract_audio(wav_data_uri(), 200, 300)
+    assert content and duration == 300
+    assert service._extract_audio(wav_data_uri(value=0), 200, 300) == (b'', 300)
+    with pytest.raises(service.AudioTranscriptionError, match='超过'):
+        service._extract_audio(wav_data_uri(), 700, 400)
 
-    result = await service.transcribe_timeline_audio([{
-        "clip_id": "voice-1",
-        "audio_url": "/api/files/file_voice/download",
-        "source_offset_ms": 2000,
-        "duration_ms": 125000,
-    }], file_dao=object())
 
-    assert trims == [(2000, 60000), (62000, 60000), (122000, 5000)]
-    assert [item["start_ms"] for item in result] == [0, 60000, 120000]
-    assert post.await_count == 3
+async def test_transcription_uses_word_timestamps_without_guessing(configured, monkeypatch):
+    post = AsyncMock(return_value={'text': '你好。', 'words': [{'word': '你好', 'start': .1, 'end': .45}]})
+    monkeypatch.setattr(service, '_post_form_request_async', post)
+    result = await service.transcribe_timeline_audio([clip()], file_dao=object(), user_id='user1')
+    assert result == [{'clip_id': 'v1', 'start_ms': 100, 'end_ms': 450, 'text': '你好。'}]
+    args = post.await_args.kwargs
+    assert args['url'] == 'https://example.test/v1/audio/transcriptions'
+    assert args['data']['model'] == 'whisper-1'
+    assert args['data']['timestamp_granularities[]'] == ['word', 'segment']
+    assert args['request_kwargs']['allow_redirects'] is False
+    assert 'user1' not in service._busy_users
+
+
+@pytest.mark.parametrize('override', [{'duration_ms': 60001}, {'duration_ms': True}, {'source_offset_ms': -1}, {'duration_ms': '500'}, {'audio_url': 'data:audio/wav;base64,AA=='}, {'audio_url': 'blob:source'}])
+async def test_invalid_requests_never_call_upstream(configured, monkeypatch, override):
+    post = AsyncMock()
+    monkeypatch.setattr(service, '_post_form_request_async', post)
+    with pytest.raises(service.AudioTranscriptionError):
+        await service.transcribe_timeline_audio([clip(**override)], file_dao=object(), user_id='user1')
+    post.assert_not_called()
+
+
+async def test_remote_sources_must_be_imported_and_no_audio_skips_provider(configured, monkeypatch):
+    post = AsyncMock()
+    monkeypatch.setattr(service, '_post_form_request_async', post)
+    monkeypatch.setattr(service, 'provider_audio_or_video_reference', AsyncMock(return_value='https://example.test/video.mp4'))
+    with pytest.raises(service.AudioTranscriptionError, match='上传'):
+        await service.transcribe_timeline_audio([clip()], file_dao=object(), user_id='user1')
+    monkeypatch.setattr(service, 'provider_audio_or_video_reference', AsyncMock(return_value=wav_data_uri()))
+    monkeypatch.setattr(service, '_extract_audio', lambda *a: (b'', 500))
+    assert await service.transcribe_timeline_audio([clip()], file_dao=object(), user_id='user1') == []
+    post.assert_not_called()
+
+
+async def test_cancellation_keeps_user_slot_until_upstream_finishes(configured, monkeypatch):
+    started, release = asyncio.Event(), asyncio.Event()
+    async def post(**kwargs):
+        started.set()
+        await release.wait()
+        return {'text': '', 'words': []}
+    monkeypatch.setattr(service, '_post_form_request_async', post)
+    pending = asyncio.create_task(service.transcribe_timeline_audio([clip()], file_dao=object(), user_id='user1'))
+    await started.wait()
+    pending.cancel()
+    await asyncio.sleep(0)
+    with pytest.raises(service.AudioTranscriptionBusy):
+        await service.transcribe_timeline_audio([clip()], file_dao=object(), user_id='user1')
+    release.set()
+    with pytest.raises(asyncio.CancelledError):
+        await pending
+    assert 'user1' not in service._busy_users
+
+
+@pytest.mark.parametrize('body', [None, {'text': 'speech'}, {'text': 'speech', 'words': []}, {'words': [{'word': 'hello', 'start': float('nan'), 'end': 1}]}, {'words': [{'word': 'a', 'start': .5, 'end': 1}, {'word': 'b', 'start': .1, 'end': .8}]}, {'words': [{'word': 'a', 'start': 0, 'end': 3}]}])
+def test_word_clocks_fail_closed(body):
+    with pytest.raises(ValueError):
+        word_timestamps_to_cues(body, 2000)
+
+
+def test_word_clocks_keep_real_pauses_and_punctuation_without_duplicates():
+    assert word_timestamps_to_cues({'text': '你好，世界。', 'words': [
+        {'word': '你好', 'start': .1, 'end': .3}, {'word': '，', 'start': .3, 'end': .3},
+        {'word': '世界。', 'start': .9, 'end': 1.2},
+    ]}, 2000) == [{'start_ms': 100, 'end_ms': 300, 'text': '你好，'}, {'start_ms': 900, 'end_ms': 1200, 'text': '世界。'}]
+
+
+def test_no_speech_segments_do_not_become_subtitles():
+    assert word_timestamps_to_cues({'text': 'noise', 'words': [{'word': 'noise', 'start': 0, 'end': 1}], 'segments': [{'start': 0, 'end': 2, 'no_speech_prob': .9}]}, 2000) == []

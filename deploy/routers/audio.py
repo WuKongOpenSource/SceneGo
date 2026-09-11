@@ -2,11 +2,11 @@
 
 import logging
 import os
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Literal, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from services.audio_access_service import (
     AudioObjectAccessDenied,
@@ -50,7 +50,10 @@ from services.provider_object_access_service import (
     reject_foreign_provider_object,
     require_provider_object_owner,
 )
-from services.audio_transcription_service import AudioTranscriptionError, transcribe_timeline_audio
+from services.audio_transcription_service import (
+    AudioTranscriptionError, AudioTranscriptionBusy, transcribe_timeline_audio,
+    transcription_capability as get_transcription_capability,
+)
 from services.ai_proxy_types import AIProxyError
 
 
@@ -82,9 +85,6 @@ def create_audio_router(
     get_audio_provider = get_audio_provider_func
     AUDIO_UPLOAD_DIR = audio_upload_dir
     task_service = task_service_module
-    transcription_enabled = os.getenv("GEMINI_AUDIO_TRANSCRIPTION_ENABLED", "0").strip().lower() in {
-        "1", "true", "yes",
-    }
 
     def _require_minimax_client():
         return require_minimax_client()
@@ -223,16 +223,16 @@ def create_audio_router(
         episode_id: Optional[str] = None
 
     class TimelineTranscriptionClip(BaseModel):
-        clip_id: str
-        audio_url: str
-        media_kind: str = "audio"
-        source_offset_ms: int = 0
-        duration_ms: int
+        clip_id: str = Field(min_length=1, max_length=200)
+        audio_url: str = Field(min_length=1, max_length=4096)
+        media_kind: Literal['audio', 'video'] = "audio"
+        source_offset_ms: int = Field(default=0, ge=0, strict=True)
+        duration_ms: int = Field(ge=100, le=60_000, strict=True)
 
     class TimelineTranscriptionRequest(BaseModel):
         project_id: Optional[str] = None
         episode_id: str
-        clips: list[TimelineTranscriptionClip]
+        clips: list[TimelineTranscriptionClip] = Field(min_length=1, max_length=10)
 
     @router.get("/api/episodes/{episode_id}/audio/transcription-capability")
     async def transcription_capability(episode_id: str, user_id: str = Depends(get_current_user)):
@@ -246,7 +246,7 @@ def create_audio_router(
             )
         except AudioObjectAccessDenied:
             raise HTTPException(status_code=404, detail="分集不存在")
-        return {"available": transcription_enabled}
+        return get_transcription_capability()
 
     @router.post("/api/episodes/{episode_id}/audio/transcribe-timeline")
     async def transcribe_timeline(
@@ -254,8 +254,6 @@ def create_audio_router(
         data: TimelineTranscriptionRequest,
         user_id: str = Depends(get_current_user),
     ):
-        if not transcription_enabled:
-            raise HTTPException(status_code=503, detail="语音字幕服务尚未开通")
         if data.episode_id != episode_id:
             raise HTTPException(status_code=422, detail="分集范围不一致")
         try:
@@ -266,19 +264,20 @@ def create_audio_router(
                 episode_dao=EpisodeDAO,
                 project_access_checker=project_access_checker,
             )
-            await require_generation_request_access(
-                data,
-                user_id,
-                [clip.audio_url for clip in data.clips],
-                file_dao=FileDAO,
-            )
+            await require_generation_request_access(data, user_id, [clip.audio_url for clip in data.clips], file_dao=FileDAO)
+            capability = get_transcription_capability()
+            if not capability['available']:
+                raise HTTPException(status_code=503, detail=capability['reason'])
             subtitles = await transcribe_timeline_audio(
                 [clip.model_dump() for clip in data.clips],
                 file_dao=FileDAO,
+                user_id=user_id,
             )
-            return {"success": True, "subtitles": subtitles, "model": "gemini-2.5-flash"}
+            return {"success": True, "subtitles": subtitles, "model": capability['model']}
         except (AudioObjectAccessDenied, GenerationAccessDenied):
             raise HTTPException(status_code=404, detail="配音片段不存在或无权访问")
+        except AudioTranscriptionBusy as exc:
+            raise HTTPException(status_code=409, detail=str(exc))
         except AudioTranscriptionError as exc:
             raise HTTPException(status_code=422, detail=str(exc))
         except AIProxyError as exc:

@@ -71,7 +71,8 @@ import {
 } from '@runtime/clusterNodeService';
 import { sanitizeProcessingTerminology } from '../utils/processingTerminology';
 import { InlineCreditEstimate } from '../components/InlineCreditEstimate';
-import { getAudioTranscriptionCapability, transcribeTimelineAudio } from '../services/audioTranscriptionService';
+import { SubtitleTranscriptionModal } from '../components/SubtitleTranscriptionModal';
+import { mergeSubtitleResults, subtitleTimelineKey } from '../utils/subtitleTranscription';
 
 type MediaClip = EnhanceMediaClip;
 
@@ -391,22 +392,11 @@ export const EnhancePage: React.FC = () => {
   });
   const [showMusicModal, setShowMusicModal] = useState(false);
   const [showSfxModal, setShowSfxModal] = useState(false);
-  const [subtitleGenerating, setSubtitleGenerating] = useState(false);
-  const [subtitleTranscriptionAvailable, setSubtitleTranscriptionAvailable] = useState(false);
+  const [showSubtitleModal, setShowSubtitleModal] = useState(false);
 
   useEffect(() => {
     timelineRevisionRef.current = timelineRevision;
   }, [timelineRevision]);
-
-  useEffect(() => {
-    let active = true;
-    setSubtitleTranscriptionAvailable(false);
-    if (!episodeId) return () => { active = false; };
-    void getAudioTranscriptionCapability(episodeId)
-      .then(result => { if (active) setSubtitleTranscriptionAvailable(Boolean(result.available)); })
-      .catch(() => { if (active) setSubtitleTranscriptionAvailable(false); });
-    return () => { active = false; };
-  }, [episodeId]);
 
   const [enhancementKind, setEnhancementKind] = useState<EnhancementKind>('upscale');
   const [targetResolution, setTargetResolution] = useState<'720p' | '1080p' | '4K'>('1080p');
@@ -1117,81 +1107,6 @@ export const EnhancePage: React.FC = () => {
     commitTimeline(current => deleteTimelineClip(current, selectedClipId, clip.type === 'video'));
     setSelectedClipId(null);
   }, [commitSubtitleTimeline, commitTimeline, selectedClipId, selectedSubtitleId, trackState]);
-
-  const handleGenerateSubtitles = useCallback(async () => {
-    const subtitleSources = clipsRef.current.filter(clip => (
-      Boolean(clip.url)
-      && clip.duration >= 0.2
-      && (composeAudioMode === 'video_original'
-        ? clip.type === 'video'
-        : clip.type === 'audio' && clip.audioKind === 'voice' && (clip.volume ?? 1) > 0)
-    ));
-    if (!subtitleSources.length) {
-      setEnhanceError(composeAudioMode === 'video_original'
-        ? '时间线上没有可识别的原声视频片段。'
-        : '时间线上没有可识别的配音片段；请先加入对白或旁白。');
-      return;
-    }
-    if (
-      subtitlesRef.current.length > 0
-      && !window.confirm('当前已有字幕。继续将用 AI 识别结果替换现有字幕，是否继续？')
-    ) return;
-
-    const requestedRevision = timelineRevisionRef.current;
-    const requestedSignature = JSON.stringify(subtitleSources.map(clip => [
-      clip.id, clip.url, clip.startTime, clip.duration, clip.sourceOffset, clip.volume,
-    ]));
-    setSubtitleGenerating(true);
-    setEnhanceError('');
-    setEnhanceNotice('正在根据配音生成带时间点字幕…');
-    try {
-      const segments = await transcribeTimelineAudio(
-        episodeId,
-        projectId || undefined,
-        subtitleSources.map(clip => ({
-          clipId: clip.id,
-          audioUrl: clip.url,
-          mediaKind: clip.type,
-          sourceOffsetMs: Math.round(clip.sourceOffset * 1000),
-          durationMs: Math.round(clip.duration * 1000),
-        })),
-      );
-      const currentSubtitleSources = clipsRef.current.filter(clip => (
-        Boolean(clip.url) && clip.duration >= 0.2
-        && (composeAudioMode === 'video_original'
-          ? clip.type === 'video'
-          : clip.type === 'audio' && clip.audioKind === 'voice' && (clip.volume ?? 1) > 0)
-      ));
-      const currentSignature = JSON.stringify(currentSubtitleSources.map(clip => [
-        clip.id, clip.url, clip.startTime, clip.duration, clip.sourceOffset, clip.volume,
-      ]));
-      if (timelineRevisionRef.current !== requestedRevision || currentSignature !== requestedSignature) {
-        throw new Error('识别期间时间线已变化，未覆盖当前字幕；请重新生成。');
-      }
-      const voiceById = new Map(subtitleSources.map(clip => [clip.id, clip]));
-      const generated = segments.flatMap((segment, index) => {
-        const clip = voiceById.get(segment.clipId);
-        if (!clip) return [];
-        const startTime = clip.startTime + segment.startMs / 1000;
-        const endTime = Math.min(clip.startTime + clip.duration, clip.startTime + segment.endMs / 1000);
-        if (endTime - startTime < 0.2) return [];
-        return [{
-          id: `asr_${segment.clipId}_${segment.startMs}_${index}`,
-          text: segment.text,
-          startTime,
-          duration: endTime - startTime,
-        }];
-      }).sort((a, b) => a.startTime - b.startTime);
-      if (!generated.length) throw new Error('没有识别到可用字幕，请检查配音清晰度后重试。');
-      commitSubtitleTimeline(current => ({ ...current, subtitles: generated }));
-      setEnhanceNotice(`已根据配音生成 ${generated.length} 条带时间点字幕。`);
-    } catch (error) {
-      setEnhanceNotice('');
-      setEnhanceError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setSubtitleGenerating(false);
-    }
-  }, [commitSubtitleTimeline, composeAudioMode, episodeId, projectId]);
 
   const handleDuplicate = useCallback(() => {
     if (!selectedClipId) return;
@@ -2660,20 +2575,25 @@ export const EnhancePage: React.FC = () => {
             >
               <Captions size={13} /> 字幕
             </button>
-            {subtitleTranscriptionAvailable && (
-              <button
-                type="button"
-                onClick={handleGenerateSubtitles}
-                disabled={subtitleGenerating || (composeAudioMode === 'video_original' ? videoClips.length === 0 : voiceClips.length === 0)}
-                className="flex items-center gap-1 px-2 py-1.5 hover:bg-n20 rounded text-xs text-n300 hover:text-primary transition-colors disabled:opacity-50"
-                title={composeAudioMode === 'video_original'
-                  ? '根据时间线视频原声自动生成带时间点字幕'
-                  : '根据时间线上的对白和旁白自动生成带时间点字幕'}
-              >
-                {subtitleGenerating ? <Loader size={12} className="animate-spin" /> : <Wand2 size={12} />}
-                {subtitleGenerating ? '识别中' : 'AI 语音字幕'}
-              </button>
-            )}
+            <button type="button" onClick={() => setShowSubtitleModal(true)}
+              disabled={!episodeId || videoClips.length === 0}
+              className="flex items-center gap-1 rounded px-2 py-1.5 text-xs text-primary hover:bg-primary/5 disabled:opacity-50"
+              title="识别视频原声或配音，预览后加入字幕轨道">
+              <Wand2 size={13} /> AI 字幕
+            </button>
+            {showSubtitleModal && <SubtitleTranscriptionModal
+              key={episodeId}
+              episodeId={episodeId} projectId={projectId || undefined}
+              clips={clips} subtitles={subtitles} defaultSource={composeAudioMode}
+              onClose={() => setShowSubtitleModal(false)}
+              onApply={(generated, mode, expectedTimeline) => {
+                if (subtitleTimelineKey(clipsRef.current) !== expectedTimeline) throw new Error('识别期间时间线已变化，请重新识别');
+                const merged = mergeSubtitleResults(subtitlesRef.current, generated, mode);
+                if (!merged.added) throw new Error('没有可加入的字幕，请检查加入方式');
+                commitSubtitleTimeline(current => ({ ...current, subtitles: merged.subtitles }));
+                setEnhanceNotice(`已加入 ${merged.added} 条 AI 字幕，可编辑或撤销。`);
+              }}
+            />}
             <input type="file" accept="audio/*" className="hidden" ref={fileInputRef} onChange={handleAudioUpload} />
           </div>
 
