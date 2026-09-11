@@ -21,7 +21,8 @@ SceneGo 开源版按许可证和仓库现状提供。公开发布方不为开源
 如需安装实施、二次开发、运维、安全评估或其他商业技术服务，可以联系发行方另行协商服务范围、交付物、费用、时间和责任边界。
 
 - 产品与品牌官网：<https://www.ostory.ai>
-- 公司与商业合作官网：<https://www.rongyansuanli.com>
+- 公司：深圳熔岩算力科技有限责任公司 / Shenzhen Lava Computing Power Technology Co., Ltd
+- 公司与商业合作官网：<https://www.rongyansuanli.com/>
 - 商业支持与安全联系邮箱：`rongyansuanli@163.com`
 
 联系商业支持不代表服务已经成立；具体服务范围、交付物、费用、时间和责任边界以双方另行签署的书面协议为准。

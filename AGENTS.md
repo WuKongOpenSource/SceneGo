@@ -53,6 +53,9 @@ release script is prohibited. See `docs/repository-boundary.md`.
   credentials, production configuration, internal deployment automation,
   packaged artifacts, runtime data, and Ovideo-developed local ComfyUI agents,
   nodes, workflows, relays, and GPU operations.
-- SceneGo is licensed under `AGPL-3.0-only` with separate commercial licensing.
+- SceneGo uses standard `AGPL-3.0-only` community licensing plus the separate
+  SceneGo Commercial License (MCL). Strongly request GitHub Fork development and
+  upstream pull requests, but never describe that workflow as an additional
+  AGPL authorization condition.
   Keep the official licensing and contact links pointed to
   `https://www.ostory.ai` and `https://www.rongyansuanli.com`.

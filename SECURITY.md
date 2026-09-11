@@ -8,7 +8,8 @@ impact, and any suggested mitigation. Do not include production credentials or
 personal data in the report.
 
 - Private security report channel: `rongyansuanli@163.com`
-- Official company site: <https://www.rongyansuanli.com>
+- Company: 深圳熔岩算力科技有限责任公司 / Shenzhen Lava Computing Power Technology Co., Ltd
+- Official company site: <https://www.rongyansuanli.com/>
 
 Use the subject prefix `[SceneGo Security]`. If the report contains sensitive
 material, first request a secure transfer method and do not attach credentials,

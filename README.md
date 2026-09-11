@@ -6,7 +6,33 @@ generation, and final delivery while preserving user choices and generation
 history.
 
 SceneGo is an [Ostory 故事星](https://www.ostory.ai) product developed by
-[深圳熔岩算力科技有限责任公司](https://www.rongyansuanli.com).
+[深圳熔岩算力科技有限责任公司 / Shenzhen Lava Computing Power Technology Co., Ltd](https://www.rongyansuanli.com/).
+
+## Online experience / 在线体验
+
+Hosted experience: [https://tv.ostory.ai](https://tv.ostory.ai)
+
+在线体验与本仓库的自行部署版本是两种交付形态，功能版本、可用模型和服务配置可能不同。
+首次使用时：
+
+1. 打开在线地址，在登录页点击“创建账号”。
+2. 使用中国大陆手机号，完成滑块验证并获取 6 位短信验证码；设置密码即可注册，邮箱可稍后绑定。
+3. 注册后可使用手机号和密码登录，也可以使用短信验证码登录。
+4. 新建项目和分集后，可按“创意 → 剧本 → 角色与场景 → 分镜 → 画面与视频 →
+   配音与字幕 → 剪辑与成片”的流程体验，也可以进入“自由创作”画布自由组合素材。
+
+在线生成能力取决于平台当前启用的模型、账号点数和第三方服务状态。请只上传或生成已取得
+必要权利的内容。
+
+### Main features / 主要功能
+
+- 管理项目、分集和创作版本，保留生成历史与用户选择。
+- 创建和迭代剧本，管理角色、场景、道具及项目素材。
+- 生成分镜与候选画面，并明确选择用于后续制作的版本。
+- 生成和管理配音、音乐、音效与字幕。
+- 使用首帧、尾帧或参考素材生成视频，也可导入已有视频继续制作。
+- 在时间线中完成剪辑、美化、转场、音频混合和成片输出。
+- 使用“自由创作”无限画布连接剧本、图片、音频和视频节点，快速尝试不同创意链路。
 
 ## Design principles
 
@@ -41,9 +67,9 @@ remain source inputs; no script assembles or provisions a deployment.
 Start with the Chinese [public-edition guide](docs/open-source/README.zh-CN.md),
 then follow its deployment, configuration, provider, ComfyUI boundary,
 security, and support documents in order. The community license does not
-include technical support. Commercial implementation, proprietary licensing,
+include technical support. Commercial implementation, the SceneGo Commercial License (MCL),
 or support may be requested through [Ostory](https://www.ostory.ai) or
-[Rongyan Computing](https://www.rongyansuanli.com).
+[Shenzhen Lava Computing Power Technology Co., Ltd](https://www.rongyansuanli.com/).
 
 ## Repository layout
 
@@ -95,11 +121,20 @@ python deploy/scripts/check_public_frontend_boundary.py --dist-root deploy/dist 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a change. Security issues
 must follow [SECURITY.md](SECURITY.md) rather than a public issue.
 
+We strongly request that community modifications start from a GitHub Fork of
+[WuKongOpenSource/SceneGo](https://github.com/WuKongOpenSource/SceneGo) and that
+generally useful changes be submitted back as pull requests. This is an upstream
+collaboration request, not an additional condition on the rights granted by the
+AGPL.
+
 ## License
 
-The community edition is licensed under the
-[GNU Affero General Public License v3.0 only](LICENSE) (`AGPL-3.0-only`).
-Separate commercial licensing is available; see
+SceneGo uses a dual-license model. The public community edition is available
+under the [GNU Affero General Public License v3.0 only](LICENSE)
+(`AGPL-3.0-only`). Organizations that need proprietary commercial terms,
+including closed-source modification or distribution, embedding in a closed
+product, or operating a hosted service without fulfilling AGPL obligations,
+must obtain a separately signed SceneGo Commercial License (MCL); see
 [COMMERCIAL_LICENSE.md](COMMERCIAL_LICENSE.md). SceneGo, 创剧, Ostory, 故事星,
 and their logos remain protected names and marks; see [TRADEMARKS.md](TRADEMARKS.md).
 Third-party components remain subject to their own licenses as described in

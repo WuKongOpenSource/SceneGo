@@ -41,10 +41,23 @@ route contract, open-source hygiene check, and `git diff --check`.
 Never commit real credentials, local databases, generated media, production
 backups, or internal deployment reports.
 
+## Fork and upstream workflow
+
+We strongly request that every community modification be developed in a GitHub
+Fork of [WuKongOpenSource/SceneGo](https://github.com/WuKongOpenSource/SceneGo).
+Keep the upstream repository configured as a remote, maintain a reviewable
+commit history, and submit generally useful fixes and improvements to the
+original repository as pull requests.
+
+This workflow is a strong project collaboration request. It is not an
+additional restriction on, or a condition of, the rights granted by the GNU
+Affero General Public License v3.0. A pull request is reviewed independently and
+submission does not guarantee acceptance or merge.
+
 ## Contribution licensing
 
 By submitting a contribution, you agree that it is licensed to the public under
-`AGPL-3.0-only`. Contributions intended for inclusion in code offered under a
-separate commercial license require a contributor agreement with the project
-owner before they can be accepted. Maintainers will provide that agreement
-through the official channels listed in `COMMERCIAL_LICENSE.md`.
+`AGPL-3.0-only`. Contributions intended for inclusion in code offered under the
+separate SceneGo Commercial License (MCL) require a contributor agreement with
+the project owner before they can be accepted. Maintainers will provide that
+agreement through the official channels listed in `COMMERCIAL_LICENSE.md`.
