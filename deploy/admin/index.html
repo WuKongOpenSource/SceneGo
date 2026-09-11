@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>创剧 · 管理后台</title>
+  <link rel="icon" href="/favicon.svg?v=20260824-chuangju-v1" type="image/svg+xml">
+  <link rel="icon" href="/favicon.ico?v=20260824-chuangju-v1" sizes="any">
+  <link rel="icon" href="/favicon-32x32.png?v=20260824-chuangju-v1" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260824-chuangju-v1">
+  <link rel="stylesheet" href="style.css?v=20260909-node-selector-layout">
+</head>
+<body>
+<div id="app" class="flex" style="min-height:100vh">
+
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <img class="brand-lockup" src="/static/branding/chuangju-logo-on-dark.svg?v=20260824-chuangju-v1" alt="创剧">
+      <span class="brand-context">Admin Console</span>
+    </div>
+    <ul class="nav-list">
+      <li class="nav-item active" data-page="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        仪表盘
+      </li>
+      <li class="nav-item" data-page="cluster">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1"/><circle cx="6" cy="18" r="1"/></svg>
+        集群管理
+      </li>
+      <li class="nav-item" data-page="workflows">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+        工作流管理
+      </li>
+      <li class="nav-item" data-page="apiconfig">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+        API 密钥
+      </li>
+    </ul>
+    <div class="sidebar-footer">
+      <div class="sidebar-status">
+        <span class="dot dot-green dot-pulse"></span>
+        <span id="sidebar-status-text">系统运行中</span>
+      </div>
+      <div class="sidebar-version">v1.2.0 · Cluster Pull</div>
+    </div>
+  </nav>
+
+  <div class="main">
+
+    <div id="page-dashboard" class="page active">
+      <div class="page-header">
+        <div>
+          <h2>仪表盘</h2>
+          <p>集群状态与任务概览</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="dashboard-time" style="font-size:12px;color:var(--text-3);font-family:var(--font-mono)"></span>
+        </div>
+      </div>
+      <div id="dashboard-stats" class="stat-grid"></div>
+      <div class="card">
+        <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:13px;font-weight:600;color:var(--text-1)">最近任务</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button onclick="cleanupStaleTasks()" style="font-size:11px;padding:4px 10px;background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);border-radius:4px;cursor:pointer">清理僵尸任务</button>
+            <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono)">auto-refresh 5s</span>
+          </div>
+        </div>
+        <div id="dashboard-tasks"></div>
+      </div>
+    </div>
+
+    <div id="page-cluster" class="page">
+      <div class="page-header">
+        <div>
+          <h2>集群管理</h2>
+          <p>处理集群节点注册与健康监控</p>
+        </div>
+        <button class="btn btn-primary" onclick="toggleRegisterPanel()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          注册节点
+        </button>
+      </div>
+      <div id="register-panel" class="register-panel hidden">
+        <h3>生成注册 Token</h3>
+        <div class="flex gap-2" style="margin-bottom:12px">
+          <input id="agent-name" type="text" class="input" placeholder="节点名称，如：处理节点01" style="max-width:320px">
+          <select id="agent-registry-kind" class="input" aria-label="新节点归属" style="max-width:180px"><option value="managed">本地节点</option><option value="external">外部节点</option></select>
+          <button class="btn btn-success btn-sm" onclick="createAgent()">创建</button>
+        </div>
+        <div id="token-result" class="token-result hidden">
+          <div class="token-label">Token</div>
+          <code id="token-value"></code>
+          <div class="token-label">启动命令</div>
+          <pre id="token-command"></pre>
+          <button class="btn btn-ghost btn-xs" onclick="copyCommand()" style="margin-top:8px">复制命令</button>
+        </div>
+      </div>
+      <div id="agent-list"></div>
+    </div>
+
+    <div id="page-workflows" class="page">
+      <div class="page-header">
+        <div>
+          <h2>工作流管理</h2>
+          <p>处理工作流模板与占位符配置</p>
+        </div>
+        <div class="flex gap-2">
+          <button class="btn btn-success btn-sm" onclick="importAllWorkflows()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            一键导入到数据库
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="openWorkflowModal()">手动添加</button>
+        </div>
+      </div>
+      <div id="workflow-summary" class="mb-3"></div>
+      <div id="workflow-content"></div>
+    </div>
+
+    <div id="page-apiconfig" class="page">
+      <div class="page-header">
+        <div>
+          <h2>API 密钥管理</h2>
+          <p>外部 AI 服务的密钥、端点与代理配置</p>
+        </div>
+        <div class="flex gap-2">
+          <button class="btn btn-success btn-sm" onclick="importApiPresets()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            导入预置模型
+          </button>
+          <button class="btn btn-ghost btn-sm" onclick="importRuntimeEnvKeys()" title="将当前进程环境变量中的 API Key 加密写入数据库">导入运行时 Key</button>
+          <button class="btn btn-secondary btn-sm" onclick="openApiConfigModal()">手动添加</button>
+        </div>
+      </div>
+      <!-- Proxy Settings (collapsible) -->
+      <details class="card mb-4" style="cursor:default">
+        <summary class="flex items-center justify-between" style="padding:14px 18px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text-1);list-style:none">
+          全局代理设置
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </summary>
+        <div style="padding:0 18px 16px">
+          <div id="proxy-settings" class="proxy-grid"></div>
+          <button class="btn btn-secondary btn-sm" onclick="saveGlobalSettings()" style="margin-top:12px">保存代理</button>
+        </div>
+      </details>
+      <div id="config-summary" class="mb-3"></div>
+      <div id="apiconfig-list" class="space-y-3"></div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<div id="workflow-modal" class="modal-overlay">
+  <div class="modal" style="width:90vw;max-width:960px">
+    <div class="modal-header">
+      <h3 id="wf-modal-title">工作流编辑</h3>
+      <button class="modal-close" onclick="closeModal('workflow-modal')">&times;</button>
+    </div>
+    <div class="modal-body" style="display:flex;gap:0;padding:0">
+      <div style="flex:1;padding:20px;overflow-y:auto;border-right:1px solid var(--border)">
+        <input id="wf-id" type="hidden">
+        <input id="wf-key" type="hidden">
+        <div class="grid-2 mb-3">
+          <div>
+            <label class="input-label">名称</label>
+            <input id="wf-name" type="text" class="input">
+          </div>
+          <div>
+            <label class="input-label">分类</label>
+            <select id="wf-category" class="input">
+              <option value="image">图像生成</option>
+              <option value="video">视频生成</option>
+              <option value="upscale">增强/超分</option>
+              <option value="tool">工具/处理</option>
+              <option value="other">其他</option>
+            </select>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="input-label">描述</label>
+          <input id="wf-desc" type="text" class="input">
+        </div>
+        <div class="flex items-center justify-between mb-2">
+          <label class="input-label" style="margin-bottom:0">工作流 JSON</label>
+          <div class="flex gap-2">
+            <label class="btn btn-ghost btn-xs" style="cursor:pointer">
+              <input id="wf-json-file" type="file" accept=".json" onchange="loadJsonFile(event)" style="display:none">上传 JSON
+            </label>
+            <button class="btn btn-ghost btn-xs" onclick="parseJsonNodes()">解析节点</button>
+          </div>
+        </div>
+        <textarea id="wf-json" class="json-editor" rows="14" placeholder="粘贴处理工作流 JSON ..."></textarea>
+        <div id="json-status" style="font-size:11px;margin-top:6px"></div>
+      </div>
+      <div style="width:280px;padding:20px;overflow-y:auto">
+        <div style="font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:12px">占位符配置</div>
+        <div id="wf-nodes" class="space-y-2">
+          <p style="font-size:12px;color:var(--text-3)">上传 JSON 后点击"解析节点"</p>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('workflow-modal')">取消</button>
+      <button class="btn btn-primary btn-sm" onclick="saveWorkflow()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div id="apiconfig-modal" class="modal-overlay">
+  <div class="modal" style="width:100%;max-width:520px">
+    <div class="modal-header">
+      <h3 id="api-modal-title">添加 API 配置</h3>
+      <button class="modal-close" onclick="closeModal('apiconfig-modal')">&times;</button>
+    </div>
+    <div class="modal-body space-y-3">
+      <input id="api-id" type="hidden">
+      <div>
+        <label class="input-label">名称</label>
+        <input id="api-name" type="text" class="input" placeholder="如: Gemini 2.5 Flash">
+      </div>
+      <div class="grid-2">
+        <div>
+          <label class="input-label">Provider</label>
+          <select id="api-provider" class="input">
+            <option value="">自定义</option>
+            <option value="gemini-text">Gemini 文本</option>
+            <option value="gemini-image">Gemini 图像</option>
+            <option value="deepseek">DeepSeek</option>
+            <option value="doubao">豆包 / 火山 (SeedDream 生图, ARK_API_KEY)</option>
+            <option value="seedance">Doubao Seedance 2.0 / Fast（SEEDANCE_API_KEY）</option>
+            <option value="minimax">MiniMax</option>
+            <option value="sora2">Sora2</option>
+            <option value="veo">Veo</option>
+            <option value="dashscope">DashScope</option>
+            <option value="laozhang-gpt-image">laozhang GPT Image 2 VIP / Gemini Image</option>
+            <option value="laozhang-sora2">laozhang Sora2 分组（GPT Image 2 官方）</option>
+          </select>
+        </div>
+        <div>
+          <label class="input-label">模型</label>
+          <input id="api-model" type="text" class="input" placeholder="model-name">
+        </div>
+      </div>
+      <div>
+        <label class="input-label">分类</label>
+        <select id="api-cat" class="input">
+          <option value="">未分类（让前端按关键词推断）</option>
+          <option value="text">文本 / 推理</option>
+          <option value="image">图像生成</option>
+          <option value="video">视频生成</option>
+          <option value="audio">音频 / TTS</option>
+        </select>
+      </div>
+      <div>
+        <label class="input-label">Endpoint</label>
+        <input id="api-endpoint" type="text" class="input" placeholder="https://...">
+      </div>
+      <div>
+        <label class="input-label">API Key <span id="api-key-status" class="ml-2 text-xs font-medium"></span></label>
+        <input id="api-key" type="password" class="input" placeholder="sk-...">
+      </div>
+      <div>
+        <label class="input-label">网络模式</label>
+        <div class="flex gap-3" style="font-size:13px;margin-top:4px">
+          <label class="flex items-center gap-2" style="cursor:pointer"><input type="radio" name="proxy-mode" value="direct" checked style="accent-color:var(--accent)"> 后端直连</label>
+          <label class="flex items-center gap-2" style="cursor:pointer"><input type="radio" name="proxy-mode" value="agent" style="accent-color:var(--accent)"> 节点代理</label>
+          <label class="flex items-center gap-2" style="cursor:pointer"><input type="radio" name="proxy-mode" value="custom" style="accent-color:var(--accent)"> 自定义</label>
+        </div>
+      </div>
+      <div id="custom-proxy-row" class="hidden">
+        <label class="input-label">自定义代理地址</label>
+        <input id="api-custom-proxy" type="text" class="input" placeholder="http://127.0.0.1:7890">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('apiconfig-modal')">取消</button>
+      <button class="btn btn-primary btn-sm" onclick="saveApiConfig()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container" class="toast-container"></div>
+
+<script src="app.js?v=20260909-node-selector-layout"></script>
+</body>
+</html>

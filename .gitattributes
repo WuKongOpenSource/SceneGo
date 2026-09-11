@@ -1,0 +1,16 @@
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.mp3 binary
+*.wav binary
+*.mp4 binary
+*.sh text eol=lf
+docs/open-source/third-party/licenses/*.txt text eol=lf
+docs/open-source/third-party/declarations/*.txt text eol=lf
+docs/open-source/third-party/*.json text eol=lf

@@ -1,0 +1,250 @@
+from __future__ import annotations
+
+import argparse
+import asyncio
+import csv
+import json
+import os
+import sys
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from scripts.audit_storage_manifest import (  # noqa: E402
+    _collect_file_context,
+    _fetch_files,
+    _file_refs,
+    _normalize_rel,
+)
+from utils.storage_layout import (  # noqa: E402
+    build_storage_relative_path,
+    canonical_file_type,
+    extension_from,
+    storage_url_for,
+    year_month_from,
+)
+
+
+def _quote_sql(value: str) -> str:
+    return "'" + value.replace("'", "''") + "'"
+
+
+def _sql_nullable(value: Any) -> str:
+    return _quote_sql(str(value)) if value else "NULL"
+
+
+def _meta(row: Dict[str, Any]) -> Dict[str, Any]:
+    value = row.get("metadata") or {}
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            return parsed if isinstance(parsed, dict) else {}
+        except Exception:
+            return {}
+    return {}
+
+
+def _choose_existing_ref(
+    row: Dict[str, Any],
+    *,
+    storage_root: Path,
+) -> Optional[str]:
+    for key in ("file_path", "file_url"):
+        rel = _normalize_rel(row.get(key), storage_root)
+        if rel and (storage_root / rel).exists():
+            return rel
+    for rel in _file_refs(row, storage_root):
+        if (storage_root / rel).exists():
+            return rel
+    return None
+
+
+def _context_for(file_row: Dict[str, Any], contexts: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+    meta = _meta(file_row)
+    ctx = dict(contexts.get(file_row.get("file_id"), {}))
+    for key in ("project_id", "episode_id", "source"):
+        if not ctx.get(key):
+            ctx[key] = file_row.get(key) or meta.get(key)
+    return ctx
+
+
+def _manifest_row(
+    row: Dict[str, Any],
+    ctx: Dict[str, Any],
+    *,
+    storage_root: Path,
+) -> Dict[str, Any]:
+    old_rel = _choose_existing_ref(row, storage_root=storage_root)
+    file_type = canonical_file_type(row.get("file_type"))
+    ext = extension_from(
+        file_name=row.get("file_name"),
+        file_path=row.get("file_path"),
+        file_url=row.get("file_url"),
+        mime_type=row.get("mime_type"),
+    )
+    created_at = row.get("created_at")
+    year_month = year_month_from(created_at)
+    if isinstance(created_at, str):
+        year_month = year_month_from(created_at)
+
+    new_rel_path = build_storage_relative_path(
+        file_type=file_type,
+        user_id=row.get("user_id") or "_user",
+        project_id=ctx.get("project_id"),
+        episode_id=ctx.get("episode_id"),
+        year_month=year_month,
+        file_id=row.get("file_id") or "file",
+        extension=ext,
+    )
+    new_rel = new_rel_path.as_posix()
+    new_url = storage_url_for(new_rel_path)
+    old_path = str(storage_root / old_rel) if old_rel else ""
+    new_path = str(storage_root / new_rel)
+
+    status = "ready"
+    if not old_rel:
+        status = "missing_source"
+    elif old_rel == new_rel:
+        status = "already_canonical"
+    elif (storage_root / new_rel).exists():
+        old_size = (storage_root / old_rel).stat().st_size if (storage_root / old_rel).exists() else -1
+        new_size = (storage_root / new_rel).stat().st_size
+        status = "target_exists_same_size" if old_size == new_size else "target_exists_conflict"
+    elif not ctx.get("project_id"):
+        status = "missing_project"
+
+    return {
+        "status": status,
+        "file_id": row.get("file_id"),
+        "user_id": row.get("user_id"),
+        "file_type": file_type,
+        "file_name": row.get("file_name"),
+        "project_id": ctx.get("project_id"),
+        "episode_id": ctx.get("episode_id"),
+        "source": ctx.get("source"),
+        "old_rel_path": old_rel or "",
+        "new_rel_path": new_rel,
+        "old_path": old_path,
+        "new_path": new_path,
+        "old_url": row.get("file_url") or "",
+        "new_url": new_url,
+        "file_size_bytes": row.get("file_size_bytes") or "",
+        "created_at": row.get("created_at") or "",
+    }
+
+
+def _write_manifest(path: Path, rows: List[Dict[str, Any]]) -> None:
+    fields = [
+        "status",
+        "file_id",
+        "user_id",
+        "file_type",
+        "file_name",
+        "project_id",
+        "episode_id",
+        "source",
+        "old_rel_path",
+        "new_rel_path",
+        "old_path",
+        "new_path",
+        "old_url",
+        "new_url",
+        "file_size_bytes",
+        "created_at",
+    ]
+    with path.open("w", newline="", encoding="utf-8-sig") as fh:
+        writer = csv.DictWriter(fh, fieldnames=fields, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def _write_sql(path: Path, rows: List[Dict[str, Any]]) -> None:
+    lines = [
+        "-- Generated by scripts/restructure_storage_manifest.py",
+        "-- Review the CSV manifest before executing this SQL.",
+        "BEGIN;",
+    ]
+    for row in rows:
+        if row["status"] not in {"ready", "target_exists_same_size"}:
+            continue
+        file_path = Path("persistent_storage") / row["new_rel_path"]
+        lines.append(
+            "UPDATE files SET "
+            f"file_path = {_quote_sql(file_path.as_posix())}, "
+            f"file_url = {_quote_sql(row['new_url'])}, "
+            f"project_id = COALESCE(project_id, {_sql_nullable(row['project_id'])}), "
+            f"episode_id = COALESCE(episode_id, {_sql_nullable(row['episode_id'])}), "
+            f"source = COALESCE(source, {_sql_nullable(row['source'])}, 'unknown') "
+            f"WHERE file_id = {_quote_sql(str(row['file_id']))};"
+        )
+    lines.append("COMMIT;")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+async def run(args: argparse.Namespace) -> Dict[str, Any]:
+    from db_manager import get_db_manager, init_db_manager
+
+    storage_root = Path(args.storage_root).resolve()
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    await init_db_manager()
+    db = get_db_manager()
+
+    files = await _fetch_files(db, include_deleted=args.include_deleted)
+    contexts = await _collect_file_context(db, include_deleted=args.include_deleted)
+
+    rows = [
+        _manifest_row(row, _context_for(row, contexts), storage_root=storage_root)
+        for row in files
+        if canonical_file_type(row.get("file_type")) in {"image", "video", "audio"}
+    ]
+
+    manifest_path = output_dir / "storage_restructure_manifest.csv"
+    sql_path = output_dir / "storage_restructure_updates.sql"
+    _write_manifest(manifest_path, rows)
+    _write_sql(sql_path, rows)
+
+    by_status: Dict[str, int] = {}
+    for row in rows:
+        by_status[row["status"]] = by_status.get(row["status"], 0) + 1
+
+    summary = {
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "storage_root": str(storage_root),
+        "include_deleted": args.include_deleted,
+        "total_media_files": len(rows),
+        "by_status": by_status,
+        "manifest": str(manifest_path),
+        "sql_updates": str(sql_path),
+        "dry_run": True,
+    }
+    (output_dir / "storage_restructure_summary.json").write_text(
+        json.dumps(summary, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    return summary
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Generate dry-run storage restructure manifest")
+    parser.add_argument("--storage-root", default=os.getenv("LOCAL_STORAGE_PATH", "persistent_storage"))
+    parser.add_argument("--output-dir", default="storage_audit_reports")
+    parser.add_argument("--include-deleted", action="store_true")
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+    summary = asyncio.run(run(args))
+    print(json.dumps(summary, ensure_ascii=False, indent=2))
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,1 @@
+"""Application router package."""

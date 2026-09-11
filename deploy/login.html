@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="登录创剧，继续完成你的 AI 视频作品。" />
+    <meta name="theme-color" content="#09111F" />
+    <link rel="icon" href="/favicon.svg?v=20260824-chuangju-v1" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico?v=20260824-chuangju-v1" sizes="any" />
+    <link rel="icon" href="/favicon-32x32.png?v=20260824-chuangju-v1" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260824-chuangju-v1" />
+    <title>创剧 · 登录</title>
+    <link rel="stylesheet" href="/static/css/slider-captcha.css">
+    <style>
+        :root {
+            --n0: #FFFFFF;
+            --n10: #FBFBF9;
+            --n20: #F4F4F1;
+            --n30: #F0F0EC;
+            --n40: #E5E5E0;
+            --n100: #9A9AA2;
+            --n200: #8A8A94;
+            --n300: #6A6A74;
+            --n700: #22222B;
+            --n800: #17171C;
+            --primary: #5B49F0;
+            --primary-hover: #4C3BD6;
+            --primary-active: #4536C9;
+            --primary-light: #ECE9FF;
+            --purple: #8B6BFF;
+            --pink: #FF9A6B;
+            --green: #12B76A;
+            --danger: #E5533C;
+            --border-hover: #9A9AA2;
+            --shadow-cascade: 0 24px 70px rgba(20, 20, 25, 0.18);
+            --shadow-glow: 0 4px 14px rgba(91, 73, 240, 0.35);
+            --font-sans: "Noto Sans SC", "Sora", "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+
+        html,
+        body {
+            margin: 0;
+            min-height: 100%;
+            overflow-x: hidden;
+            font-family: var(--font-sans);
+            background: var(--n0);
+            color: var(--n800);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            --platform-footer-height: calc(30px + env(safe-area-inset-bottom, 0px));
+        }
+
+        .shell {
+            min-height: calc(100dvh - var(--platform-footer-height));
+            width: 100%;
+            display: flex;
+        }
+
+        .brand-panel {
+            position: relative;
+            display: grid;
+            width: 44%;
+            min-width: 520px;
+            height: calc(100dvh - var(--platform-footer-height));
+            grid-template-rows: auto minmax(0, 1fr) auto auto;
+            gap: 28px;
+            padding: 38px 56px 30px;
+            background:
+                radial-gradient(circle at 18% 16%, rgba(42, 103, 246, 0.18), transparent 30%),
+                radial-gradient(circle at 82% 62%, rgba(91, 73, 240, 0.18), transparent 38%),
+                linear-gradient(145deg, #0C1628 0%, #09111F 54%, #070D18 100%);
+            color: white;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+
+        .brand-panel::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px);
+            background-size: 40px 40px;
+            mask-image: linear-gradient(to bottom, rgba(0,0,0,0.82), transparent 94%);
+            pointer-events: none;
+        }
+
+        .brand-panel::after {
+            content: "";
+            position: absolute;
+            width: 520px;
+            height: 520px;
+            right: -330px;
+            top: 80px;
+            border: 1px solid rgba(115, 151, 214, 0.14);
+            border-radius: 50%;
+            box-shadow: 0 0 0 92px rgba(61, 94, 157, 0.035);
+            pointer-events: none;
+        }
+
+        .brand-top,
+        .brand-content,
+        .workflow-showcase,
+        .brand-footer {
+            position: relative;
+            z-index: 1;
+        }
+
+        .brand-top,
+        .mobile-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-lockup {
+            width: min(156px, 40vw);
+            height: auto;
+            display: block;
+            object-fit: contain;
+        }
+
+        .mobile-brand .brand-lockup {
+            width: min(168px, 62vw);
+        }
+
+        .brand-content {
+            align-self: center;
+            max-width: 590px;
+            padding-top: 8px;
+        }
+
+        .brand-content h1 {
+            max-width: 560px;
+            margin: 0;
+            font-size: clamp(36px, 3.15vw, 58px);
+            line-height: 1.06;
+            font-weight: 800;
+            letter-spacing: -1.2px;
+        }
+
+        .brand-content h1 span {
+            display: block;
+        }
+
+        .brand-content p {
+            max-width: 560px;
+            margin: 20px 0 0;
+            color: rgba(230, 237, 250, 0.68);
+            font-size: 14px;
+            line-height: 1.85;
+        }
+
+        .workflow-showcase {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            align-self: end;
+        }
+
+        .workflow-card {
+            min-width: 0;
+        }
+
+        .workflow-preview {
+            position: relative;
+            height: 116px;
+            overflow: hidden;
+            border: 1px solid rgba(139, 169, 223, 0.24);
+            border-top: 2px solid var(--accent, #4D8DFF);
+            border-radius: 10px;
+            background: #111D31;
+            box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
+        }
+
+        .workflow-preview::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.055), transparent 48%);
+            pointer-events: none;
+        }
+
+        .workflow-window-bar {
+            height: 20px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 0 8px;
+            background: #1A2941;
+        }
+
+        .workflow-window-bar i {
+            width: 3px;
+            height: 3px;
+            border-radius: 50%;
+            background: #7183A0;
+        }
+
+        .story-ui {
+            display: grid;
+            grid-template-columns: 30% 1fr;
+            gap: 7px;
+            height: calc(100% - 20px);
+            padding: 9px;
+        }
+
+        .story-sidebar,
+        .story-paper,
+        .shot-card,
+        .final-frame {
+            border: 1px solid rgba(130, 154, 197, 0.22);
+            border-radius: 5px;
+        }
+
+        .story-sidebar {
+            background: #17243A;
+        }
+
+        .story-sidebar::before,
+        .story-sidebar::after {
+            content: "";
+            display: block;
+            width: 58%;
+            height: 4px;
+            margin: 11px auto 0;
+            border-radius: 4px;
+            background: #566B8C;
+        }
+
+        .story-sidebar::after {
+            width: 42%;
+            margin-top: 7px;
+            background: #6C5CF6;
+        }
+
+        .story-paper {
+            padding: 11px 10px;
+            background: #E9EEF7;
+        }
+
+        .story-line {
+            height: 4px;
+            margin-bottom: 7px;
+            border-radius: 5px;
+            background: #A6B4CA;
+        }
+
+        .story-line.short { width: 64%; }
+
+        .story-action {
+            width: 42%;
+            height: 11px;
+            margin-top: 11px;
+            border-radius: 4px;
+            background: #5B49F0;
+        }
+
+        .shot-ui {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            height: calc(100% - 20px);
+            padding: 9px;
+        }
+
+        .shot-card {
+            overflow: hidden;
+            background: #E8EDF6;
+        }
+
+        .shot-image {
+            height: 54%;
+            background:
+                radial-gradient(circle at 72% 34%, #8B6BFF 0 9%, transparent 10%),
+                linear-gradient(145deg, #29456F 0%, #192B47 54%, #477F9D 55%, #253A57 100%);
+        }
+
+        .shot-card:nth-child(2) .shot-image {
+            background:
+                radial-gradient(circle at 35% 38%, #14B8A6 0 9%, transparent 10%),
+                linear-gradient(155deg, #1D3352 0%, #2B5485 52%, #16253B 53%, #263F62 100%);
+        }
+
+        .shot-card:nth-child(3) .shot-image {
+            background:
+                radial-gradient(circle at 62% 36%, #F59E0B 0 9%, transparent 10%),
+                linear-gradient(145deg, #223B5C 0%, #15253B 50%, #60446E 51%, #283651 100%);
+        }
+
+        .shot-card::after {
+            content: "";
+            display: block;
+            width: 58%;
+            height: 4px;
+            margin: 10px 7px;
+            border-radius: 4px;
+            background: #91A1B9;
+            box-shadow: 0 8px 0 #C0CAD8;
+        }
+
+        .final-ui {
+            height: calc(100% - 20px);
+            padding: 9px;
+        }
+
+        .final-frame {
+            position: relative;
+            height: 66px;
+            background:
+                radial-gradient(circle at 50% 45%, rgba(114, 92, 246, 0.9) 0 16%, transparent 17%),
+                linear-gradient(135deg, #172A45, #314F76 54%, #111D31);
+        }
+
+        .final-play {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.88);
+            transform: translate(-50%, -50%);
+        }
+
+        .final-play::after {
+            content: "";
+            position: absolute;
+            left: 9px;
+            top: 7px;
+            border-left: 8px solid #5B49F0;
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+        }
+
+        .final-timeline {
+            display: grid;
+            grid-template-columns: 34% 42% 1fr;
+            gap: 3px;
+            margin-top: 6px;
+        }
+
+        .final-timeline i {
+            height: 7px;
+            border-radius: 2px;
+            background: #526887;
+        }
+
+        .final-timeline i:nth-child(2) { background: #5B49F0; }
+
+        .workflow-copy {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            column-gap: 8px;
+            margin-top: 10px;
+        }
+
+        .workflow-index {
+            color: #58A6FF;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+        }
+
+        .workflow-title {
+            display: block;
+            color: rgba(255,255,255,0.92);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .workflow-desc {
+            grid-column: 2;
+            display: block;
+            margin-top: 4px;
+            color: rgba(218, 228, 245, 0.52);
+            font-size: 10px;
+            line-height: 1.45;
+        }
+
+        .brand-footer {
+            color: rgba(218, 228, 245, 0.5);
+            font-size: 11px;
+        }
+
+        .login-panel {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: #F6F7FA;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 440px;
+            background: var(--n0);
+            border: 1px solid var(--n40);
+            border-radius: 20px;
+            padding: 40px 36px;
+            box-shadow: 0 14px 44px rgba(20, 20, 25, 0.07);
+        }
+
+        .mobile-brand {
+            display: none;
+            justify-content: center;
+            margin-bottom: 32px;
+        }
+
+        h2 {
+            margin: 0 0 4px;
+            font-family: "Sora", var(--font-sans);
+            font-size: 32px;
+            line-height: 1.3;
+            font-weight: 700;
+            letter-spacing: -0.4px;
+            color: var(--n800);
+        }
+
+        .subtitle {
+            margin: 0 0 32px;
+            color: var(--n300);
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        form {
+            display: grid;
+            gap: 24px;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        .input-group input[type="text"],
+        .input-group input[type="tel"],
+        .input-group input[type="email"],
+        .input-group input[type="password"] {
+            width: 100%;
+            height: 48px;
+            border: 1px solid var(--n40);
+            border-radius: 9px;
+            background: var(--n0);
+            color: var(--n800);
+            font: inherit;
+            font-size: 16px;
+            outline: none;
+            padding: 10px 12px 8px;
+            transition: border-color 150ms ease, box-shadow 150ms ease;
+        }
+
+        .input-group input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(91,73,240,0.16);
+        }
+
+        .input-group label {
+            position: absolute;
+            left: 10px;
+            top: 15px;
+            padding: 0 4px;
+            background: transparent;
+            color: var(--n200);
+            font-size: 15px;
+            line-height: 1;
+            pointer-events: none;
+            transition: transform 150ms ease, color 150ms ease, background-color 150ms ease;
+            transform-origin: left center;
+        }
+
+        .input-group input:focus + label,
+        .input-group input:not(:placeholder-shown) + label,
+        .input-group input:-webkit-autofill + label {
+            transform: translateY(-22px) scale(0.82);
+            background: var(--n0);
+            color: var(--primary);
+        }
+
+        .input-group input:-webkit-autofill,
+        .input-group input:-webkit-autofill:hover,
+        .input-group input:-webkit-autofill:focus {
+            -webkit-text-fill-color: var(--n800);
+            caret-color: var(--n800);
+            box-shadow: 0 0 0 1000px var(--n0) inset;
+            transition: background-color 9999s ease-out 0s;
+        }
+
+        .password-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            margin: -18px -8px -8px 0;
+        }
+
+        .forgot-password-button {
+            min-height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 0 8px;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--primary);
+            font: inherit;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: color 150ms ease, background-color 150ms ease;
+        }
+
+        .forgot-password-button:hover {
+            background: #F3F2FA;
+            color: #4936E8;
+        }
+
+        .forgot-password-button:focus-visible {
+            outline: 2px solid rgba(91, 73, 240, 0.55);
+            outline-offset: 2px;
+        }
+
+        .forgot-password-icon {
+            width: 14px;
+            height: 14px;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+        }
+
+        .remember {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .remember:hover,
+        .link:hover {
+            color: var(--primary);
+        }
+
+        .remember input {
+            accent-color: var(--primary);
+        }
+
+        .link {
+            color: inherit;
+            text-decoration: none;
+            transition: color 150ms ease;
+        }
+
+        .login-button {
+            width: 100%;
+            height: 48px;
+            border: 0;
+            border-radius: 11px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #5B49F0, #7A5BFF);
+            color: white;
+            font: inherit;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: var(--shadow-glow);
+            transition: background-color 150ms ease, box-shadow 150ms ease, filter 150ms ease;
+        }
+
+        .login-button:hover {
+            filter: brightness(1.06);
+        }
+
+        .login-button:active {
+            filter: brightness(0.96);
+        }
+
+        .login-button:disabled {
+            cursor: wait;
+            opacity: 0.72;
+        }
+
+        .icon {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+        }
+
+        .loader {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.4);
+            border-top-color: white;
+            animation: spin 800ms linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            margin-top: 16px;
+            min-height: 18px;
+            color: var(--danger);
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 992px) {
+            .brand-panel {
+                display: none;
+            }
+
+            .mobile-brand {
+                display: flex;
+            }
+
+            .login-panel {
+                min-height: calc(100dvh - var(--platform-footer-height));
+            }
+        }
+
+        .platform-login-footer {
+            display: flex;
+            flex-shrink: 0;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            min-height: var(--platform-footer-height);
+            padding: 0 12px env(safe-area-inset-bottom, 0px);
+            border-top: 1px solid var(--n40);
+            background: #fbfbf9;
+            color: #6a6a74;
+            font-size: 11px;
+        }
+        .platform-login-footer a { color: var(--primary); text-decoration: none; }
+        .platform-login-footer a:hover { text-decoration: underline; }
+        .platform-login-footer a:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+
+        .auth-tabs {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 4px;
+            padding: 4px;
+            margin: 0 0 28px;
+            border-radius: 11px;
+            background: #F3F2FA;
+        }
+
+        .auth-tab {
+            height: 36px;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--n300);
+            font: inherit;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .auth-tab.active {
+            background: var(--n0);
+            color: var(--primary);
+            font-weight: 600;
+            box-shadow: 0 1px 6px rgba(20, 20, 25, 0.08);
+        }
+
+        .code-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 124px;
+            gap: 10px;
+        }
+
+        .code-button {
+            height: 48px;
+            border: 1px solid rgba(91,73,240,0.3);
+            border-radius: 9px;
+            background: #F8F7FF;
+            color: var(--primary);
+            font: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .code-button:disabled {
+            cursor: not-allowed;
+            color: var(--n200);
+            border-color: var(--n40);
+            background: #F6F7FA;
+        }
+
+        .auth-footer {
+            margin-top: 20px;
+            color: var(--n300);
+            text-align: center;
+            font-size: 13px;
+        }
+
+        .auth-footer button {
+            padding: 0;
+            border: 0;
+            background: transparent;
+            color: var(--primary);
+            font: inherit;
+            cursor: pointer;
+        }
+
+        .field-hint {
+            margin: -16px 0 0;
+            color: var(--n200);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .code-message { margin: -12px 0 0; font-size: 12px; line-height: 1.5; color: #637188; }
+        .code-message:empty { display: none; }
+        .code-message[data-error="true"] { color: #d63c3c; }
+
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        .success {
+            margin-top: 16px;
+            min-height: 18px;
+            color: #19A966;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        @media (min-width: 993px) and (max-width: 1240px) {
+            .brand-panel {
+                min-width: 460px;
+                padding-right: 36px;
+                padding-left: 36px;
+            }
+
+            .workflow-preview {
+                height: 98px;
+            }
+
+            .final-frame {
+                height: 49px;
+            }
+        }
+
+        @media (min-width: 993px) and (max-height: 760px) {
+            .brand-panel {
+                gap: 16px;
+                padding-top: 26px;
+                padding-bottom: 22px;
+            }
+
+            .brand-lockup {
+                width: 136px;
+            }
+
+            .brand-content h1 {
+                font-size: clamp(32px, 2.7vw, 46px);
+            }
+
+            .brand-content p {
+                margin-top: 12px;
+                line-height: 1.65;
+            }
+
+            .workflow-preview {
+                height: 88px;
+            }
+
+            .story-ui,
+            .shot-ui,
+            .final-ui {
+                padding: 7px;
+            }
+
+            .story-paper {
+                padding: 7px 8px;
+            }
+
+            .story-line {
+                margin-bottom: 4px;
+            }
+
+            .story-action {
+                height: 8px;
+                margin-top: 5px;
+            }
+
+            .final-frame {
+                height: 42px;
+            }
+
+            .workflow-desc {
+                display: none;
+            }
+        }
+
+        @media (max-width: 479px) {
+            .login-panel {
+                align-items: flex-start;
+                padding: 72px 20px 32px;
+            }
+
+            .mobile-brand {
+                justify-content: flex-start;
+                margin-bottom: 48px;
+            }
+
+            h2 {
+                font-size: 28px;
+            }
+
+            form {
+                gap: 20px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="shell">
+        <section class="brand-panel" aria-label="创剧 · AI 视频创作平台">
+            <div class="brand-top">
+                <img class="brand-lockup" src="/static/branding/chuangju-logo-on-dark.svg?v=20260824-chuangju-v1" alt="创剧" />
+            </div>
+
+            <div class="brand-content">
+                <h1><span>把一个好想法，</span><span>变成一部好漫剧</span></h1>
+                <p>创剧是面向普通创作者的 AI 视频工作台。无需专业制作经验，跟着清晰步骤，就能把灵感做成短剧、口播、广告、MV 或社媒视频。</p>
+            </div>
+
+            <div class="workflow-showcase" aria-label="创剧主要工作流程">
+                <article class="workflow-card" style="--accent: #4D8DFF;">
+                    <div class="workflow-preview" aria-hidden="true">
+                        <div class="workflow-window-bar"><i></i><i></i><i></i></div>
+                        <div class="story-ui">
+                            <div class="story-sidebar"></div>
+                            <div class="story-paper">
+                                <div class="story-line"></div>
+                                <div class="story-line short"></div>
+                                <div class="story-line"></div>
+                                <div class="story-action"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="workflow-copy">
+                        <span class="workflow-index">01</span>
+                        <span class="workflow-title">写剧本</span>
+                        <span class="workflow-desc">从创意开始构建完整故事</span>
+                    </div>
+                </article>
+
+                <article class="workflow-card" style="--accent: #8B6BFF;">
+                    <div class="workflow-preview" aria-hidden="true">
+                        <div class="workflow-window-bar"><i></i><i></i><i></i></div>
+                        <div class="shot-ui">
+                            <div class="shot-card"><div class="shot-image"></div></div>
+                            <div class="shot-card"><div class="shot-image"></div></div>
+                            <div class="shot-card"><div class="shot-image"></div></div>
+                        </div>
+                    </div>
+                    <div class="workflow-copy">
+                        <span class="workflow-index">02</span>
+                        <span class="workflow-title">做分镜</span>
+                        <span class="workflow-desc">统一角色场景与镜头画面</span>
+                    </div>
+                </article>
+
+                <article class="workflow-card" style="--accent: #22C7C9;">
+                    <div class="workflow-preview" aria-hidden="true">
+                        <div class="workflow-window-bar"><i></i><i></i><i></i></div>
+                        <div class="final-ui">
+                            <div class="final-frame"><span class="final-play"></span></div>
+                            <div class="final-timeline"><i></i><i></i><i></i></div>
+                        </div>
+                    </div>
+                    <div class="workflow-copy">
+                        <span class="workflow-index">03</span>
+                        <span class="workflow-title">出成片</span>
+                        <span class="workflow-desc">画面、声音与剪辑一体完成</span>
+                    </div>
+                </article>
+            </div>
+
+            <div class="brand-footer">© 2026 创剧 · 把一个好想法，变成一部好漫剧</div>
+        </section>
+
+        <section class="login-panel">
+            <div class="login-card">
+                <div class="mobile-brand">
+                    <img class="brand-lockup" src="/static/branding/chuangju-logo-on-light.svg?v=20260824-chuangju-v1" alt="创剧" />
+                </div>
+
+                <h2 id="authTitle">欢迎回来</h2>
+                <p id="authSubtitle" class="subtitle">登录后继续完成你的故事</p>
+
+                <div id="authTabs" class="auth-tabs">
+                    <button type="button" class="auth-tab active" data-method="password">密码登录</button>
+                    <button type="button" class="auth-tab" data-method="sms_code">验证码登录</button>
+                </div>
+
+                <form id="authForm" onsubmit="handleSubmit(event)"></form>
+
+                <div id="errorMessage" class="error hidden" role="alert"></div>
+                <div id="successMessage" class="success hidden" role="status"></div>
+                <div id="authFooter" class="auth-footer"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="platform-login-footer" aria-label="平台版本与更新记录">
+        <span>Ovideo</span>
+        <span data-platform-version>版本信息</span>
+        <span aria-hidden="true">·</span>
+        <a href="/updates">更新记录 ↗</a>
+    </footer>
+    <script src="/static/platform-version.js" defer></script>
+    <script src="/static/js/slider-captcha.js"></script>
+
+    <script>
+        const USERNAME_KEY = 'username';
+        const USER_ID_KEY = 'user_id';
+        const BINDING_TOKEN_KEY = 'legacy_phone_binding_token';
+        const BINDING_RETURN_KEY = 'legacy_phone_binding_return_to';
+        const ADMIN_ENTRY_PATH = '/a7k9m3q8x2v6n4p';
+        const authForm = document.getElementById('authForm');
+        const authTabs = document.getElementById('authTabs');
+        const authTitle = document.getElementById('authTitle');
+        const authSubtitle = document.getElementById('authSubtitle');
+        const authFooter = document.getElementById('authFooter');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const state = {
+            view: location.pathname === '/register' ? 'register'
+                : location.pathname === '/bind-phone' ? 'bind'
+                : location.pathname === '/password-reset' ? 'reset'
+                : 'login',
+            method: 'password',
+            countdown: 0,
+            timer: null,
+            sendingCode: false,
+            sendingStage: '',
+        };
+        let captchaConfig = { enabled: false, provider: null, site_key: null };
+        let sliderCaptcha = null;
+        let captchaReady = false;
+        let captchaInitialization = null;
+        let captchaConfigError = '';
+        let captchaToken = '';
+        let captchaExpiresAt = 0;
+        let captchaRenderedAction = '';
+
+        if (location.pathname === '/legacy-login') history.replaceState(null, '', '/login');
+
+        function safeLoginRedirect(rawValue = new URLSearchParams(location.search).get('redirect')) {
+            if (!rawValue) return '';
+            try {
+                const target = new URL(rawValue, location.origin);
+                if (target.origin !== location.origin) return '';
+                const adminTarget = target.pathname === ADMIN_ENTRY_PATH || target.pathname.startsWith(`${ADMIN_ENTRY_PATH}/`);
+                const studioTarget = target.pathname === '/studio' || target.pathname.startsWith('/studio/');
+                if (!adminTarget && !studioTarget) return '';
+                return `${target.pathname}${target.search}${target.hash}`;
+            } catch (_) {
+                return '';
+            }
+        }
+
+        const hasPendingPhoneBinding = state.view === 'bind' && Boolean(sessionStorage.getItem(BINDING_TOKEN_KEY));
+        async function redirectAuthenticatedSession() {
+            if (hasPendingPhoneBinding) return;
+            const legacyToken = localStorage.getItem('auth_token');
+            const headers = { 'Accept': 'application/json' };
+            if (legacyToken) headers.Authorization = `Bearer ${legacyToken}`;
+            try {
+                const response = await fetch('/api/user/info', {
+                    method: 'GET',
+                    headers,
+                    credentials: 'same-origin',
+                });
+                if (response.headers.get('x-ostory-session-upgraded') === '1') {
+                    localStorage.removeItem('auth_token');
+                }
+                if (response.ok) {
+                    window.location.href = safeLoginRedirect() || '/projects';
+                    return;
+                }
+                if (legacyToken) localStorage.removeItem('auth_token');
+            } catch (_) {
+                // Keep the form usable when the session check cannot reach the server.
+            }
+        }
+        void redirectAuthenticatedSession();
+
+        function smsPurpose() {
+            return state.view === 'register' ? 'register'
+                : state.view === 'bind' ? 'bind_phone'
+                : state.view === 'reset' ? 'password_reset'
+                : 'login';
+        }
+
+        function captchaMarkup() {
+            return '<span id="captchaStatus" class="visually-hidden" role="status" aria-live="polite"></span>';
+        }
+
+        function renderCaptchaWidget() {
+            const status = document.getElementById('captchaStatus');
+            if (status) status.textContent = captchaConfigError || (captchaToken && Date.now() < captchaExpiresAt ? '验证成功' : '');
+        }
+
+        async function requireCaptcha(action) {
+            if (!captchaReady) await initializeCaptcha();
+            if (!captchaReady) throw new Error(captchaConfigError || '安全验证加载失败，请重试');
+            if (!captchaConfig.enabled) return undefined;
+            if (captchaToken && captchaRenderedAction === action && Date.now() < captchaExpiresAt) return captchaToken;
+            if (!window.OstorySliderCaptcha) throw new Error('安全验证组件加载失败，请刷新页面重试');
+            if (!sliderCaptcha) sliderCaptcha = new window.OstorySliderCaptcha();
+            const result = await sliderCaptcha.verify(action);
+            captchaToken = result.captcha_verification;
+            captchaRenderedAction = action;
+            captchaExpiresAt = Date.now() + Math.min(60, Number(result.expires_in) || 60) * 1000;
+            renderCaptchaWidget();
+            return captchaToken;
+        }
+
+        function resetCaptcha() {
+            captchaToken = '';
+            captchaExpiresAt = 0;
+            sliderCaptcha?.cancel();
+            renderCaptchaWidget();
+        }
+
+        function initializeCaptcha() {
+            if (captchaInitialization) return captchaInitialization;
+            captchaInitialization = (async () => {
+                const controller = new AbortController();
+                const timer = setTimeout(() => controller.abort(), 10000);
+                try {
+                    const response = await fetch('/api/auth/captcha-config', {
+                        headers: { 'Accept': 'application/json' },
+                        credentials: 'same-origin',
+                        signal: controller.signal,
+                    });
+                    if (!response.ok) throw new Error('安全验证配置读取失败，请重试');
+                    const config = await response.json();
+                    if (typeof config.enabled !== 'boolean' || (config.enabled && config.provider !== 'slider')) throw new Error('安全验证配置尚未就绪，请联系管理员');
+                    captchaConfig = config;
+                    captchaReady = true;
+                    captchaConfigError = '';
+                } catch (error) {
+                    captchaReady = false;
+                    captchaConfigError = error.name === 'AbortError' ? '安全验证加载超时，请点击重试' : (error.message || '安全验证加载失败，请重试');
+                } finally {
+                    clearTimeout(timer);
+                    captchaInitialization = null;
+                    renderCaptchaWidget();
+                }
+            })();
+            return captchaInitialization;
+        }
+        void initializeCaptcha();
+
+        function input(id, type, label, autocomplete, required = true, attributes = '') {
+            return `<div class="input-group"><input id="${id}" type="${type}" autocomplete="${autocomplete}" placeholder=" " ${required ? 'required' : ''} ${attributes}><label for="${id}">${label}</label></div>`;
+        }
+
+        function codeInput() {
+            return `<div class="code-row">${input('code', 'text', '6 位验证码', 'one-time-code')}<button id="sendCodeBtn" class="code-button" type="button" onclick="sendCode()" aria-describedby="codeMessage">获取验证码</button></div><p id="codeMessage" class="code-message" role="status" aria-live="polite"></p>`;
+        }
+
+        function submitButton(label) {
+            return `<button id="loginBtn" type="submit" class="login-button"><span>${label}</span><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>`;
+        }
+
+        function footerButton(label, view) {
+            return `<button type="button" onclick="setView('${view}')">${label}</button>`;
+        }
+
+        function forgotPasswordButton() {
+            return '<div class="password-actions"><button type="button" class="forgot-password-button" onclick="setView(\'reset\')"><span>忘记密码？</span><svg class="forgot-password-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button></div>';
+        }
+
+        function render() {
+            clearMessage();
+            authTabs.classList.toggle('hidden', state.view !== 'login');
+            authTabs.querySelectorAll('.auth-tab').forEach(button => button.classList.toggle('active', button.dataset.method === state.method));
+            if (state.view === 'login') {
+                authTitle.textContent = '欢迎回来';
+                authSubtitle.textContent = '使用手机号继续完成你的故事';
+                authForm.innerHTML = input(
+                    'identity',
+                    state.method === 'password' ? 'text' : 'tel',
+                    '手机号',
+                    state.method === 'password' ? 'username' : 'tel'
+                )
+                    + (state.method === 'password' ? input('password', 'password', '密码', 'current-password') : codeInput())
+                    + captchaMarkup()
+                    + (state.method === 'password' ? forgotPasswordButton() : '')
+                    + submitButton('进入创剧');
+                authFooter.innerHTML = `还没有账号？ ${footerButton('创建账号', 'register')}`;
+            } else if (state.view === 'register') {
+                authTitle.textContent = '创建账号';
+                authSubtitle.textContent = '手机号是登录身份，邮箱可以稍后绑定';
+                authForm.innerHTML = input('phone', 'tel', '手机号', 'tel') + codeInput()
+                    + input('password', 'password', '密码（至少 8 位）', 'new-password', true, 'minlength="8" maxlength="128"')
+                    + input('confirmPassword', 'password', '确认密码', 'new-password', true, 'minlength="8" maxlength="128"')
+                    + input('email', 'email', '邮箱（选填）', 'email', false)
+                    + `<p class="field-hint">填写邮箱后将发送验证邮件；未验证前不会接收系统通知。</p>`
+                    + captchaMarkup()
+                    + submitButton('创建账号');
+                authFooter.innerHTML = `已有账号？ ${footerButton('登录', 'login')}`;
+            } else if (state.view === 'bind') {
+                authTitle.textContent = '绑定手机号';
+                authSubtitle.textContent = '为了账号安全，请先完成手机号验证';
+                authForm.innerHTML = input('phone', 'tel', '手机号', 'tel') + codeInput() + captchaMarkup() + submitButton('绑定并进入创剧');
+                authFooter.innerHTML = footerButton('返回登录', 'login');
+            } else {
+                authTitle.textContent = '重置密码';
+                authSubtitle.textContent = '验证注册手机号后设置新密码';
+                authForm.innerHTML = input('phone', 'tel', '手机号', 'tel') + codeInput()
+                    + input('password', 'password', '新密码（至少 8 位）', 'new-password', true, 'minlength="8" maxlength="128"')
+                    + input('confirmPassword', 'password', '确认新密码', 'new-password', true, 'minlength="8" maxlength="128"')
+                    + captchaMarkup()
+                    + submitButton('重置并登录');
+                authFooter.innerHTML = footerButton('返回登录', 'login');
+            }
+            updateCodeButton();
+            queueMicrotask(renderCaptchaWidget);
+        }
+
+        function setView(view) {
+            resetCaptcha();
+            state.view = view;
+            if (view !== 'login') state.method = 'password';
+            history.replaceState(null, '', view === 'login' ? '/login' : `/${view === 'bind' ? 'bind-phone' : view === 'reset' ? 'password-reset' : 'register'}`);
+            render();
+        }
+
+        authTabs.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-method]');
+            if (!button) return;
+            if (state.view !== 'login') return;
+            resetCaptcha();
+            state.method = button.dataset.method;
+            render();
+        });
+
+        function field(id) {
+            return (document.getElementById(id)?.value || '').trim();
+        }
+
+        function isMainlandPhone(value) {
+            return /^((\+?86)|0086)?1[3-9]\d{9}$/.test(value.replace(/[\s-]/g, ''));
+        }
+
+        function phoneFieldValue() {
+            return state.view === 'login' ? field('identity') : field('phone');
+        }
+
+        function clearMessage() {
+            errorMessage.classList.add('hidden');
+            successMessage.classList.add('hidden');
+            codeMessage('');
+        }
+
+        function codeMessage(message, isError = false) {
+            const target = document.getElementById('codeMessage');
+            if (target) { target.textContent = message; target.dataset.error = String(isError); }
+        }
+
+        function showError(message) {
+            successMessage.classList.add('hidden');
+            errorMessage.textContent = message;
+            errorMessage.classList.remove('hidden');
+        }
+
+        function showSuccess(message) {
+            errorMessage.classList.add('hidden');
+            successMessage.textContent = message;
+            successMessage.classList.remove('hidden');
+        }
+
+        function validationErrorMessage(payload, fallback = '请求失败，请稍后重试') {
+            const detail = payload?.detail ?? payload?.error ?? payload?.message;
+            if (typeof detail === 'string' && detail.trim()) return detail;
+            if (Array.isArray(detail)) {
+                const messages = detail.map(item => {
+                    if (!item || typeof item !== 'object') return String(item || '');
+                    const field = Array.isArray(item.loc) ? item.loc[item.loc.length - 1] : '';
+                    const label = {
+                        password: '密码',
+                        new_password: '密码',
+                        code: '验证码',
+                        phone: '手机号',
+                        email: '邮箱',
+                    }[field] || '输入内容';
+                    if (item.type === 'string_too_short' && item.ctx?.min_length) {
+                        return `${label}至少需要 ${item.ctx.min_length} 位`;
+                    }
+                    if (item.type === 'string_too_long' && item.ctx?.max_length) {
+                        return `${label}不能超过 ${item.ctx.max_length} 位`;
+                    }
+                    return item.msg || item.message || '';
+                }).filter(Boolean);
+                if (messages.length) return [...new Set(messages)].join('；');
+            }
+            if (detail && typeof detail === 'object') {
+                return detail.message || detail.error || fallback;
+            }
+            return fallback;
+        }
+
+        async function api(url, body) {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 20000);
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                    credentials: 'same-origin',
+                    signal: controller.signal,
+                });
+                let payload = {};
+                try { payload = await response.json(); } catch (_) { payload = {}; }
+                if (!response.ok) throw new Error(validationErrorMessage(payload));
+                return payload;
+            } catch (error) {
+                if (error.name === 'AbortError') throw new Error(url === '/api/auth/sms-code' ? '请求超时，请先检查是否已收到短信，再稍后重试' : '请求超时，请稍后重试');
+                throw error;
+            } finally {
+                clearTimeout(timeout);
+            }
+        }
+
+        function saveSession(payload) {
+            if (!payload?.user_id) throw new Error('登录响应缺少用户身份');
+            localStorage.removeItem('auth_token');
+            localStorage.setItem(USERNAME_KEY, payload.username || payload.user_id);
+            localStorage.setItem(USER_ID_KEY, payload.user_id);
+            sessionStorage.removeItem(BINDING_TOKEN_KEY);
+        }
+
+        async function sendCode() {
+            if (state.sendingCode || state.countdown > 0) return;
+            clearMessage();
+            const phone = phoneFieldValue();
+            if (!isMainlandPhone(phone)) {
+                showError('请输入正确的中国大陆手机号');
+                codeMessage('请输入正确的中国大陆手机号', true);
+                return;
+            }
+            const purpose = smsPurpose();
+            const view = state.view, method = state.method;
+            state.sendingCode = true;
+            state.sendingStage = '请完成验证';
+            updateCodeButton();
+            try {
+                codeMessage('请在弹窗中拖动滑块，验证通过后自动发送短信');
+                const body = { phone, purpose, captcha_verification: await requireCaptcha(`sms_${purpose}`) };
+                if (view !== state.view || method !== state.method) return;
+                if (purpose === 'bind_phone') body.binding_token = sessionStorage.getItem(BINDING_TOKEN_KEY) || '';
+                state.sendingStage = '发送中…';
+                updateCodeButton();
+                codeMessage('正在发送短信，请稍候…');
+                const result = await api('/api/auth/sms-code', body);
+                if (view !== state.view || method !== state.method) return;
+                if (result.next_action === 'register') {
+                    if (state.timer) clearInterval(state.timer);
+                    state.timer = null;
+                    state.countdown = 0;
+                    setView('register');
+                    const registerPhone = document.getElementById('phone');
+                    if (registerPhone) registerPhone.value = result.phone || phone;
+                    showError(result.message || '该手机号尚未注册，请先注册');
+                    return;
+                }
+                state.countdown = Number(result.resend_in || 60);
+                startCountdown();
+                const deliveryMessage = result.sent === false
+                    ? '如果账号存在，验证码将发送，请稍后查收'
+                    : '验证码已发送，请注意查收';
+                showSuccess(result.development_code ? `开发模式验证码：${result.development_code}` : deliveryMessage);
+                codeMessage(deliveryMessage);
+            } catch (error) {
+                if (view === state.view && method === state.method) {
+                    if (error.name === 'CaptchaCancelled') codeMessage('已取消验证，点击“获取验证码”可重试');
+                    else { showError(error.message || '短信发送失败，请重试'); codeMessage(error.message || '短信发送失败，请重试', true); }
+                }
+            } finally {
+                if (view === state.view && method === state.method) resetCaptcha();
+                state.sendingCode = false;
+                state.sendingStage = '';
+                updateCodeButton();
+            }
+        }
+
+        function startCountdown() {
+            if (state.timer) clearInterval(state.timer);
+            updateCodeButton();
+            state.timer = setInterval(() => {
+                state.countdown -= 1;
+                updateCodeButton();
+                if (state.countdown <= 0) clearInterval(state.timer);
+            }, 1000);
+        }
+
+        function updateCodeButton() {
+            const button = document.getElementById('sendCodeBtn');
+            if (!button) return;
+            button.disabled = state.sendingCode || state.countdown > 0;
+            button.textContent = state.sendingCode ? state.sendingStage : state.countdown > 0 ? `${state.countdown} 秒后重发` : '获取验证码';
+        }
+
+        async function handleSubmit(event) {
+            event.preventDefault();
+            const submittingView = state.view, submittingMethod = state.method;
+            clearMessage();
+            const button = document.getElementById('loginBtn');
+            const original = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '<span>处理中...</span><span class="loader" aria-hidden="true"></span>';
+            try {
+                let result;
+                if (state.view === 'login') {
+                    const identity = field('identity');
+                    const phoneLogin = isMainlandPhone(identity);
+                    if (state.method === 'sms_code' && !phoneLogin) {
+                        throw new Error('验证码登录请输入正确的中国大陆手机号');
+                    }
+                    const captchaVerification = state.method === 'password' ? await requireCaptcha('login') : undefined;
+                    if (submittingView !== state.view || submittingMethod !== state.method) return;
+                    result = state.method === 'password' && !phoneLogin
+                        ? await api('/api/login', { username: identity, password: field('password'), captcha_verification: captchaVerification })
+                        : await api('/api/auth/phone/login', {
+                            phone: identity,
+                            method: state.method,
+                            password: state.method === 'password' ? field('password') : undefined,
+                            code: state.method === 'sms_code' ? field('code') : undefined,
+                            captcha_verification: captchaVerification,
+                        });
+                    if (result.requires_phone_binding && result.binding_token) {
+                        sessionStorage.setItem(BINDING_TOKEN_KEY, result.binding_token);
+                        const returnTo = safeLoginRedirect();
+                        if (returnTo) sessionStorage.setItem(BINDING_RETURN_KEY, returnTo);
+                        setView('bind');
+                        showSuccess('账号验证成功，请绑定手机号');
+                        return;
+                    }
+                } else if (state.view === 'register') {
+                    if (field('password').length < 8) throw new Error('密码至少需要 8 位');
+                    if (field('password') !== field('confirmPassword')) throw new Error('两次输入的密码不一致');
+                    result = await api('/api/auth/phone/register', { phone: field('phone'), code: field('code'), password: field('password'), email: field('email') || null });
+                } else if (state.view === 'bind') {
+                    result = await api('/api/auth/legacy/bind-phone', { binding_token: sessionStorage.getItem(BINDING_TOKEN_KEY) || '', phone: field('phone'), code: field('code') });
+                } else {
+                    if (field('password').length < 8) throw new Error('密码至少需要 8 位');
+                    if (field('password') !== field('confirmPassword')) throw new Error('两次输入的密码不一致');
+                    result = await api('/api/auth/phone/password-reset', { phone: field('phone'), code: field('code'), new_password: field('password') });
+                }
+                const bindingReturn = state.view === 'bind' ? safeLoginRedirect(sessionStorage.getItem(BINDING_RETURN_KEY)) : '';
+                const returnTo = bindingReturn || safeLoginRedirect();
+                saveSession(result);
+                sessionStorage.removeItem(BINDING_TOKEN_KEY);
+                sessionStorage.removeItem(BINDING_RETURN_KEY);
+                window.location.href = returnTo || '/projects';
+            } catch (error) {
+                if (state.view === 'login' && state.method === 'password') resetCaptcha();
+                if (error.name !== 'CaptchaCancelled') showError(error.message || '操作失败，请稍后重试');
+                button.disabled = false;
+                button.innerHTML = original;
+            }
+        }
+
+        if (state.view === 'bind' && !sessionStorage.getItem(BINDING_TOKEN_KEY)) {
+            state.view = 'login';
+            history.replaceState(null, '', '/login');
+        }
+        render();
+    </script>
+</body>
+</html>

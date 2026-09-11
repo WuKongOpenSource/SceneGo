@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 368" role="img" aria-labelledby="title desc">
+  <title id="title">创剧</title>
+  <desc id="desc">适用于浅色背景的创剧标志</desc>
+  <defs>
+    <linearGradient id="brand-gradient" x1="44" y1="184" x2="324" y2="184" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#174FD1"/>
+      <stop offset="0.52" stop-color="#0879E8"/>
+      <stop offset="1" stop-color="#00BFEF"/>
+    </linearGradient>
+    <mask id="play-cutout">
+      <rect width="368" height="368" fill="#FFFFFF"/>
+      <path d="m162 170 100 58-100 58Z" fill="#000000"/>
+    </mask>
+    <mask id="clapper-cutout">
+      <path d="M96 118 278 70c15-4 30 5 34 20l11 42-215 57Z" fill="#FFFFFF"/>
+      <path d="m142 106 29-8 31 43-29 8Zm76-20 29-8 31 43-29 8Z" fill="#000000"/>
+    </mask>
+  </defs>
+  <g mask="url(#play-cutout)">
+    <rect x="44" y="152" width="220" height="170" rx="30" fill="#174FD1"/>
+    <rect x="74" y="132" width="220" height="170" rx="30" fill="#0879E8"/>
+    <rect x="104" y="128" width="220" height="170" rx="30" fill="url(#brand-gradient)"/>
+    <rect width="368" height="368" fill="url(#brand-gradient)" mask="url(#clapper-cutout)"/>
+  </g>
+  <text x="390" y="245" fill="#17171C" font-family="Noto Sans SC, sans-serif" font-size="176" font-weight="900">创剧</text>
+</svg>

@@ -1,0 +1,578 @@
+{
+  "schema_version": 1,
+  "scope": "esbuild-platform-distributions-0.25.12",
+  "complete_sbom": false,
+  "release_approved": false,
+  "binary_reproduced": false,
+  "evidence_method": "locked-archive-hashes-and-static-byte-inspection-no-execution",
+  "remaining_review": [
+    "Publisher build metadata is not a reproducible-build or signed-provenance proof.",
+    "WASM compilation provenance is not established by matching JavaScript loaders.",
+    "Runtime, vendored code, transitive attribution, and final release approval remain open."
+  ],
+  "sources": {
+    "go": {
+      "repository": "golang/go",
+      "commit": "dd8b7ad9268c2fbde675132a41b4e4da02eef94d",
+      "origin_url": "https://api.github.com/repos/golang/go/git/ref/tags/go1.23.12",
+      "origin_sha256": "b6ee690e1800c08d2337f7985cff50ba90fac10fd4c5f83403ce2e80a5796157",
+      "files": [
+        {
+          "upstream_path": "LICENSE",
+          "url": "https://raw.githubusercontent.com/golang/go/dd8b7ad9268c2fbde675132a41b4e4da02eef94d/LICENSE",
+          "sha256": "2d36597f7117c38b006835ae7f537487207d8ec407aa9d9980794b2030cbc067",
+          "git_blob_sha1": "6a66aea5eafe0ca6a688840c47219556c552488e",
+          "bytes": 1479,
+          "path": "licenses/npm-esbuild-go-LICENSE.txt"
+        },
+        {
+          "upstream_path": "PATENTS",
+          "url": "https://raw.githubusercontent.com/golang/go/dd8b7ad9268c2fbde675132a41b4e4da02eef94d/PATENTS",
+          "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc",
+          "git_blob_sha1": "733099041f84fa1e58611ab2e11af51c1f26d1d2",
+          "bytes": 1303,
+          "path": "licenses/npm-esbuild-go-PATENTS.txt"
+        }
+      ]
+    },
+    "sys": {
+      "repository": "golang/sys",
+      "commit": "c0bba94af5f85fbad9f6dc2e04ed5b8fac9696cf",
+      "origin_url": "https://api.github.com/repos/golang/sys/commits/c0bba94af5f8",
+      "origin_sha256": "57188d5d6564c1ff524ab8cc4d5d53851c36a1665409d7f40ee3217519115796",
+      "files": [
+        {
+          "upstream_path": "LICENSE",
+          "url": "https://raw.githubusercontent.com/golang/sys/c0bba94af5f85fbad9f6dc2e04ed5b8fac9696cf/LICENSE",
+          "sha256": "2d36597f7117c38b006835ae7f537487207d8ec407aa9d9980794b2030cbc067",
+          "git_blob_sha1": "6a66aea5eafe0ca6a688840c47219556c552488e",
+          "bytes": 1479,
+          "path": "licenses/npm-esbuild-go-LICENSE.txt"
+        },
+        {
+          "upstream_path": "PATENTS",
+          "url": "https://raw.githubusercontent.com/golang/sys/c0bba94af5f85fbad9f6dc2e04ed5b8fac9696cf/PATENTS",
+          "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc",
+          "git_blob_sha1": "733099041f84fa1e58611ab2e11af51c1f26d1d2",
+          "bytes": 1303,
+          "path": "licenses/npm-esbuild-go-PATENTS.txt"
+        }
+      ]
+    }
+  },
+  "loaders": [
+    {
+      "repository": "golang/go",
+      "commit": "dd8b7ad9268c2fbde675132a41b4e4da02eef94d",
+      "upstream_path": "misc/wasm/wasm_exec.js",
+      "archive_path": "package/wasm_exec.js",
+      "url": "https://raw.githubusercontent.com/golang/go/dd8b7ad9268c2fbde675132a41b4e4da02eef94d/misc/wasm/wasm_exec.js",
+      "git_blob_sha1": "bc6f210242824c25b5ee619afa507767b6e587be",
+      "sha256": "45ce9dfe7211247544ab6f4268eb8cb5b6f3d5ae602dc3b51447b7eada99c229",
+      "bytes": 16687,
+      "matched_distributions": 3
+    },
+    {
+      "repository": "golang/go",
+      "commit": "dd8b7ad9268c2fbde675132a41b4e4da02eef94d",
+      "upstream_path": "misc/wasm/wasm_exec_node.js",
+      "archive_path": "package/wasm_exec_node.js",
+      "url": "https://raw.githubusercontent.com/golang/go/dd8b7ad9268c2fbde675132a41b4e4da02eef94d/misc/wasm/wasm_exec_node.js",
+      "git_blob_sha1": "986069087bc0bce0beddeb3fb19ebb2b42cf4fdb",
+      "sha256": "c91e20cf70dc4ab76b633f392676e9f1b22d849ba5fca4f80422391705a26638",
+      "bytes": 1151,
+      "matched_distributions": 3
+    },
+    {
+      "repository": "evanw/esbuild",
+      "commit": "208f539945b145e7c9d6d844290f81c3fe5af320",
+      "upstream_path": "npm/esbuild-wasm/bin/esbuild",
+      "archive_path": "package/bin/esbuild",
+      "url": "https://raw.githubusercontent.com/evanw/esbuild/208f539945b145e7c9d6d844290f81c3fe5af320/npm/esbuild-wasm/bin/esbuild",
+      "git_blob_sha1": "e22567d76c1056d5981e9120f4b0282834ce4e1f",
+      "sha256": "b3cdaf234fd51a7908b2ffc4a84b3baa466656ccb2586498de4cc2f77b6f1e1e",
+      "bytes": 3504,
+      "matched_distributions": 3
+    }
+  ],
+  "distributions": [
+    {
+      "name": "@esbuild/aix-ppc64",
+      "version": "0.25.12",
+      "archive_sha256": "6f36448f31d26425773b80985184f3bfb5661acede70c503b201c823836a10e8",
+      "kind": "native",
+      "build_info_status": "embedded-metadata-only",
+      "build_info_offset": 9651712,
+      "go_version": "go1.23.12",
+      "module_info": "path\tgithub.com/evanw/esbuild/cmd/esbuild\nmod\tgithub.com/evanw/esbuild\t(devel)\t\nbuild\t-buildmode=exe\nbuild\t-compiler=gc\nbuild\t-trimpath=true\nbuild\tDefaultGODEBUG=asynctimerchan=1,gotypesalias=0,httplaxcontentlength=1,httpmuxgo121=1,httpservecontentkeepheaders=1,netedns0=0,panicnil=1,tls10server=1,tls3des=1,tlskyber=0,tlsrsakex=1,tlsunsafeekm=1,winreadlinkvolume=0,winsymlink=0,x509keypairleaf=0,x509negativeserial=1\nbuild\tCGO_ENABLED=0\nbuild\tGOARCH=ppc64\nbuild\tGOOS=aix\nbuild\tGOPPC64=power8\nbuild\tvcs=git\nbuild\tvcs.revision=208f539945b145e7c9d6d844290f81c3fe5af320\nbuild\tvcs.time=2025-11-01T23:34:16Z\nbuild\tvcs.modified=false\n",
+      "files": [
+        {
+          "path": "package/bin/esbuild",
+          "bytes": 11399196,
+          "sha256": "3a084637386bda2322aede78e62daae2bca2ebd69d0eb92f0ad594afd5135a69"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/android-arm",
+      "version": "0.25.12",
+      "archive_sha256": "5aea75886f091b07287ac357a492bcbbf633532381b31ba71611955faada3c7e",
+      "kind": "javascript-wasm",
+      "build_info_status": "not-established",
+      "files": [
+        {
+          "path": "package/bin/esbuild",
+          "bytes": 3504,
+          "sha256": "b3cdaf234fd51a7908b2ffc4a84b3baa466656ccb2586498de4cc2f77b6f1e1e"
+        },
+        {
+          "path": "package/wasm_exec_node.js",
+          "bytes": 1151,
+          "sha256": "c91e20cf70dc4ab76b633f392676e9f1b22d849ba5fca4f80422391705a26638"
+        },
+        {
+          "path": "package/wasm_exec.js",
+          "bytes": 16687,
+          "sha256": "45ce9dfe7211247544ab6f4268eb8cb5b6f3d5ae602dc3b51447b7eada99c229"
+        },
+        {
+          "path": "package/esbuild.wasm",
+          "bytes": 12332677,
+          "sha256": "92c182cd141115f33ad08ad1d29b38f00f6292d38c3fe7ef85c11775407b54fb"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/android-arm64",
+      "version": "0.25.12",
+      "archive_sha256": "9cb49d434b501e232ec60de75d2bc7e0206477cdc7f38f5f1a8b531ab77e6921",
+      "kind": "native",
+      "build_info_status": "embedded-metadata-only",
+      "build_info_offset": 10354688,
+      "go_version": "go1.23.12",
+      "module_info": "path\tgithub.com/evanw/esbuild/cmd/esbuild\nmod\tgithub.com/evanw/esbuild\t(devel)\t\ndep\tgolang.org/x/sys\tv0.0.0-20220715151400-c0bba94af5f8\th1:0A+M6Uqn+Eje4kHMK80dtF3JCXC4ykBgQG4Fe06QRhQ=\nbuild\t-buildmode=exe\nbuild\t-compiler=gc\nbuild\t-trimpath=true\nbuild\tDefaultGODEBUG=asynctimerchan=1,gotypesalias=0,httplaxcontentlength=1,httpmuxgo121=1,httpservecontentkeepheaders=1,netedns0=0,panicnil=1,tls10server=1,tls3des=1,tlskyber=0,tlsrsakex=1,tlsunsafeekm=1,winreadlinkvolume=0,winsymlink=0,x509keypairleaf=0,x509negativeserial=1\nbuild\tCGO_ENABLED=0\nbuild\tGOARCH=arm64\nbuild\tGOOS=android\nbuild\tGOARM64=v8.0\nbuild\tvcs=git\nbuild\tvcs.revision=208f539945b145e7c9d6d844290f81c3fe5af320\nbuild\tvcs.time=2025-11-01T23:34:16Z\nbuild\tvcs.modified=false\n",
+      "files": [
+        {
+          "path": "package/bin/esbuild",
+          "bytes": 10748225,
+          "sha256": "d3d07af16e961640bd2e38202c7fd169c14aec2f5f414a33d8bc8a534ee41435"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/android-x64",
+      "version": "0.25.12",
+      "archive_sha256": "1b1fb12cc646f4b641503116c52d9503ba479f00f8eeba3553e5045fd5b3e808",
+      "kind": "javascript-wasm",
+      "build_info_status": "not-established",
+      "files": [
+        {
+          "path": "package/bin/esbuild",
+          "bytes": 3504,
+          "sha256": "b3cdaf234fd51a7908b2ffc4a84b3baa466656ccb2586498de4cc2f77b6f1e1e"
+        },
+        {
+          "path": "package/wasm_exec_node.js",
+          "bytes": 1151,
+          "sha256": "c91e20cf70dc4ab76b633f392676e9f1b22d849ba5fca4f80422391705a26638"
+        },
+        {
+          "path": "package/wasm_exec.js",
+          "bytes": 16687,
+          "sha256": "45ce9dfe7211247544ab6f4268eb8cb5b6f3d5ae602dc3b51447b7eada99c229"
+        },
+        {
+          "path": "package/esbuild.wasm",
+          "bytes": 12332677,
+          "sha256": "92c182cd141115f33ad08ad1d29b38f00f6292d38c3fe7ef85c11775407b54fb"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/darwin-arm64",
+      "version": "0.25.12",
+      "archive_sha256": "2e0d011f852e45046ca5c107db54cfc56338f77aca49d227a063696d958451d7",
+      "kind": "native",
+      "build_info_status": "embedded-metadata-only",
+      "build_info_offset": 9289728,
+      "go_version": "go1.23.12",
+      "module_info": "path\tgithub.com/evanw/esbuild/cmd/esbuild\nmod\tgithub.com/evanw/esbuild\t(devel)\t\ndep\tgolang.org/x/sys\tv0.0.0-20220715151400-c0bba94af5f8\th1:0A+M6Uqn+Eje4kHMK80dtF3JCXC4ykBgQG4Fe06QRhQ=\nbuild\t-buildmode=exe\nbuild\t-compiler=gc\nbuild\t-trimpath=true\nbuild\tDefaultGODEBUG=asynctimerchan=1,gotypesalias=0,httplaxcontentlength=1,httpmuxgo121=1,httpservecontentkeepheaders=1,netedns0=0,panicnil=1,tls10server=1,tls3des=1,tlskyber=0,tlsrsakex=1,tlsunsafeekm=1,winreadlinkvolume=0,winsymlink=0,x509keypairleaf=0,x509negativeserial=1\nbuild\tCGO_ENABLED=0\nbuild\tGOARCH=arm64\nbuild\tGOOS=darwin\nbuild\tGOARM64=v8.0\nbuild\tvcs=git\nbuild\tvcs.revision=208f539945b145e7c9d6d844290f81c3fe5af320\nbuild\tvcs.time=2025-11-01T23:34:16Z\nbuild\tvcs.modified=false\n",
+      "files": [
+        {
+          "path": "package/bin/esbuild",
+          "bytes": 9934834,
+          "sha256": "3e030ee2aa86ad3c33e5e95ae0e53bb03de40e0da35c9b1180a67de4a497cae5"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/darwin-x64",
+      "version": "0.25.12",
+      "archive_sha256": "bf56cdf7b330a8605395ee13de805c784c7346d0802c7cced8490b4bfac2291a",
+      "kind": "native",
+      "build_info_status": "embedded-metadata-only",
+      "build_info_offset": 10055680,
+      "go_version": "go1.23.12",
+      "module_info": "path\tgithub.com/evanw/esbuild/cmd/esbuild\nmod\tgithub.com/evanw/esbuild\t(devel)\t\ndep\tgolang.org/x/sys\tv0.0.0-20220715151400-c0bba94af5f8\th1:0A+M6Uqn+Eje4kHMK80dtF3JCXC4ykBgQG4Fe06QRhQ=\nbuild\t-buildmode=exe\nbuild\t-compiler=gc\nbuild\t-trimpath=true\nbuild\tDefaultGODEBUG=asynctimerchan=1,gotypesalias=0,httplaxcontentlength=1,httpmuxgo121=1,httpservecontentkeepheaders=1,netedns0=0,panicnil=1,tls10server=1,tls3des=1,tlskyber=0,tlsrsakex=1,tlsunsafeekm=1,winreadlinkvolume=0,winsymlink=0,x509keypairleaf=0,x509negativeserial=1\nbuild\tCGO_ENABLED=0\nbuild\tGOARCH=amd64\nbuild\tGOOS=darwin\nbuild\tGOAMD64=v1\nbuild\tvcs=git\nbuild\tvcs.revision=208f539945b145e7c9d6d844290f81c3fe5af320\nbuild\tvcs.time=2025-11-01T23:34:16Z\nbuild\tvcs.modified=false\n",
+      "files": [
+        {
+          "path": "package/bin/esbuild",
+          "bytes": 10611232,
+          "sha256": "bd09e65a6a1a903c40269d3a4ae23ffc6139f691703728c1faf25f62e48baa40"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/freebsd-arm64",
+      "version": "0.25.12",
+      "archive_sha256": "3d140ffd2d7e3d8f747a9dcb8abdbec9505ab795ba6e55a8a9dd4f23378c5d31",
+      "kind": "native",
+      "build_info_status": "embedded-metadata-only",
+      "build_info_offset": 9306112,
+      "go_version": "go1.23.12",
+      "module_info": "path\tgithub.com/evanw/esbuild/cmd/esbuild\nmod\tgithub.com/evanw/esbuild\t(devel)\t\ndep\tgolang.org/x/sys\tv0.0.0-20220715151400-c0bba94af5f8\th1:0A+M6Uqn+Eje4kHMK80dtF3JCXC4ykBgQG4Fe06QRhQ=\nbuild\t-buildmode=exe\nbuild\t-compiler=gc\nbuild\t-trimpath=true\nbuild\tDefaultGODEBUG=asynctimerchan=1,gotypesalias=0,httplaxcontentlength=1,httpmuxgo121=1,httpservecontentkeepheaders=1,netedns0=0,panicnil=1,tls10server=1,tls3des=1,tlskyber=0,tlsrsakex=1,tlsunsafeekm=1,winreadlinkvolume=0,winsymlink=0,x509keypairleaf=0,x509negativeserial=1\nbuild\tCGO_ENABLED=0\nbuild\tGOARCH=arm64\nbuild\tGOOS=freebsd\nbuild\tGOARM64=v8.0\nbuild\tvcs=git\nbuild\tvcs.revision=208f539945b145e7c9d6d844290f81c3fe5af320\nbuild\tvcs.time=2025-11-01T23:34:16Z\nbuild\tvcs.modified=false\n",
+      "files": [
+        {
+          "path": "package/bin/esbuild",
+          "bytes": 9699490,
+          "sha256": "03586dfc7d494f303f2430d29899e35b559e1288698f0bbd002c37666ceaf83e"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/freebsd-x64",
+      "version": "0.25.12",
+      "archive_sha256": "8bf2618e0ff33e342c68f5c9f56dde969551daaea3c89dd30d5859abe066b2a2",
+      "kind": "native",
+      "build_info_status": "embedded-metadata-only",
+      "build_info_offset": 10027008,
+      "go_version": "go1.23.12",
+      "module_info": "path\tgithub.com/evanw/esbuild/cmd/esbuild\nmod\tgithub.com/evanw/esbuild\t(devel)\t\ndep\tgolang.org/x/sys\tv0.0.0-20220715151400-c0bba94af5f8\th1:0A+M6Uqn+Eje4kHMK80dtF3JCXC4ykBgQG4Fe06QRhQ=\nbuild\t-buildmode=exe\nbuild\t-compiler=gc\nbuild\t-trimpath=true\nbuild\tDefaultGODEBUG=asynctimerchan=1,gotypesalias=0,httplaxcontentlength=1,httpmuxgo121=1,httpservecontentkeepheaders=1,netedns0=0,panicnil=1,tls10server=1,tls3des=1,tlskyber=0,tlsrsakex=1,tlsunsafeekm=1,winreadlinkvolume=0,winsymlink=0,x509keypairleaf=0,x509negativeserial=1\nbuild\tCGO_ENABLED=0\nbuild\tGOARCH=amd64\nbuild\tGOOS=freebsd\nbuild\tGOAMD64=v1\nbuild\tvcs=git\nbuild\tvcs.revision=208f539945b145e7c9d6d844290f81c3fe5af320\nbuild\tvcs.time=2025-11-01T23:34:16Z\nbuild\tvcs.modified=false\n",
+      "files": [
+        {
+          "path": "package/bin/esbuild",
+          "bytes": 10358946,
+          "sha256": "8c677acbb3f863a09972bd839b96ff41900f1a0b44b9e52786a10154ae8f9efc"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/linux-arm",
+      "version": "0.25.12",
+      "archive_sha256": "318df2dc59ce5d2f0768fb0721fdcf20e639e2cd9d47765c6ddf4ae36f4a1142",
+      "kind": "native",
+      "build_info_status": "embedded-metadata-only",
+      "build_info_offset": 9437184,
+      "go_version": "go1.23.12",
+      "module_info": "path\tgithub.com/evanw/esbuild/cmd/esbuild\nmod\tgithub.com/evanw/esbuild\t(devel)\t\ndep\tgolang.org/x/sys\tv0.0.0-20220715151400-c0bba94af5f8\th1:0A+M6Uqn+Eje4kHMK80dtF3JCXC4ykBgQG4Fe06QRhQ=\nbuild\t-buildmode=exe\nbuild\t-compiler=gc\nbuild\t-trimpath=true\nbuild\tDefaultGODEBUG=asynctimerchan=1,gotypesalias=0,httplaxcontentlength=1,httpmuxgo121=1,httpservecontentkeepheaders=1,netedns0=0,panicnil=1,tls10server=1,tls3des=1,tlskyber=0,tlsrsakex=1,tlsunsafeekm=1,winreadlinkvolume=0,winsymlink=0,x509keypairleaf=0,x509negativeserial=1\nbuild\tCGO_ENABLED=0\nbuild\tGOARCH=arm\nbuild\tGOOS=linux\nbuild\tGOARM=7,hardfloat\nbuild\tvcs=git\nbuild\tvcs.revision=208f539945b145e7c9d6d844290f81c3fe5af320\nbuild\tvcs.time=2025-11-01T23:34:16Z\nbuild\tvcs.modified=false\n",
+      "files": [
+        {
+          "path": "package/bin/esbuild",
+          "bytes": 9765016,
+          "sha256": "f840ac4b100ae4b06a0cd51beb5f39b1d3eff23a7968375431309f7a9ea498de"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/linux-arm64",
+      "version": "0.25.12",
+      "archive_sha256": "d5e01d210e026823d559e2b82554cdcdab6fd87c4a57b519b392ef183c1f87fd",
+      "kind": "native",
+      "build_info_status": "embedded-metadata-only",
+      "build_info_offset": 9306112,
+      "go_version": "go1.23.12",
+      "module_info": "path\tgithub.com/evanw/esbuild/cmd/esbuild\nmod\tgithub.com/evanw/esbuild\t(devel)\t\ndep\tgolang.org/x/sys\tv0.0.0-20220715151400-c0bba94af5f8\th1:0A+M6Uqn+Eje4kHMK80dtF3JCXC4ykBgQG4Fe06QRhQ=\nbuild\t-buildmode=exe\nbuild\t-compiler=gc\nbuild\t-trimpath=true\nbuild\tDefaultGODEBUG=asynctimerchan=1,gotypesalias=0,httplaxcontentlength=1,httpmuxgo121=1,httpservecontentkeepheaders=1,netedns0=0,panicnil=1,tls10server=1,tls3des=1,tlskyber=0,tlsrsakex=1,tlsunsafeekm=1,winreadlinkvolume=0,winsymlink=0,x509keypairleaf=0,x509negativeserial=1\nbuild\tCGO_ENABLED=0\nbuild\tGOARCH=arm64\nbuild\tGOOS=linux\nbuild\tGOARM64=v8.0\nbuild\tvcs=git\nbuild\tvcs.revision=208f539945b145e7c9d6d844290f81c3fe5af320\nbuild\tvcs.time=2025-11-01T23:34:16Z\nbuild\tvcs.modified=false\n",
+      "files": [
+        {
+          "path": "package/bin/esbuild",
+          "bytes": 9699480,
+          "sha256": "840ad255d6fd587b126d8b2d59ab506d8562785b9bc76249dc3b0e1bdd2ca449"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/linux-ia32",
+      "version": "0.25.12",
+      "archive_sha256": "d9a45a87621f08f3be3017c95283fb5e4f48bdb3808daedd7c57c755a9c9f83b",
+      "kind": "native",
+      "build_info_status": "embedded-metadata-only",
+      "build_info_offset": 9486336,
+      "go_version": "go1.23.12",
+      "module_info": "path\tgithub.com/evanw/esbuild/cmd/esbuild\nmod\tgithub.com/evanw/esbuild\t(devel)\t\ndep\tgolang.org/x/sys\tv0.0.0-20220715151400-c0bba94af5f8\th1:0A+M6Uqn+Eje4kHMK80dtF3JCXC4ykBgQG4Fe06QRhQ=\nbuild\t-buildmode=exe\nbuild\t-compiler=gc\nbuild\t-trimpath=true\nbuild\tDefaultGODEBUG=asynctimerchan=1,gotypesalias=0,httplaxcontentlength=1,httpmuxgo121=1,httpservecontentkeepheaders=1,netedns0=0,panicnil=1,tls10server=1,tls3des=1,tlskyber=0,tlsrsakex=1,tlsunsafeekm=1,winreadlinkvolume=0,winsymlink=0,x509keypairleaf=0,x509negativeserial=1\nbuild\tCGO_ENABLED=0\nbuild\tGOARCH=386\nbuild\tGOOS=linux\nbuild\tGO386=sse2\nbuild\tvcs=git\nbuild\tvcs.revision=208f539945b145e7c9d6d844290f81c3fe5af320\nbuild\tvcs.time=2025-11-01T23:34:16Z\nbuild\tvcs.modified=false\n",
+      "files": [
+        {
+          "path": "package/bin/esbuild",
+          "bytes": 9765016,
+          "sha256": "4de1ea590d572ab960f0c5095f3358d5b6184acaa5d4dea5753850a1bedf7fea"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/linux-loong64",
+      "version": "0.25.12",
+      "archive_sha256": "45bee0343b63121ca9ff6e424bada69711bf959bcb649a81c2c0ac9c22ad91fb",
+      "kind": "native",
+      "build_info_status": "embedded-metadata-only",
+      "build_info_offset": 9633792,
+      "go_version": "go1.23.12",
+      "module_info": "path\tgithub.com/evanw/esbuild/cmd/esbuild\nmod\tgithub.com/evanw/esbuild\t(devel)\t\ndep\tgolang.org/x/sys\tv0.0.0-20220715151400-c0bba94af5f8\th1:0A+M6Uqn+Eje4kHMK80dtF3JCXC4ykBgQG4Fe06QRhQ=\nbuild\t-buildmode=exe\nbuild\t-compiler=gc\nbuild\t-trimpath=true\nbuild\tDefaultGODEBUG=asynctimerchan=1,gotypesalias=0,httplaxcontentlength=1,httpmuxgo121=1,httpservecontentkeepheaders=1,netedns0=0,panicnil=1,tls10server=1,tls3des=1,tlskyber=0,tlsrsakex=1,tlsunsafeekm=1,winreadlinkvolume=0,winsymlink=0,x509keypairleaf=0,x509negativeserial=1\nbuild\tCGO_ENABLED=0\nbuild\tGOARCH=loong64\nbuild\tGOOS=linux\nbuild\tvcs=git\nbuild\tvcs.revision=208f539945b145e7c9d6d844290f81c3fe5af320\nbuild\tvcs.time=2025-11-01T23:34:16Z\nbuild\tvcs.modified=false\n",
+      "files": [
+        {
+          "path": "package/bin/esbuild",
+          "bytes": 10027160,
+          "sha256": "3d1e72c6749c9df5617b8821d8e36b09ab9ffb1956bf2899a94dd9023ae15a1f"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/linux-mips64el",
+      "version": "0.25.12",
+      "archive_sha256": "0840450dc4fe6b79cf2390c627f111c61b04266d9b5f0f7b0f291071a70a4825",
+      "kind": "native",
+      "build_info_status": "embedded-metadata-only",
+      "build_info_offset": 10813440,
+      "go_version": "go1.23.12",
+      "module_info": "path\tgithub.com/evanw/esbuild/cmd/esbuild\nmod\tgithub.com/evanw/esbuild\t(devel)\t\ndep\tgolang.org/x/sys\tv0.0.0-20220715151400-c0bba94af5f8\th1:0A+M6Uqn+Eje4kHMK80dtF3JCXC4ykBgQG4Fe06QRhQ=\nbuild\t-buildmode=exe\nbuild\t-compiler=gc\nbuild\t-trimpath=true\nbuild\tDefaultGODEBUG=asynctimerchan=1,gotypesalias=0,httplaxcontentlength=1,httpmuxgo121=1,httpservecontentkeepheaders=1,netedns0=0,panicnil=1,tls10server=1,tls3des=1,tlskyber=0,tlsrsakex=1,tlsunsafeekm=1,winreadlinkvolume=0,winsymlink=0,x509keypairleaf=0,x509negativeserial=1\nbuild\tCGO_ENABLED=0\nbuild\tGOARCH=mips64le\nbuild\tGOOS=linux\nbuild\tGOMIPS64=hardfloat\nbuild\tvcs=git\nbuild\tvcs.revision=208f539945b145e7c9d6d844290f81c3fe5af320\nbuild\tvcs.time=2025-11-01T23:34:16Z\nbuild\tvcs.modified=false\n",
+      "files": [
+        {
+          "path": "package/bin/esbuild",
+          "bytes": 11206808,
+          "sha256": "421d8e3ee3e67eb3f6c9fef137669e113062282c39bd58205012ac4566bbcd51"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/linux-ppc64",
+      "version": "0.25.12",
+      "archive_sha256": "1cd2f06d19e650b31d01474f82d72ff0a2cd4b15e901a83c22e9678c7958a10a",
+      "kind": "native",
+      "build_info_status": "embedded-metadata-only",
+      "build_info_offset": 9699328,
+      "go_version": "go1.23.12",
+      "module_info": "path\tgithub.com/evanw/esbuild/cmd/esbuild\nmod\tgithub.com/evanw/esbuild\t(devel)\t\ndep\tgolang.org/x/sys\tv0.0.0-20220715151400-c0bba94af5f8\th1:0A+M6Uqn+Eje4kHMK80dtF3JCXC4ykBgQG4Fe06QRhQ=\nbuild\t-buildmode=exe\nbuild\t-compiler=gc\nbuild\t-trimpath=true\nbuild\tDefaultGODEBUG=asynctimerchan=1,gotypesalias=0,httplaxcontentlength=1,httpmuxgo121=1,httpservecontentkeepheaders=1,netedns0=0,panicnil=1,tls10server=1,tls3des=1,tlskyber=0,tlsrsakex=1,tlsunsafeekm=1,winreadlinkvolume=0,winsymlink=0,x509keypairleaf=0,x509negativeserial=1\nbuild\tCGO_ENABLED=0\nbuild\tGOARCH=ppc64le\nbuild\tGOOS=linux\nbuild\tGOPPC64=power8\nbuild\tvcs=git\nbuild\tvcs.revision=208f539945b145e7c9d6d844290f81c3fe5af320\nbuild\tvcs.time=2025-11-01T23:34:16Z\nbuild\tvcs.modified=false\n",
+      "files": [
+        {
+          "path": "package/bin/esbuild",
+          "bytes": 10092696,
+          "sha256": "355b3addf6b8965c81f04c0cb1eb23efb23620f7354811fc797c3a4dc7247bf0"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/linux-riscv64",
+      "version": "0.25.12",
+      "archive_sha256": "64738a7389ebf341216c634916d8eef90f0cf57636f8de2c117f7ee89fdefa91",
+      "kind": "native",
+      "build_info_status": "embedded-metadata-only",
+      "build_info_offset": 9240576,
+      "go_version": "go1.23.12",
+      "module_info": "path\tgithub.com/evanw/esbuild/cmd/esbuild\nmod\tgithub.com/evanw/esbuild\t(devel)\t\ndep\tgolang.org/x/sys\tv0.0.0-20220715151400-c0bba94af5f8\th1:0A+M6Uqn+Eje4kHMK80dtF3JCXC4ykBgQG4Fe06QRhQ=\nbuild\t-buildmode=exe\nbuild\t-compiler=gc\nbuild\t-trimpath=true\nbuild\tDefaultGODEBUG=asynctimerchan=1,gotypesalias=0,httplaxcontentlength=1,httpmuxgo121=1,httpservecontentkeepheaders=1,netedns0=0,panicnil=1,tls10server=1,tls3des=1,tlskyber=0,tlsrsakex=1,tlsunsafeekm=1,winreadlinkvolume=0,winsymlink=0,x509keypairleaf=0,x509negativeserial=1\nbuild\tCGO_ENABLED=0\nbuild\tGOARCH=riscv64\nbuild\tGOOS=linux\nbuild\tGORISCV64=rva20u64\nbuild\tvcs=git\nbuild\tvcs.revision=208f539945b145e7c9d6d844290f81c3fe5af320\nbuild\tvcs.time=2025-11-01T23:34:16Z\nbuild\tvcs.modified=false\n",
+      "files": [
+        {
+          "path": "package/bin/esbuild",
+          "bytes": 9633944,
+          "sha256": "492c1c1978eb90fcef32643d666b278af5ae61e0b792f118e5ac34f2b19eb09a"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/linux-s390x",
+      "version": "0.25.12",
+      "archive_sha256": "35818fadf6809a5617d8533c2f91d2e321daeaf445729274d22213e831895bc7",
+      "kind": "native",
+      "build_info_status": "embedded-metadata-only",
+      "build_info_offset": 10485760,
+      "go_version": "go1.23.12",
+      "module_info": "path\tgithub.com/evanw/esbuild/cmd/esbuild\nmod\tgithub.com/evanw/esbuild\t(devel)\t\ndep\tgolang.org/x/sys\tv0.0.0-20220715151400-c0bba94af5f8\th1:0A+M6Uqn+Eje4kHMK80dtF3JCXC4ykBgQG4Fe06QRhQ=\nbuild\t-buildmode=exe\nbuild\t-compiler=gc\nbuild\t-trimpath=true\nbuild\tDefaultGODEBUG=asynctimerchan=1,gotypesalias=0,httplaxcontentlength=1,httpmuxgo121=1,httpservecontentkeepheaders=1,netedns0=0,panicnil=1,tls10server=1,tls3des=1,tlskyber=0,tlsrsakex=1,tlsunsafeekm=1,winreadlinkvolume=0,winsymlink=0,x509keypairleaf=0,x509negativeserial=1\nbuild\tCGO_ENABLED=0\nbuild\tGOARCH=s390x\nbuild\tGOOS=linux\nbuild\tvcs=git\nbuild\tvcs.revision=208f539945b145e7c9d6d844290f81c3fe5af320\nbuild\tvcs.time=2025-11-01T23:34:16Z\nbuild\tvcs.modified=false\n",
+      "files": [
+        {
+          "path": "package/bin/esbuild",
+          "bytes": 10879128,
+          "sha256": "141b119b4ea33d59c8c55259264359aec26a2833a4faa302117fde8595c6de15"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/linux-x64",
+      "version": "0.25.12",
+      "archive_sha256": "f7efc127658a108dcda9d4210b01804ee8f5d6b3acbd6d63f20aa51d3b50bd5f",
+      "kind": "native",
+      "build_info_status": "embedded-metadata-only",
+      "build_info_offset": 10027008,
+      "go_version": "go1.23.12",
+      "module_info": "path\tgithub.com/evanw/esbuild/cmd/esbuild\nmod\tgithub.com/evanw/esbuild\t(devel)\t\ndep\tgolang.org/x/sys\tv0.0.0-20220715151400-c0bba94af5f8\th1:0A+M6Uqn+Eje4kHMK80dtF3JCXC4ykBgQG4Fe06QRhQ=\nbuild\t-buildmode=exe\nbuild\t-compiler=gc\nbuild\t-trimpath=true\nbuild\tDefaultGODEBUG=asynctimerchan=1,gotypesalias=0,httplaxcontentlength=1,httpmuxgo121=1,httpservecontentkeepheaders=1,netedns0=0,panicnil=1,tls10server=1,tls3des=1,tlskyber=0,tlsrsakex=1,tlsunsafeekm=1,winreadlinkvolume=0,winsymlink=0,x509keypairleaf=0,x509negativeserial=1\nbuild\tCGO_ENABLED=0\nbuild\tGOARCH=amd64\nbuild\tGOOS=linux\nbuild\tGOAMD64=v1\nbuild\tvcs=git\nbuild\tvcs.revision=208f539945b145e7c9d6d844290f81c3fe5af320\nbuild\tvcs.time=2025-11-01T23:34:16Z\nbuild\tvcs.modified=false\n",
+      "files": [
+        {
+          "path": "package/bin/esbuild",
+          "bytes": 10358936,
+          "sha256": "bab29b2ca7a9e89b67cf720b77b2d743f9f31f5cf0d5bd74ee8c8de30ced7014"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/netbsd-arm64",
+      "version": "0.25.12",
+      "archive_sha256": "f746c1aa0f4dc86c6484dae61114ecc9155327cd4a1b0e9d234e32bc7a018858",
+      "kind": "native",
+      "build_info_status": "embedded-metadata-only",
+      "build_info_offset": 9306112,
+      "go_version": "go1.23.12",
+      "module_info": "path\tgithub.com/evanw/esbuild/cmd/esbuild\nmod\tgithub.com/evanw/esbuild\t(devel)\t\nbuild\t-buildmode=exe\nbuild\t-compiler=gc\nbuild\t-trimpath=true\nbuild\tDefaultGODEBUG=asynctimerchan=1,gotypesalias=0,httplaxcontentlength=1,httpmuxgo121=1,httpservecontentkeepheaders=1,netedns0=0,panicnil=1,tls10server=1,tls3des=1,tlskyber=0,tlsrsakex=1,tlsunsafeekm=1,winreadlinkvolume=0,winsymlink=0,x509keypairleaf=0,x509negativeserial=1\nbuild\tCGO_ENABLED=0\nbuild\tGOARCH=arm64\nbuild\tGOOS=netbsd\nbuild\tGOARM64=v8.0\nbuild\tvcs=git\nbuild\tvcs.revision=208f539945b145e7c9d6d844290f81c3fe5af320\nbuild\tvcs.time=2025-11-01T23:34:16Z\nbuild\tvcs.modified=false\n",
+      "files": [
+        {
+          "path": "package/bin/esbuild",
+          "bytes": 9699499,
+          "sha256": "562a17c3ae6fc28c304c7b9a425c5f8ea4ccc43c43acc28a4c8022f19f3ac422"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/netbsd-x64",
+      "version": "0.25.12",
+      "archive_sha256": "d706a08a052577e74474036f51604b9c19dff434c1e14b8465ccd452fb225f95",
+      "kind": "native",
+      "build_info_status": "embedded-metadata-only",
+      "build_info_offset": 9990144,
+      "go_version": "go1.23.12",
+      "module_info": "path\tgithub.com/evanw/esbuild/cmd/esbuild\nmod\tgithub.com/evanw/esbuild\t(devel)\t\nbuild\t-buildmode=exe\nbuild\t-compiler=gc\nbuild\t-trimpath=true\nbuild\tDefaultGODEBUG=asynctimerchan=1,gotypesalias=0,httplaxcontentlength=1,httpmuxgo121=1,httpservecontentkeepheaders=1,netedns0=0,panicnil=1,tls10server=1,tls3des=1,tlskyber=0,tlsrsakex=1,tlsunsafeekm=1,winreadlinkvolume=0,winsymlink=0,x509keypairleaf=0,x509negativeserial=1\nbuild\tCGO_ENABLED=0\nbuild\tGOARCH=amd64\nbuild\tGOOS=netbsd\nbuild\tGOAMD64=v1\nbuild\tvcs=git\nbuild\tvcs.revision=208f539945b145e7c9d6d844290f81c3fe5af320\nbuild\tvcs.time=2025-11-01T23:34:16Z\nbuild\tvcs.modified=false\n",
+      "files": [
+        {
+          "path": "package/bin/esbuild",
+          "bytes": 10322091,
+          "sha256": "9788e31e53edf226a2bb9de73a260a3cf096af659aaeef2122acda974b962d9b"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/openbsd-arm64",
+      "version": "0.25.12",
+      "archive_sha256": "ad09e31e1a86a5a12fd57304acc7472e59a55ae05385b1770e24b3a3670f7f99",
+      "kind": "native",
+      "build_info_status": "embedded-metadata-only",
+      "build_info_offset": 9306112,
+      "go_version": "go1.23.12",
+      "module_info": "path\tgithub.com/evanw/esbuild/cmd/esbuild\nmod\tgithub.com/evanw/esbuild\t(devel)\t\nbuild\t-buildmode=exe\nbuild\t-compiler=gc\nbuild\t-trimpath=true\nbuild\tDefaultGODEBUG=asynctimerchan=1,gotypesalias=0,httplaxcontentlength=1,httpmuxgo121=1,httpservecontentkeepheaders=1,netedns0=0,panicnil=1,tls10server=1,tls3des=1,tlskyber=0,tlsrsakex=1,tlsunsafeekm=1,winreadlinkvolume=0,winsymlink=0,x509keypairleaf=0,x509negativeserial=1\nbuild\tCGO_ENABLED=0\nbuild\tGOARCH=arm64\nbuild\tGOOS=openbsd\nbuild\tGOARM64=v8.0\nbuild\tvcs=git\nbuild\tvcs.revision=208f539945b145e7c9d6d844290f81c3fe5af320\nbuild\tvcs.time=2025-11-01T23:34:16Z\nbuild\tvcs.modified=false\n",
+      "files": [
+        {
+          "path": "package/bin/esbuild",
+          "bytes": 9699608,
+          "sha256": "ac8fb84eb27eedc9e9fb6b7180fd78810de7501c1296ed6394eaaa09beeddd4b"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/openbsd-x64",
+      "version": "0.25.12",
+      "archive_sha256": "0ce2f4f74522d3b09e249a1ee240179bde15766660a43b772a60cba4781e300b",
+      "kind": "native",
+      "build_info_status": "embedded-metadata-only",
+      "build_info_offset": 10014720,
+      "go_version": "go1.23.12",
+      "module_info": "path\tgithub.com/evanw/esbuild/cmd/esbuild\nmod\tgithub.com/evanw/esbuild\t(devel)\t\nbuild\t-buildmode=exe\nbuild\t-compiler=gc\nbuild\t-trimpath=true\nbuild\tDefaultGODEBUG=asynctimerchan=1,gotypesalias=0,httplaxcontentlength=1,httpmuxgo121=1,httpservecontentkeepheaders=1,netedns0=0,panicnil=1,tls10server=1,tls3des=1,tlskyber=0,tlsrsakex=1,tlsunsafeekm=1,winreadlinkvolume=0,winsymlink=0,x509keypairleaf=0,x509negativeserial=1\nbuild\tCGO_ENABLED=0\nbuild\tGOARCH=amd64\nbuild\tGOOS=openbsd\nbuild\tGOAMD64=v1\nbuild\tvcs=git\nbuild\tvcs.revision=208f539945b145e7c9d6d844290f81c3fe5af320\nbuild\tvcs.time=2025-11-01T23:34:16Z\nbuild\tvcs.modified=false\n",
+      "files": [
+        {
+          "path": "package/bin/esbuild",
+          "bytes": 10359064,
+          "sha256": "c4678a878fe52559034deee8541d58c4dbfa5ded2fd222541241e46ce9ae2f70"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/openharmony-arm64",
+      "version": "0.25.12",
+      "archive_sha256": "79828e6d55f5155ca81e55e04717aecb9125fd8b5202ba8b6e9e78cc8943a62d",
+      "kind": "javascript-wasm",
+      "build_info_status": "not-established",
+      "files": [
+        {
+          "path": "package/bin/esbuild",
+          "bytes": 3504,
+          "sha256": "b3cdaf234fd51a7908b2ffc4a84b3baa466656ccb2586498de4cc2f77b6f1e1e"
+        },
+        {
+          "path": "package/wasm_exec_node.js",
+          "bytes": 1151,
+          "sha256": "c91e20cf70dc4ab76b633f392676e9f1b22d849ba5fca4f80422391705a26638"
+        },
+        {
+          "path": "package/wasm_exec.js",
+          "bytes": 16687,
+          "sha256": "45ce9dfe7211247544ab6f4268eb8cb5b6f3d5ae602dc3b51447b7eada99c229"
+        },
+        {
+          "path": "package/esbuild.wasm",
+          "bytes": 12332677,
+          "sha256": "92c182cd141115f33ad08ad1d29b38f00f6292d38c3fe7ef85c11775407b54fb"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/sunos-x64",
+      "version": "0.25.12",
+      "archive_sha256": "6b2185ee71e7102c4ab07247769afb6ab84c8e550a51c65324f1455844183e3f",
+      "kind": "native",
+      "build_info_status": "embedded-metadata-only",
+      "build_info_offset": 10018816,
+      "go_version": "go1.23.12",
+      "module_info": "path\tgithub.com/evanw/esbuild/cmd/esbuild\nmod\tgithub.com/evanw/esbuild\t(devel)\t\nbuild\t-buildmode=exe\nbuild\t-compiler=gc\nbuild\t-trimpath=true\nbuild\tDefaultGODEBUG=asynctimerchan=1,gotypesalias=0,httplaxcontentlength=1,httpmuxgo121=1,httpservecontentkeepheaders=1,netedns0=0,panicnil=1,tls10server=1,tls3des=1,tlskyber=0,tlsrsakex=1,tlsunsafeekm=1,winreadlinkvolume=0,winsymlink=0,x509keypairleaf=0,x509negativeserial=1\nbuild\tCGO_ENABLED=0\nbuild\tGOARCH=amd64\nbuild\tGOOS=illumos\nbuild\tGOAMD64=v1\nbuild\tvcs=git\nbuild\tvcs.revision=208f539945b145e7c9d6d844290f81c3fe5af320\nbuild\tvcs.time=2025-11-01T23:34:16Z\nbuild\tvcs.modified=false\n",
+      "files": [
+        {
+          "path": "package/bin/esbuild",
+          "bytes": 10350852,
+          "sha256": "c44188f478d0a33a0552fcfdbd5729370eab5a7ae66f9e74fc959dffabef1630"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/win32-arm64",
+      "version": "0.25.12",
+      "archive_sha256": "01979ffafb4bb6a63d824cd57ed76bd257d1e3eed804c3e47fdfd80005dcfa66",
+      "kind": "native",
+      "build_info_status": "embedded-metadata-only",
+      "build_info_offset": 9306624,
+      "go_version": "go1.23.12",
+      "module_info": "path\tgithub.com/evanw/esbuild/cmd/esbuild\nmod\tgithub.com/evanw/esbuild\t(devel)\t\nbuild\t-buildmode=exe\nbuild\t-compiler=gc\nbuild\t-trimpath=true\nbuild\tDefaultGODEBUG=asynctimerchan=1,gotypesalias=0,httplaxcontentlength=1,httpmuxgo121=1,httpservecontentkeepheaders=1,netedns0=0,panicnil=1,tls10server=1,tls3des=1,tlskyber=0,tlsrsakex=1,tlsunsafeekm=1,winreadlinkvolume=0,winsymlink=0,x509keypairleaf=0,x509negativeserial=1\nbuild\tCGO_ENABLED=0\nbuild\tGOARCH=arm64\nbuild\tGOOS=windows\nbuild\tGOARM64=v8.0\nbuild\tvcs=git\nbuild\tvcs.revision=208f539945b145e7c9d6d844290f81c3fe5af320\nbuild\tvcs.time=2025-11-01T23:34:16Z\nbuild\tvcs.modified=false\n",
+      "files": [
+        {
+          "path": "package/esbuild.exe",
+          "bytes": 9742848,
+          "sha256": "112d32fe86df31a7aa2a830bec8bd3b88d445311090d0f987044e91708d74e63"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/win32-ia32",
+      "version": "0.25.12",
+      "archive_sha256": "a0b88687c8262d88922c08f9aa70f5a8d2d5bf38309046a1b718fc8eb7ad4872",
+      "kind": "native",
+      "build_info_status": "embedded-metadata-only",
+      "build_info_offset": 9510912,
+      "go_version": "go1.23.12",
+      "module_info": "path\tgithub.com/evanw/esbuild/cmd/esbuild\nmod\tgithub.com/evanw/esbuild\t(devel)\t\nbuild\t-buildmode=exe\nbuild\t-compiler=gc\nbuild\t-trimpath=true\nbuild\tDefaultGODEBUG=asynctimerchan=1,gotypesalias=0,httplaxcontentlength=1,httpmuxgo121=1,httpservecontentkeepheaders=1,netedns0=0,panicnil=1,tls10server=1,tls3des=1,tlskyber=0,tlsrsakex=1,tlsunsafeekm=1,winreadlinkvolume=0,winsymlink=0,x509keypairleaf=0,x509negativeserial=1\nbuild\tCGO_ENABLED=0\nbuild\tGOARCH=386\nbuild\tGOOS=windows\nbuild\tGO386=sse2\nbuild\tvcs=git\nbuild\tvcs.revision=208f539945b145e7c9d6d844290f81c3fe5af320\nbuild\tvcs.time=2025-11-01T23:34:16Z\nbuild\tvcs.modified=false\n",
+      "files": [
+        {
+          "path": "package/esbuild.exe",
+          "bytes": 10026496,
+          "sha256": "ed78cba7f2061413e84f2bd038911fa6ca15fa60b7e1664b9ecd4dad35bfe9a7"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/win32-x64",
+      "version": "0.25.12",
+      "archive_sha256": "c77076b48f96323cae6257bd515e5ea96ecf38ab8f7fa34364d4fc4ae5905b74",
+      "kind": "native",
+      "build_info_status": "embedded-metadata-only",
+      "build_info_offset": 10094592,
+      "go_version": "go1.23.12",
+      "module_info": "path\tgithub.com/evanw/esbuild/cmd/esbuild\nmod\tgithub.com/evanw/esbuild\t(devel)\t\nbuild\t-buildmode=exe\nbuild\t-compiler=gc\nbuild\t-trimpath=true\nbuild\tDefaultGODEBUG=asynctimerchan=1,gotypesalias=0,httplaxcontentlength=1,httpmuxgo121=1,httpservecontentkeepheaders=1,netedns0=0,panicnil=1,tls10server=1,tls3des=1,tlskyber=0,tlsrsakex=1,tlsunsafeekm=1,winreadlinkvolume=0,winsymlink=0,x509keypairleaf=0,x509negativeserial=1\nbuild\tCGO_ENABLED=0\nbuild\tGOARCH=amd64\nbuild\tGOOS=windows\nbuild\tGOAMD64=v1\nbuild\tvcs=git\nbuild\tvcs.revision=208f539945b145e7c9d6d844290f81c3fe5af320\nbuild\tvcs.time=2025-11-01T23:34:16Z\nbuild\tvcs.modified=false\n",
+      "files": [
+        {
+          "path": "package/esbuild.exe",
+          "bytes": 10617344,
+          "sha256": "cae1bbc86f4df800b01d99e28aea0a154b02243de6797e98f48a9b88a64a7be0"
+        }
+      ]
+    }
+  ]
+}

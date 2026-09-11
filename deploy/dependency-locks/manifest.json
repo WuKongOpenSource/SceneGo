@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "input_sha256": {
+    "deploy/requirements.txt": "4ab9938239d6edcbfd5b0f7985c1b4edb40c5933df88e6547cc475c97b2d2ee0",
+    "deploy/requirements-test.txt": "05ce1350b558ab0e74639a6fc82602b17ababb25837c7f575fcb796d8c016c2b"
+  },
+  "lock_sha256": {
+    "bootstrap.txt": "ad18d609e5b32d3bdf61d1e37f084889bcbbd628db0c931755673ad40a4d6aa5",
+    "build.txt": "3756b22f1dd292e64221ddd8f8735b55a40a6be700362f013aac88df3a88fd00",
+    "linux-cpython312-runtime.txt": "86621764b5988148fb144da178a8037aeb6bf65d519b5fa58a53cdec266ab473",
+    "linux-cpython312-test.txt": "db29275ee5686075307e32760032d2b9abacd2fed1ab675ac36a07cfe611bb71",
+    "windows-cpython312-runtime.txt": "7446931d93a414eca18b0090b9afbeb1e16a539bc6c05f65855946dd982073eb",
+    "windows-cpython312-test.txt": "567aeee8514c97520a86c0518c846f51600cbed6efdb830b8f81236365e942d1"
+  },
+  "profiles": {
+    "linux-cpython312": {
+      "runtime_packages": 71,
+      "test_packages": 80
+    },
+    "windows-cpython312": {
+      "runtime_packages": 71,
+      "test_packages": 81
+    }
+  }
+}

@@ -1,0 +1,116 @@
+
+
+
+.card-mode-item { 
+    height: 480px; 
+    display: flex; 
+    flex-direction: column; 
+}
+.list-mode-item { height: 140px; }
+
+.task-card.selected { 
+    border-color: #3b82f6; 
+    background-color: rgba(59, 130, 246, 0.1); 
+}
+
+
+@keyframes spin-slow {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes spin-reverse {
+    0% { transform: rotate(360deg); }
+    100% { transform: rotate(0deg); }
+}
+
+@keyframes pulse-glow {
+    0%, 100% { 
+        box-shadow: 0 0 20px rgba(99, 102, 241, 0.4),
+                    0 0 40px rgba(99, 102, 241, 0.2); 
+    }
+    50% { 
+        box-shadow: 0 0 30px rgba(99, 102, 241, 0.6),
+                    0 0 60px rgba(99, 102, 241, 0.3); 
+    }
+}
+
+@keyframes float-wave {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+}
+
+@keyframes progress-shine {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+}
+
+.loader-container {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto;
+}
+
+.loader-ring {
+    position: absolute;
+    border: 3px solid transparent;
+    border-radius: 50%;
+}
+
+.loader-ring-1 {
+    width: 80px;
+    height: 80px;
+    border-top-color: #6366f1;
+    border-right-color: #6366f1;
+    animation: spin-slow 2s linear infinite;
+}
+
+.loader-ring-2 {
+    width: 60px;
+    height: 60px;
+    top: 10px;
+    left: 10px;
+    border-bottom-color: #8b5cf6;
+    border-left-color: #8b5cf6;
+    animation: spin-reverse 1.5s linear infinite;
+}
+
+.loader-ring-3 {
+    width: 40px;
+    height: 40px;
+    top: 20px;
+    left: 20px;
+    border-top-color: #ec4899;
+    border-right-color: #ec4899;
+    animation: spin-slow 1s linear infinite;
+}
+
+.loader-core {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    top: 30px;
+    left: 30px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border-radius: 50%;
+    animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+.progress-bar-animated {
+    background: linear-gradient(
+        90deg,
+        #1e293b 0%,
+        #3b82f6 25%,
+        #6366f1 50%,
+        #3b82f6 75%,
+        #1e293b 100%
+    );
+    background-size: 200% 100%;
+    animation: progress-shine 2s linear infinite;
+}
+
+.generating-text {
+    animation: float-wave 2s ease-in-out infinite;
+}
+

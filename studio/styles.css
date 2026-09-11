@@ -1,0 +1,408 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  font-family: "Noto Sans SC", "Sora", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  background: #F4F4F1;
+  --studio-canvas-background: #F4F4F1;
+  --studio-canvas-text: #3A3A44;
+  --studio-grid-dot: rgba(74, 74, 84, 0.34);
+  --studio-grid-opacity: 0.42;
+  --studio-connection: rgba(58, 58, 68, 0.58);
+  --studio-header-surface: rgba(255, 255, 255, 0.88);
+  --studio-header-text: #3A3A44;
+  --studio-header-border: rgba(20, 20, 25, 0.12);
+  --studio-header-shadow: 0 10px 30px rgba(20, 20, 25, 0.1);
+  --studio-welcome-surface: rgba(255, 255, 255, 0.78);
+  --studio-welcome-action: rgba(255, 255, 255, 0.94);
+  --studio-welcome-action-hover: #ffffff;
+  --studio-welcome-text: #475569;
+  --studio-group-border: rgba(74, 74, 84, 0.18);
+  --studio-group-surface: rgba(255, 255, 255, 0.42);
+  --studio-group-label: rgba(58, 58, 68, 0.68);
+  --studio-node-surface: rgba(255, 255, 255, 0.88);
+  --studio-node-surface-selected: rgba(255, 255, 255, 0.96);
+  --studio-node-border: rgba(20, 20, 25, 0.12);
+  --studio-node-border-hover: rgba(20, 20, 25, 0.2);
+  --studio-node-shadow: 0 24px 70px rgba(20, 20, 25, 0.13);
+  --studio-node-control-shadow: 0 18px 48px rgba(20, 20, 25, 0.14);
+  --studio-node-panel: rgba(255, 255, 255, 0.94);
+  --studio-node-panel-muted: rgba(248, 250, 252, 0.88);
+  --studio-node-panel-hover: #ffffff;
+  --studio-node-media-bg: #F0F0EC;
+  --studio-node-text: #26262E;
+  --studio-node-muted: #6A6A74;
+  --studio-node-faint: #9A9AA2;
+  --studio-node-placeholder: #9A9AA2;
+  --studio-node-menu-surface: rgba(255, 255, 255, 0.96);
+  --studio-node-menu-hover: rgba(91, 73, 240, 0.1);
+  --studio-node-port-surface: rgba(255, 255, 255, 0.96);
+  --studio-node-port-border: rgba(20, 20, 25, 0.18);
+  --studio-node-overlay: rgba(255, 255, 255, 0.78);
+  --glass-border: rgba(20, 20, 25, 0.12);
+  --glass-surface: rgba(255, 255, 255, 0.78);
+  --glass-highlight: rgba(255, 255, 255, 0.72);
+  --apple-spring: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+:root[data-studio-theme="dark"] {
+  color-scheme: dark;
+  background: #141419;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  background: #F4F4F1;
+  -webkit-font-smoothing: auto;
+  text-rendering: optimizeLegibility;
+  user-select: none;
+}
+
+:root[data-studio-theme="dark"] body {
+  background: #141419;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+* {
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(154, 154, 162, 0.55) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(154, 154, 162, 0.55);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+@keyframes dash-flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+.animate-flow {
+  animation: dash-flow 1s linear infinite;
+}
+
+.noise-bg {
+  background: transparent;
+}
+
+.studio-canvas {
+  background: var(--studio-canvas-background);
+  color: var(--studio-canvas-text);
+  transition: background-color 240ms ease, color 240ms ease;
+}
+
+.studio-canvas[data-studio-theme="dark"] {
+  --studio-canvas-background: #111216;
+  --studio-canvas-text: #F1F1F4;
+  --studio-grid-dot: rgba(255, 255, 255, 0.16);
+  --studio-grid-opacity: 0.24;
+  --studio-connection: rgba(214, 214, 224, 0.5);
+  --studio-header-surface: #1A1B20;
+  --studio-header-text: #E5E5EA;
+  --studio-header-border: rgba(255, 255, 255, 0.1);
+  --studio-header-shadow: 0 12px 30px rgba(0, 0, 0, 0.24);
+  --studio-welcome-surface: #1A1B20;
+  --studio-welcome-action: #1E1E26;
+  --studio-welcome-action-hover: #22222B;
+  --studio-welcome-text: #9A9AA8;
+  --studio-group-border: rgba(255, 255, 255, 0.1);
+  --studio-group-surface: rgba(255, 255, 255, 0.05);
+  --studio-group-label: rgba(255, 255, 255, 0.4);
+  --studio-node-surface: #1B1C22;
+  --studio-node-surface-selected: #202128;
+  --studio-node-border: rgba(255, 255, 255, 0.1);
+  --studio-node-border-hover: rgba(255, 255, 255, 0.2);
+  --studio-node-shadow: 0 18px 48px rgba(0, 0, 0, 0.24);
+  --studio-node-control-shadow: 0 18px 42px rgba(0, 0, 0, 0.3);
+  --studio-node-panel: #24252C;
+  --studio-node-panel-muted: #17181D;
+  --studio-node-panel-hover: #22232A;
+  --studio-node-media-bg: #1E1E26;
+  --studio-node-text: #E5E5EA;
+  --studio-node-muted: #9A9AA2;
+  --studio-node-faint: #6A6A74;
+  --studio-node-placeholder: rgba(122, 122, 136, 0.6);
+  --studio-node-menu-surface: #202128;
+  --studio-node-menu-hover: rgba(255, 255, 255, 0.1);
+  --studio-node-port-surface: #1E1E26;
+  --studio-node-port-border: rgba(255, 255, 255, 0.2);
+  --studio-node-overlay: rgba(17, 18, 22, 0.88);
+}
+
+.studio-canvas-content {
+  color: var(--studio-canvas-text);
+}
+
+.studio-canvas-grid {
+  opacity: var(--studio-grid-opacity);
+  transition: opacity 240ms ease;
+}
+
+.studio-header-button {
+  border: 1px solid var(--studio-header-border);
+  background: var(--studio-header-surface);
+  color: var(--studio-header-text);
+  box-shadow: var(--studio-header-shadow);
+}
+
+.studio-header-button:hover {
+  border-color: rgba(91, 73, 240, 0.48);
+  color: #4C3BD6;
+}
+
+.studio-welcome-actions {
+  border: 1px solid var(--studio-header-border);
+  background: var(--studio-welcome-surface);
+}
+
+.studio-welcome-action {
+  border: 1px solid var(--studio-header-border);
+  background: var(--studio-welcome-action);
+  color: var(--studio-welcome-text);
+}
+
+.studio-welcome-action:hover {
+  border-color: rgba(91, 73, 240, 0.28);
+  background: var(--studio-welcome-action-hover);
+  color: var(--studio-canvas-text);
+}
+
+.studio-group:not([data-selected="true"]) {
+  border-color: var(--studio-group-border);
+  background: var(--studio-group-surface);
+}
+
+.studio-group-label {
+  color: var(--studio-group-label);
+}
+
+.studio-node {
+  border: 1px solid var(--studio-node-border);
+  background: var(--studio-node-surface);
+  color: var(--studio-node-text);
+  box-shadow: var(--studio-node-shadow);
+}
+
+.studio-node[data-selected="true"] {
+  border-color: rgba(91, 73, 240, 0.5);
+  background: var(--studio-node-surface-selected);
+  box-shadow: 0 0 40px -10px rgba(139, 107, 255, 0.35), var(--studio-node-shadow);
+}
+
+.studio-node:not([data-selected="true"]):hover {
+  border-color: var(--studio-node-border-hover);
+}
+
+.studio-node-body,
+.studio-node-media-frame,
+.studio-node-media-object {
+  background: var(--studio-node-media-bg);
+}
+
+.studio-node-inner-box,
+.studio-node-upload-box,
+.studio-node-control-input {
+  border: 1px solid var(--studio-node-border);
+  background: var(--studio-node-panel-muted);
+}
+
+.studio-node-inner-box:hover,
+.studio-node-upload-box:hover {
+  background: var(--studio-node-panel-hover);
+}
+
+.studio-node-control-panel {
+  border: 1px solid var(--studio-node-border);
+  background: var(--studio-node-panel);
+  box-shadow: var(--studio-node-control-shadow);
+}
+
+.studio-node-text,
+.studio-node-title,
+.studio-node-control-trigger,
+.studio-node-textarea {
+  color: var(--studio-node-text);
+}
+
+.studio-node-muted,
+.studio-node-control-trigger:not(.studio-node-control-trigger-active) {
+  color: var(--studio-node-muted);
+}
+
+.studio-node-faint {
+  color: var(--studio-node-faint);
+}
+
+.studio-node-textarea::placeholder {
+  color: var(--studio-node-placeholder);
+}
+
+.studio-node-icon-button,
+.studio-node-port {
+  border: 1px solid var(--studio-node-border);
+  background: var(--studio-node-panel);
+  color: var(--studio-node-muted);
+}
+
+.studio-node-icon-button:hover,
+.studio-node-control-trigger:hover {
+  border-color: rgba(91, 73, 240, 0.36);
+  background: var(--studio-node-panel-hover);
+  color: #4C3BD6;
+}
+
+.studio-node-port {
+  border-color: var(--studio-node-port-border);
+  background: var(--studio-node-port-surface);
+  color: var(--studio-node-faint);
+}
+
+.studio-node-menu {
+  border: 1px solid var(--studio-node-border);
+  background: var(--studio-node-menu-surface);
+  color: var(--studio-node-text);
+}
+
+.studio-node-menu-item {
+  color: var(--studio-node-muted);
+}
+
+.studio-node-menu-item:hover,
+.studio-node-menu-item-active {
+  background: var(--studio-node-menu-hover);
+  color: #4C3BD6;
+}
+
+.studio-node-thumbnail {
+  border-color: var(--studio-node-border);
+  background: var(--studio-node-media-bg);
+}
+
+.studio-node-upload-tile {
+  border: 1px solid var(--studio-node-border);
+  background: var(--studio-node-panel-muted);
+  color: var(--studio-node-faint);
+}
+
+.studio-node-upload-tile:hover {
+  background: var(--studio-node-panel-hover);
+  color: var(--studio-node-muted);
+}
+
+.studio-node-media-chooser,
+.studio-node-cut-preview {
+  background: var(--studio-node-overlay);
+}
+
+.studio-node-error-overlay {
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.studio-canvas[data-studio-theme="dark"] .studio-node-error-overlay {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.studio-node-mode-button,
+.studio-canvas-chip,
+.studio-canvas-toolbar {
+  border: 1px solid var(--studio-node-border);
+  background: var(--studio-node-panel);
+  color: var(--studio-node-muted);
+}
+
+.cursor-grab-override,
+.cursor-grab-override * {
+  cursor: grab !important;
+}
+
+.cursor-grab-override:active,
+.cursor-grab-override:active * {
+  cursor: grabbing !important;
+}
+
+.studio-node-mode-button:hover,
+.studio-canvas-toolbar-button:hover {
+  border-color: rgba(91, 73, 240, 0.36);
+  background: var(--studio-node-panel-hover);
+  color: #4C3BD6;
+}
+
+.studio-node-mode-button-active {
+  border-color: rgba(91, 73, 240, 0.48);
+  background: #ffffff;
+  color: #17171C;
+  box-shadow: 0 10px 28px rgba(20, 20, 25, 0.12);
+}
+
+.studio-node-mode-strip {
+  scrollbar-width: none;
+}
+
+.studio-node-mode-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.studio-canvas[data-studio-theme="dark"] .studio-node-mode-button-active {
+  border-color: #ffffff;
+  background: #ffffff;
+  color: #141419;
+}
+
+.studio-node-timeline {
+  border-top: 1px solid var(--studio-node-border);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--studio-node-muted);
+}
+
+.studio-canvas[data-studio-theme="dark"] .studio-node-timeline {
+  background: rgba(20, 20, 25, 0.9);
+}
+
+.studio-canvas-toolbar {
+  box-shadow: var(--studio-node-control-shadow);
+}
+
+.studio-canvas-toolbar-button {
+  color: var(--studio-node-muted);
+}
+
+.studio-canvas-toolbar-button:hover {
+  color: #4C3BD6;
+}
+
+.studio-canvas-toolbar-range {
+  accent-color: #4C3BD6;
+}

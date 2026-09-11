@@ -1,0 +1,34 @@
+fastapi==0.141.1
+# Direct runtime versions must match a reviewed installation and its audit.
+uvicorn[standard]==0.52.4
+python-multipart==0.0.31
+pydantic==2.13.5
+pydantic-settings==2.15.0
+
+aiohttp==3.14.3
+requests==2.34.2
+websockets==17.1
+python-socketio==5.16.2
+
+asyncpg==0.29.0
+redis[hiredis]==5.0.1
+
+aiofiles==23.2.1
+Pillow==12.3.0
+ffmpeg-python==0.2.0
+
+passlib[bcrypt]==1.7.4
+bcrypt==4.1.2
+alibabacloud-dysmsapi20170525==4.6.0
+cryptography==50.0.1
+
+openai==3.11.0
+
+python-dateutil==2.8.2
+python-dotenv==1.2.2
+pyyaml==6.0.3
+
+# Payment requests use httpx at runtime; ASGI tests share the same client.
+httpx==0.28.1
+
+# minio>=7.1.0

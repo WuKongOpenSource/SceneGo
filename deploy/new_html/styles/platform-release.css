@@ -1,0 +1,55 @@
+:root { --platform-footer-height: calc(30px + env(safe-area-inset-bottom, 0px)); }
+.platform-shell { display: flex; flex-direction: column; height: 100dvh; min-width: 0; }
+.platform-shell-workspace { --platform-footer-height: 0px; }
+.platform-content { flex: 1; min-height: 0; min-width: 0; overflow: auto; --platform-page-height: calc(100dvh - var(--platform-footer-height)); }
+.platform-content .h-screen { height: var(--platform-page-height); }
+.platform-content .min-h-screen { min-height: var(--platform-page-height); }
+.platform-footer { box-sizing: border-box; display: flex; flex-shrink: 0; align-items: center; justify-content: center; gap: 10px; height: var(--platform-footer-height); padding: 0 12px env(safe-area-inset-bottom, 0px); border-top: 1px solid #e5e5e0; background: #fbfbf9; color: #6a6a74; font: 11px/1.4 system-ui, sans-serif; }
+.platform-footer-version { font-variant-numeric: tabular-nums; color: #4a4a54; }
+.platform-footer-divider { height: 10px; width: 1px; background: #d2d2ca; }
+.platform-footer button, .platform-footer a { display: inline-flex; align-items: center; gap: 4px; border: 0; border-radius: 4px; padding: 3px 5px; background: transparent; color: #5b49f0; font: inherit; cursor: pointer; text-decoration: none; }
+.platform-footer button:hover, .platform-footer a:hover { background: #ece9ff; }
+.platform-footer button:focus-visible, .platform-footer a:focus-visible, .platform-release-close:focus-visible { outline: 2px solid #5b49f0; outline-offset: 2px; }
+.platform-sidebar-release { box-sizing: border-box; display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; gap: 6px; min-height: 32px; margin-top: 12px; padding: 0 8px; color: #a5a5b0; font: 11px/1.4 system-ui, sans-serif; }
+.platform-sidebar-release .platform-footer-version { min-width: 0; color: #a5a5b0; white-space: nowrap; }
+.platform-sidebar-release button { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; gap: 3px; min-height: 32px; padding: 4px 6px; border: 0; border-radius: 6px; background: transparent; color: #b6a5ff; font: inherit; white-space: nowrap; cursor: pointer; }
+.platform-sidebar-release button:hover { background: #2d2746; color: #ded5ff; }
+.platform-sidebar-release button:focus-visible { outline: 2px solid #b6a5ff; outline-offset: 2px; }
+.platform-sidebar-release[data-collapsed="true"] { justify-content: center; padding: 0; }
+.platform-sidebar-release[data-collapsed="true"] button { width: 100%; min-height: 36px; }
+.platform-release-dialog { box-sizing: border-box; width: min(720px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); margin: auto; padding: 0; border: 1px solid #e5e5e0; border-radius: 20px; background: #fff; color: #17171c; box-shadow: 0 24px 80px #14141933; font-family: var(--font-sans, system-ui, sans-serif); }
+.platform-release-dialog::backdrop { background: #14141966; backdrop-filter: blur(4px); }
+.platform-release-panel { display: flex; flex-direction: column; max-height: calc(100dvh - 52px); min-height: 0; }
+.platform-release-header { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; gap: 16px; padding: 24px 28px 20px; border-bottom: 1px solid #eeeeeb; }
+.platform-release-eyebrow { color: #6b59e9; font-size: 10px; font-weight: 700; letter-spacing: .15em; }
+.platform-release-header h2 { margin: 4px 0 0; font-size: 20px; line-height: 1.4; font-weight: 700; }
+.platform-release-close { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 9px; background: #f4f4f1; color: #6a6a74; font-size: 24px; cursor: pointer; }
+.platform-release-close:hover { background: #ece9ff; color: #5b49f0; }
+.platform-release-content { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 22px 28px 8px; }
+.platform-release-overview { margin-bottom: 26px; border-radius: 12px; background: #f6f4ff; padding: 16px 18px; }
+.platform-release-version { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; color: #5b49f0; }
+.platform-release-overview p { margin: 7px 0 4px; color: #4a4a54; font-size: 12px; }
+.platform-release-overview small { color: #6a6a74; font-size: 11px; }
+.platform-release-entry { position: relative; margin-left: 4px; padding: 0 0 26px 23px; border-left: 1px solid #e5e5e0; }
+.platform-release-entry::before { content: ''; position: absolute; left: -4px; top: 5px; width: 7px; height: 7px; border-radius: 50%; background: #b0a5f9; box-shadow: 0 0 0 4px #fff; }
+.platform-release-entry:first-child::before { background: #5b49f0; }
+.platform-release-entry:last-child { border-color: transparent; padding-bottom: 14px; }
+.platform-release-entry time { color: #6a6a74; font-size: 11px; font-variant-numeric: tabular-nums; }
+.platform-release-entry h3 { margin: 6px 0 13px; font-size: 14px; font-weight: 650; line-height: 1.5; }
+.platform-release-entry ul { display: grid; gap: 11px; margin: 0; padding: 0; list-style: none; }
+.platform-release-entry li { display: flex; align-items: flex-start; gap: 9px; color: #4a4a54; font-size: 12px; line-height: 1.8; }
+.platform-release-tag { flex-shrink: 0; margin-top: 2px; padding: 1px 6px; border-radius: 5px; font-size: 10px; line-height: 1.6; }
+.platform-release-tag-new { background: #ece9ff; color: #5b49f0; }
+.platform-release-tag-improvement { background: #e4f7ee; color: #0a7143; }
+.platform-release-tag-fix { background: #fff6e5; color: #94601f; }
+.platform-release-bottom { flex-shrink: 0; padding: 13px 24px; border-top: 1px solid #eeeeeb; background: #fbfbf9; color: #6a6a74; font-size: 11px; text-align: center; }
+.platform-updates-page { max-width: 800px; margin: 0 auto; padding: 28px 12px; color: #17171c; }
+.platform-updates-page > a { display: inline-block; margin: 0 12px 20px; color: #5b49f0; font-size: 13px; }
+.platform-updates-page > section { overflow: hidden; border: 1px solid #e5e5e0; border-radius: 20px; background: #fff; }
+@media (max-width: 480px) {
+  .platform-release-header { padding: 18px; }
+  .platform-release-content { padding: 18px 16px 6px; }
+  .platform-release-entry { padding-left: 17px; }
+  .platform-release-dialog { width: calc(100vw - 20px); max-height: calc(100dvh - 24px); border-radius: 16px; }
+  .platform-release-panel { max-height: calc(100dvh - 28px); }
+}

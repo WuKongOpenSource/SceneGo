@@ -1,0 +1,736 @@
+{
+  "schema_version": 1,
+  "scope": "seven-python-distributions-missing-license-files",
+  "complete_sbom": false,
+  "release_approved": false,
+  "packages": [
+    {
+      "name": "alibabacloud-credentials",
+      "version": "1.0.12",
+      "declared_license": "Apache License 2.0",
+      "author": "Alibaba Cloud",
+      "author_email": "alibaba-cloud-sdk-dev-team@list.alibaba-inc.com",
+      "sdist": {
+        "url": "https://files.pythonhosted.org/packages/25/19/bc359efb0c12f400a89783f8dc87a7261a955d73acc7b766a736e5597851/alibabacloud_credentials-1.0.12.tar.gz",
+        "sha256": "87da41ea3ffb146b44d999c62c160c2b96b0c30275ae35205bcdfe79ba0c4119",
+        "standalone_license_files": []
+      },
+      "installed_artifacts": {
+        "linux-cpython312": "c09afcf579663374df056c20482fc1397240d20b4ccb143d23c287f3f8a91109",
+        "windows-cpython312": "c09afcf579663374df056c20482fc1397240d20b4ccb143d23c287f3f8a91109"
+      },
+      "upstream": {
+        "repository": "https://github.com/aliyun/credentials-python",
+        "commit": "0e6d313679cd9cd7b3e72f74ce4b25a606d3ca84",
+        "matched_modules": 28,
+        "total_modules": 28,
+        "modules": [
+          {
+            "sdist_path": "alibabacloud_credentials/__init__.py",
+            "sha256": "6d0f132885d4dea486afe2be815b560e08c37c19428018eeefa3862ad63db52f",
+            "upstream_path": "alibabacloud_credentials/__init__.py"
+          },
+          {
+            "sdist_path": "alibabacloud_credentials/client.py",
+            "sha256": "59136ef1572fab51514d21c680dfb139d406702a66b12e571cd72c29070d0917",
+            "upstream_path": "alibabacloud_credentials/client.py"
+          },
+          {
+            "sdist_path": "alibabacloud_credentials/credentials.py",
+            "sha256": "d181c59e8300662a1c1ae7616fb85cc1868b6ef79231bca7475838d4cca0ca6d",
+            "upstream_path": "alibabacloud_credentials/credentials.py"
+          },
+          {
+            "sdist_path": "alibabacloud_credentials/exceptions.py",
+            "sha256": "cc2fa714f0b5a7c749e92fda2f69b24f1aab3e2ec09a04fe095104cb1c060595",
+            "upstream_path": "alibabacloud_credentials/exceptions.py"
+          },
+          {
+            "sdist_path": "alibabacloud_credentials/http/__init__.py",
+            "sha256": "b0e77d2c7f642a6f6b5bec91f444177808aafec453130c5f93706a3538afa346",
+            "upstream_path": "alibabacloud_credentials/http/__init__.py"
+          },
+          {
+            "sdist_path": "alibabacloud_credentials/http/_options.py",
+            "sha256": "3b9e006f1ad2e25ccd96168ccd01968a5e63cd754529c026632ebc06144cd98f",
+            "upstream_path": "alibabacloud_credentials/http/_options.py"
+          },
+          {
+            "sdist_path": "alibabacloud_credentials/models.py",
+            "sha256": "d3adb1dc1f8dddc09653131b26da510bceb17aaf497784a1b8b195ae947e7e52",
+            "upstream_path": "alibabacloud_credentials/models.py"
+          },
+          {
+            "sdist_path": "alibabacloud_credentials/provider/__init__.py",
+            "sha256": "e66b8df536b73ea9554775536bfe1212020e255427ba7baaa791a95a9f50f48e",
+            "upstream_path": "alibabacloud_credentials/provider/__init__.py"
+          },
+          {
+            "sdist_path": "alibabacloud_credentials/provider/cli_profile.py",
+            "sha256": "ad5f467574a7ee40812b99e5034a519bf2a787044040ce6a1204d26299d3c82d",
+            "upstream_path": "alibabacloud_credentials/provider/cli_profile.py"
+          },
+          {
+            "sdist_path": "alibabacloud_credentials/provider/cloud_sso.py",
+            "sha256": "12601e3c485d7b5fcbb31d0ad5b5853a47c1a52ae561cb5c902a53c17365833f",
+            "upstream_path": "alibabacloud_credentials/provider/cloud_sso.py"
+          },
+          {
+            "sdist_path": "alibabacloud_credentials/provider/default.py",
+            "sha256": "4b4e7c9227eddaadfd9b7d5827b28ee20d65aa61dea5ec93db04c480605bd670",
+            "upstream_path": "alibabacloud_credentials/provider/default.py"
+          },
+          {
+            "sdist_path": "alibabacloud_credentials/provider/ecs_ram_role.py",
+            "sha256": "0f4fe9d1122ccbc11c60fb2d10fa7cfe70f264434b9b3a14d5968668c47b7054",
+            "upstream_path": "alibabacloud_credentials/provider/ecs_ram_role.py"
+          },
+          {
+            "sdist_path": "alibabacloud_credentials/provider/env.py",
+            "sha256": "547405ec689d43ae58526ec757ffb59f93bdd744b74b862810c0f52c85984c2b",
+            "upstream_path": "alibabacloud_credentials/provider/env.py"
+          },
+          {
+            "sdist_path": "alibabacloud_credentials/provider/external.py",
+            "sha256": "65427e2322ed3d7f8386f6af3dd0056577dabc6b4e74146588113545231ecae8",
+            "upstream_path": "alibabacloud_credentials/provider/external.py"
+          },
+          {
+            "sdist_path": "alibabacloud_credentials/provider/oauth.py",
+            "sha256": "7b9e2956eca4ae95efc9d1b34109e22d1ce0b678ca9a3a47c5ecf88b50d1b45b",
+            "upstream_path": "alibabacloud_credentials/provider/oauth.py"
+          },
+          {
+            "sdist_path": "alibabacloud_credentials/provider/oidc.py",
+            "sha256": "43f04bad0ecdab5f805d8d7810cba4f02ec568969cbdc1dab3a3099a70176994",
+            "upstream_path": "alibabacloud_credentials/provider/oidc.py"
+          },
+          {
+            "sdist_path": "alibabacloud_credentials/provider/profile.py",
+            "sha256": "2405f09eeb323fd4aada9bff93e933d52ebbcbb1a7462aa94e823b365c9d8dc5",
+            "upstream_path": "alibabacloud_credentials/provider/profile.py"
+          },
+          {
+            "sdist_path": "alibabacloud_credentials/provider/ram_role_arn.py",
+            "sha256": "c5229ab9cc6766769e26b8c35c93fa6854488d78831afc4aae99b43a235ecf27",
+            "upstream_path": "alibabacloud_credentials/provider/ram_role_arn.py"
+          },
+          {
+            "sdist_path": "alibabacloud_credentials/provider/refreshable.py",
+            "sha256": "4c366386c9cd00d9c22b928a5e6b93e5a7e937cc0f905bb83285486dac08e200",
+            "upstream_path": "alibabacloud_credentials/provider/refreshable.py"
+          },
+          {
+            "sdist_path": "alibabacloud_credentials/provider/rsa_key_pair.py",
+            "sha256": "ca1a18d526d27c113c2fdedfd294f6dbde327f728d55ed2c13431b72d0c4a027",
+            "upstream_path": "alibabacloud_credentials/provider/rsa_key_pair.py"
+          },
+          {
+            "sdist_path": "alibabacloud_credentials/provider/static_ak.py",
+            "sha256": "fe5eaffc46f0846f6a7a97fa1e39a9bf2a67fb723e2db7c2d8be0403b690840a",
+            "upstream_path": "alibabacloud_credentials/provider/static_ak.py"
+          },
+          {
+            "sdist_path": "alibabacloud_credentials/provider/static_sts.py",
+            "sha256": "07725a49c5846009dc1bbda76e8224c26cfb8f05558f5000c84f9b313ab8139e",
+            "upstream_path": "alibabacloud_credentials/provider/static_sts.py"
+          },
+          {
+            "sdist_path": "alibabacloud_credentials/provider/uri.py",
+            "sha256": "cff2448a860b574348bbf63e59e8465ec9b0ed2d91a37c0e4365ef935e972adb",
+            "upstream_path": "alibabacloud_credentials/provider/uri.py"
+          },
+          {
+            "sdist_path": "alibabacloud_credentials/providers.py",
+            "sha256": "d4b9a9f1cc4b4e2be76e23a8b4c0abf4fdbb063e7cbf00e78bc9f6dc98e33dff",
+            "upstream_path": "alibabacloud_credentials/providers.py"
+          },
+          {
+            "sdist_path": "alibabacloud_credentials/utils/__init__.py",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "upstream_path": "alibabacloud_credentials/utils/__init__.py"
+          },
+          {
+            "sdist_path": "alibabacloud_credentials/utils/auth_constant.py",
+            "sha256": "f3991e29aeb1df5b4fbd3c5f97c318a94742883469816abb93d4aa0d9533c7cd",
+            "upstream_path": "alibabacloud_credentials/utils/auth_constant.py"
+          },
+          {
+            "sdist_path": "alibabacloud_credentials/utils/auth_util.py",
+            "sha256": "4f9620f7cbb0750e92dc6a87787653d4f2649fdf117ad73732f891d59b7efe6a",
+            "upstream_path": "alibabacloud_credentials/utils/auth_util.py"
+          },
+          {
+            "sdist_path": "alibabacloud_credentials/utils/parameter_helper.py",
+            "sha256": "42a6d78fe028002cbbffbadb010bea3c24c5782c96b2110cea49e93434b7ec33",
+            "upstream_path": "alibabacloud_credentials/utils/parameter_helper.py"
+          }
+        ]
+      },
+      "license_evidence_kind": "sdist-readme-reference",
+      "sdist_license_declaration": {
+        "source_path": "README.md",
+        "source_sha256": "f41c4ece102942494d907829d918ccef658a77c3b914e437fce57a71e76d9069",
+        "section": "License",
+        "copy": {
+          "path": "declarations/alibabacloud-credentials.txt",
+          "sha256": "a7a2c5183511f0b7390705018bc14b0ae7f48d97c2bddc57fc4144530c7a58c3"
+        }
+      },
+      "license_text": {
+        "path": "licenses/Apache-2.0.txt",
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "url": "https://www.apache.org/licenses/LICENSE-2.0.txt"
+      },
+      "review_status": "evidence-collected-not-release-approval",
+      "remaining_review": "Source modules match the fixed commit, not a verified release tag; review complete redistribution scope and notices."
+    },
+    {
+      "name": "alibabacloud-credentials-api",
+      "version": "1.0.1",
+      "declared_license": "Apache License 2.0",
+      "author": "Alibaba Cloud SDK",
+      "author_email": "sdk-team@alibabacloud.com",
+      "sdist": {
+        "url": "https://files.pythonhosted.org/packages/89/7e/6145e2d132752f0de72701df556304c59dda311405a252a598ad6fd9b4de/alibabacloud_credentials_api-1.0.1.tar.gz",
+        "sha256": "8ea0668a6558f6956b8d20b2e561d19a80ea29c22cf56a3004d434b24a981b36",
+        "standalone_license_files": []
+      },
+      "installed_artifacts": {
+        "linux-cpython312": "5f27889113214fc53493b3e918eb26d73dfab2022e22bdaac262849b8e58cbc0",
+        "windows-cpython312": "5f27889113214fc53493b3e918eb26d73dfab2022e22bdaac262849b8e58cbc0"
+      },
+      "upstream": {
+        "repository": "https://github.com/aliyun/alibabacloud-credentials-api",
+        "commit": "eb55b851a839db73b97770cae4145220864f15a9",
+        "matched_modules": 2,
+        "total_modules": 2,
+        "modules": [
+          {
+            "sdist_path": "alibabacloud_credentials_api/__init__.py",
+            "sha256": "d4cd7402f765b32ba52176c5816c5a1461f2353db9c3fad16c89b3f885e6ac8a",
+            "upstream_path": "python/alibabacloud_credentials_api/__init__.py"
+          },
+          {
+            "sdist_path": "alibabacloud_credentials_api/models.py",
+            "sha256": "f833a3fb1a6512cb3ec5a97a782abf8b2caf507a4dfcee248684caaa60234ea1",
+            "upstream_path": "python/alibabacloud_credentials_api/models.py"
+          }
+        ]
+      },
+      "license_evidence_kind": "upstream-root-license",
+      "license_text": {
+        "path": "licenses/alibabacloud-credentials-api-LICENSE.txt",
+        "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+        "url": "https://raw.githubusercontent.com/aliyun/alibabacloud-credentials-api/eb55b851a839db73b97770cae4145220864f15a9/LICENSE",
+        "git_blob_sha1": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64"
+      },
+      "upstream_homepage_correction": "https://github.com/aliyun/alibabacloud-gateway",
+      "review_status": "evidence-collected-not-release-approval",
+      "remaining_review": "Source modules match the fixed commit, not a verified release tag; review complete redistribution scope and notices."
+    },
+    {
+      "name": "alibabacloud-gateway-spi",
+      "version": "0.0.4",
+      "declared_license": "Apache License 2.0",
+      "author": "Alibaba Cloud SDK",
+      "author_email": "sdk-team@alibabacloud.com",
+      "sdist": {
+        "url": "https://files.pythonhosted.org/packages/cd/67/7cd36a36bf0ec53efd3fe31eaf398713f375b7b1cdcd32c51b6c0fdc09e2/alibabacloud_gateway_spi-0.0.4.tar.gz",
+        "sha256": "73d6e20d65b54eed26d89c19640d3a7572e18c45ecada627f806f5dbe8ed2130",
+        "standalone_license_files": []
+      },
+      "installed_artifacts": {
+        "linux-cpython312": "0d5256e95d8719da8ec9611b7ffbb12c2d26fdf7ce52c8f64e4e06350731e893",
+        "windows-cpython312": "0d5256e95d8719da8ec9611b7ffbb12c2d26fdf7ce52c8f64e4e06350731e893"
+      },
+      "upstream": {
+        "repository": "https://github.com/aliyun/alibabacloud-gateway",
+        "commit": "03baae37a8fbc4d1ebd50f768e105d5cd0a5f801",
+        "matched_modules": 3,
+        "total_modules": 3,
+        "modules": [
+          {
+            "sdist_path": "alibabacloud_gateway_spi/__init__.py",
+            "sha256": "d66a6d13342285b772aaaccc81d9ecfe3e5918af60cfb851d9bb2003f4e78cee",
+            "upstream_path": "alibabacloud-gateway-spi/python/alibabacloud_gateway_spi/__init__.py"
+          },
+          {
+            "sdist_path": "alibabacloud_gateway_spi/client.py",
+            "sha256": "70d50b226cefebfdf384ac0f200f0ff478326b217afd4dd759877ff4f195890d",
+            "upstream_path": "alibabacloud-gateway-spi/python/alibabacloud_gateway_spi/client.py"
+          },
+          {
+            "sdist_path": "alibabacloud_gateway_spi/models.py",
+            "sha256": "404a48fa1d598ffcd9179dc6d7e806e6dbb69c9ecdd919dbdb806e8b06621dcb",
+            "upstream_path": "alibabacloud-gateway-spi/python/alibabacloud_gateway_spi/models.py"
+          }
+        ]
+      },
+      "license_evidence_kind": "upstream-root-license",
+      "license_text": {
+        "path": "licenses/alibabacloud-gateway-LICENSE.txt",
+        "sha256": "aefc84881757b27b42ed6998db23e877b7d630956816f85bc11dd25452de5367",
+        "url": "https://raw.githubusercontent.com/aliyun/alibabacloud-gateway/03baae37a8fbc4d1ebd50f768e105d5cd0a5f801/LICENSE",
+        "git_blob_sha1": "0c44dcefe3df7e146aeb9717c5f96c4f5b2afbc0"
+      },
+      "review_status": "evidence-collected-not-release-approval",
+      "remaining_review": "Source modules match the fixed commit, not a verified release tag; review complete redistribution scope and notices."
+    },
+    {
+      "name": "alibabacloud-tea",
+      "version": "0.4.3",
+      "declared_license": "Apache License 2.0",
+      "author": "Alibaba Cloud",
+      "author_email": "alibaba-cloud-sdk-dev-team@list.alibaba-inc.com",
+      "sdist": {
+        "url": "https://files.pythonhosted.org/packages/9a/7d/b22cb9a0d4f396ee0f3f9d7f26b76b9ed93d4101add7867a2c87ed2534f5/alibabacloud-tea-0.4.3.tar.gz",
+        "sha256": "ec8053d0aa8d43ebe1deb632d5c5404339b39ec9a18a0707d57765838418504a",
+        "standalone_license_files": []
+      },
+      "installed_artifacts": {
+        "linux-cpython312": "ec8053d0aa8d43ebe1deb632d5c5404339b39ec9a18a0707d57765838418504a",
+        "windows-cpython312": "ec8053d0aa8d43ebe1deb632d5c5404339b39ec9a18a0707d57765838418504a"
+      },
+      "upstream": {
+        "repository": "https://github.com/aliyun/tea-python",
+        "commit": "328f4190bd915f8bd6a8eca2d8b38738f5ee8f91",
+        "matched_modules": 0,
+        "total_modules": 8,
+        "modules": [
+          {
+            "sdist_path": "Tea/__init__.py",
+            "sha256": "ce5e48d58a4d66678e1f795e0d7aef1ff571d8cd503363c91b16ed54bbc9a7e0",
+            "upstream_path": null
+          },
+          {
+            "sdist_path": "Tea/core.py",
+            "sha256": "ee74cadb214d5a190aa0f068e81f0da39ee7f1354d35847b6925bfe13f099b02",
+            "upstream_path": null
+          },
+          {
+            "sdist_path": "Tea/decorators.py",
+            "sha256": "50dfbbf2428318d6b0a71e1b02f56cce388717920060f442dc4d1861031a65d4",
+            "upstream_path": null
+          },
+          {
+            "sdist_path": "Tea/exceptions.py",
+            "sha256": "fb6c0ad343378330b9ddffb4a9e9e997228d50a9f376ed47c8d991651ccd5214",
+            "upstream_path": null
+          },
+          {
+            "sdist_path": "Tea/model.py",
+            "sha256": "f1e41852b31c065c8948e1e0754fe5dc3d88aa390d3b6f77b864e68ac4dd4e78",
+            "upstream_path": null
+          },
+          {
+            "sdist_path": "Tea/request.py",
+            "sha256": "b33b1c15623189a3977bfe398e82e8766b09feb7c0f3186f382d174462b913bf",
+            "upstream_path": null
+          },
+          {
+            "sdist_path": "Tea/response.py",
+            "sha256": "df38302278a5fd3eaee45657bc157bcd122cd1358572303082bc285f8d3a630e",
+            "upstream_path": null
+          },
+          {
+            "sdist_path": "Tea/stream.py",
+            "sha256": "7e8476cc637f9eb1522906a2d73c3482db5ca9a40e110bd3b9ed12eb5c9a87cf",
+            "upstream_path": null
+          }
+        ]
+      },
+      "license_evidence_kind": "sdist-readme-reference",
+      "sdist_license_declaration": {
+        "source_path": "README.md",
+        "source_sha256": "727c28b547456ef23de3f868bd1dd56fcf1ec3c36a9d517b34046981f281640d",
+        "section": "License",
+        "copy": {
+          "path": "declarations/alibabacloud-tea.txt",
+          "sha256": "60273f487eade6a4c48e879cf8d8b3e864b480d50247119d2176886b0095f91f"
+        }
+      },
+      "license_text": {
+        "path": "licenses/Apache-2.0.txt",
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "url": "https://www.apache.org/licenses/LICENSE-2.0.txt"
+      },
+      "review_status": "evidence-collected-not-release-approval",
+      "remaining_review": "Historical upstream source revision is not established; licensing declaration is from the exact hashed sdist."
+    },
+    {
+      "name": "alibabacloud-tea-openapi",
+      "version": "0.4.6",
+      "declared_license": "Apache License 2.0",
+      "author": "Alibaba Cloud SDK",
+      "author_email": "sdk-team@alibabacloud.com",
+      "sdist": {
+        "url": "https://files.pythonhosted.org/packages/ab/34/1918a2d780676494365c7f945bfab397ecddb988054d78025bd26f438977/alibabacloud_tea_openapi-0.4.6.tar.gz",
+        "sha256": "dafc32401712f5b21c12dc3d05ba887a91ad156d9b49a7662279f9fd90526fb2",
+        "standalone_license_files": []
+      },
+      "installed_artifacts": {
+        "linux-cpython312": "c9e1727b9fb2936f487d050fc3590c99f9f2065256dc3a927e5b61f414674ed6",
+        "windows-cpython312": "c9e1727b9fb2936f487d050fc3590c99f9f2065256dc3a927e5b61f414674ed6"
+      },
+      "upstream": {
+        "repository": "https://github.com/aliyun/darabonba-openapi",
+        "commit": "528b0f75ea9f3f25449ccd0a85b6ca8e8e614d87",
+        "matched_modules": 23,
+        "total_modules": 23,
+        "modules": [
+          {
+            "sdist_path": "alibabacloud_tea_openapi/__init__.py",
+            "sha256": "6db0695c4fcf05ba3f49a23cd3b98330bd10272c03d3fb9f0833e000c9431da1",
+            "upstream_path": "python/alibabacloud_tea_openapi/__init__.py"
+          },
+          {
+            "sdist_path": "alibabacloud_tea_openapi/client.py",
+            "sha256": "e70109afb5c5165b276c6af942ef636e4dc6db89d629ac2331a81ed6310f19d7",
+            "upstream_path": "python/alibabacloud_tea_openapi/client.py"
+          },
+          {
+            "sdist_path": "alibabacloud_tea_openapi/exceptions/__init__.py",
+            "sha256": "0051e83562c1b517aa1a6b9f28336b3d0f82b94d88257d92c92bbca578b4dafd",
+            "upstream_path": "python/alibabacloud_tea_openapi/exceptions/__init__.py"
+          },
+          {
+            "sdist_path": "alibabacloud_tea_openapi/exceptions/_alibaba_cloud.py",
+            "sha256": "740ea1736bf4cbe2fe011f3826ebfd59579841ad46ee180d39d018c66b41854c",
+            "upstream_path": "python/alibabacloud_tea_openapi/exceptions/_alibaba_cloud.py"
+          },
+          {
+            "sdist_path": "alibabacloud_tea_openapi/exceptions/_client.py",
+            "sha256": "89200c0ef20146f6d8d9b87a5926c85d6e31f54ea1845cab42cf8585067a87d2",
+            "upstream_path": "python/alibabacloud_tea_openapi/exceptions/_client.py"
+          },
+          {
+            "sdist_path": "alibabacloud_tea_openapi/exceptions/_server.py",
+            "sha256": "b41130f1501a65979edb48bdaffd92885d751d6e986ff3d823a1aedad5cb5835",
+            "upstream_path": "python/alibabacloud_tea_openapi/exceptions/_server.py"
+          },
+          {
+            "sdist_path": "alibabacloud_tea_openapi/exceptions/_throttling.py",
+            "sha256": "d5fcf2af4001400d8dd5e682f37af61613409c1b524c88821e2932567f593a5e",
+            "upstream_path": "python/alibabacloud_tea_openapi/exceptions/_throttling.py"
+          },
+          {
+            "sdist_path": "alibabacloud_tea_openapi/models/__init__.py",
+            "sha256": "f7612ea23dce24788c3b591c333af8d23b880ed278c9dfc32b23db0b5521b77f",
+            "upstream_path": "python/alibabacloud_tea_openapi/models/__init__.py"
+          },
+          {
+            "sdist_path": "alibabacloud_tea_openapi/models/_sseresponse.py",
+            "sha256": "a82bd3bdb5a51ac76c68756fe96632d34923fb0c75801483915fe7d0ee6edf69",
+            "upstream_path": "python/alibabacloud_tea_openapi/models/_sseresponse.py"
+          },
+          {
+            "sdist_path": "alibabacloud_tea_openapi/sm3.py",
+            "sha256": "a1aefa45b515a760a10c36c6a3b4e7f8aabf7563f305a436ecd3298da05a5199",
+            "upstream_path": "python/alibabacloud_tea_openapi/sm3.py"
+          },
+          {
+            "sdist_path": "alibabacloud_tea_openapi/utils.py",
+            "sha256": "ed676f89a8738d75d8ced99599596de46a8ca71971354b3583573d4d625e6384",
+            "upstream_path": "python/alibabacloud_tea_openapi/utils.py"
+          },
+          {
+            "sdist_path": "alibabacloud_tea_openapi/utils_models/__init__.py",
+            "sha256": "2e50ca3d4d9dd60596d64b3e47229cd191d5331d56051d99a8c46dfac6938bcf",
+            "upstream_path": "python/alibabacloud_tea_openapi/utils_models/__init__.py"
+          },
+          {
+            "sdist_path": "alibabacloud_tea_openapi/utils_models/_config.py",
+            "sha256": "4ea587c74d2949d5466467e47755109c27789c0c43f6f74b9e8911645bfcfebd",
+            "upstream_path": "python/alibabacloud_tea_openapi/utils_models/_config.py"
+          },
+          {
+            "sdist_path": "alibabacloud_tea_openapi/utils_models/_global_parameters.py",
+            "sha256": "2de26b4a9fcfb74f2ca5bd343fa20edc47402dd7cced3e0f2359edb34095ca9a",
+            "upstream_path": "python/alibabacloud_tea_openapi/utils_models/_global_parameters.py"
+          },
+          {
+            "sdist_path": "alibabacloud_tea_openapi/utils_models/_open_api_request.py",
+            "sha256": "9f3e65eb217515cecb033a52db737ff8f3e81a358c845b612505e1793ab5e5cd",
+            "upstream_path": "python/alibabacloud_tea_openapi/utils_models/_open_api_request.py"
+          },
+          {
+            "sdist_path": "alibabacloud_tea_openapi/utils_models/_params.py",
+            "sha256": "9f928eb4d23c5c9724843b942484fae870eee0e29cd2ef47e802329abdf8f4b9",
+            "upstream_path": "python/alibabacloud_tea_openapi/utils_models/_params.py"
+          },
+          {
+            "sdist_path": "alibabacloud_tea_openapi/websocket_utils/__init__.py",
+            "sha256": "3397b21ffa4f3b7349a96eeea5ff353ed0a7d55c2cdb8c20037f7a73f1dbeff5",
+            "upstream_path": "python/alibabacloud_tea_openapi/websocket_utils/__init__.py"
+          },
+          {
+            "sdist_path": "alibabacloud_tea_openapi/websocket_utils/_constants.py",
+            "sha256": "206d6060f85bbb4d1ff66057ecb6bf1170ca23077413ffcf58d0502ae10882d6",
+            "upstream_path": "python/alibabacloud_tea_openapi/websocket_utils/_constants.py"
+          },
+          {
+            "sdist_path": "alibabacloud_tea_openapi/websocket_utils/awap.py",
+            "sha256": "59b51b45ea9e2f4a07898d83530e1d8fb1926b62ef38364e26d6d5c316bc51ca",
+            "upstream_path": "python/alibabacloud_tea_openapi/websocket_utils/awap.py"
+          },
+          {
+            "sdist_path": "alibabacloud_tea_openapi/websocket_utils/client.py",
+            "sha256": "e39ce5c68aa9c0c7921b7de2fda47db5e1a4da11d22ff7f39c695f258ed25cd7",
+            "upstream_path": "python/alibabacloud_tea_openapi/websocket_utils/client.py"
+          },
+          {
+            "sdist_path": "alibabacloud_tea_openapi/websocket_utils/general.py",
+            "sha256": "aeea5c24c229e8eca98abb6d41d56f9c78a3a5e5ce2060973f77c228d848a655",
+            "upstream_path": "python/alibabacloud_tea_openapi/websocket_utils/general.py"
+          },
+          {
+            "sdist_path": "alibabacloud_tea_openapi/websocket_utils/handler.py",
+            "sha256": "54625f4173ba4942e5057e163e391ad5c2a205f5996f1199af00605e5fa510ea",
+            "upstream_path": "python/alibabacloud_tea_openapi/websocket_utils/handler.py"
+          },
+          {
+            "sdist_path": "alibabacloud_tea_openapi/websocket_utils_models.py",
+            "sha256": "3c746ce936302aec494ac5a8e90cfcfa229a95951f17e97c80fbc7414e8e8228",
+            "upstream_path": "python/alibabacloud_tea_openapi/websocket_utils_models.py"
+          }
+        ]
+      },
+      "license_evidence_kind": "sdist-readme-reference",
+      "sdist_license_declaration": {
+        "source_path": "README.md",
+        "source_sha256": "6313278bd72152e5c8fae9267c4d3481266963a897fd05b476d9b08a90c1e677",
+        "section": "License",
+        "copy": {
+          "path": "declarations/alibabacloud-tea-openapi.txt",
+          "sha256": "60273f487eade6a4c48e879cf8d8b3e864b480d50247119d2176886b0095f91f"
+        }
+      },
+      "license_text": {
+        "path": "licenses/Apache-2.0.txt",
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "url": "https://www.apache.org/licenses/LICENSE-2.0.txt"
+      },
+      "review_status": "evidence-collected-not-release-approval",
+      "remaining_review": "Source modules match the fixed commit, not a verified release tag; review complete redistribution scope and notices."
+    },
+    {
+      "name": "alibabacloud-tea-util",
+      "version": "0.3.15",
+      "declared_license": "Apache License 2.0",
+      "author": "Alibaba Cloud",
+      "author_email": "alibaba-cloud-sdk-dev-team@list.alibaba-inc.com",
+      "sdist": {
+        "url": "https://files.pythonhosted.org/packages/01/22/d3ce00317d9ba963bcc48234210bd718c42425267ecb05881cbb189b1c76/alibabacloud_tea_util-0.3.15.tar.gz",
+        "sha256": "79f78e596f6be03fb9565e34ac45420f3730e52888376cc9713bd07432a4c6cc",
+        "standalone_license_files": []
+      },
+      "installed_artifacts": {
+        "linux-cpython312": "afb3dd8ad5cd2f93804258fbbac4360c050462100499269795ea055c1644e193",
+        "windows-cpython312": "afb3dd8ad5cd2f93804258fbbac4360c050462100499269795ea055c1644e193"
+      },
+      "upstream": {
+        "repository": "https://github.com/aliyun/tea-util",
+        "commit": "75c382d3539152343311c106d859bc33f2f38371",
+        "matched_modules": 3,
+        "total_modules": 3,
+        "modules": [
+          {
+            "sdist_path": "alibabacloud_tea_util/__init__.py",
+            "sha256": "1a017d60e84896392e7e88bd97981bc4bb2efa860f18b16bd03d3dbfe3ce38be",
+            "upstream_path": "python/alibabacloud_tea_util/__init__.py"
+          },
+          {
+            "sdist_path": "alibabacloud_tea_util/client.py",
+            "sha256": "002486e3320eab6880b2c15d59f71aaa1122d53a7926984cfcb91fea53f40349",
+            "upstream_path": "python/alibabacloud_tea_util/client.py"
+          },
+          {
+            "sdist_path": "alibabacloud_tea_util/models.py",
+            "sha256": "befae1edb025a06522e887f5a3795c3bbcd35a1c52d31cce743ca9f2834cfb4b",
+            "upstream_path": "python/alibabacloud_tea_util/models.py"
+          }
+        ]
+      },
+      "license_evidence_kind": "upstream-root-license",
+      "sdist_license_declaration": {
+        "source_path": "README.md",
+        "source_sha256": "708b3a2c807f6f9f104ff3205df99bae170f0fe404c0c6afea3b7b1bea0f504f",
+        "section": "License",
+        "copy": {
+          "path": "declarations/alibabacloud-tea-util.txt",
+          "sha256": "60273f487eade6a4c48e879cf8d8b3e864b480d50247119d2176886b0095f91f"
+        }
+      },
+      "license_text": {
+        "path": "licenses/tea-util-LICENSE.txt",
+        "sha256": "aefc84881757b27b42ed6998db23e877b7d630956816f85bc11dd25452de5367",
+        "url": "https://raw.githubusercontent.com/aliyun/tea-util/75c382d3539152343311c106d859bc33f2f38371/LICENSE",
+        "git_blob_sha1": "0c44dcefe3df7e146aeb9717c5f96c4f5b2afbc0"
+      },
+      "review_status": "evidence-collected-not-release-approval",
+      "remaining_review": "Source modules match the fixed commit, not a verified release tag; review complete redistribution scope and notices."
+    },
+    {
+      "name": "darabonba-core",
+      "version": "1.0.9",
+      "declared_license": "Apache License 2.0",
+      "author": "Alibaba Cloud",
+      "author_email": "alibaba-cloud-sdk-dev-team@list.alibaba-inc.com",
+      "sdist": {
+        "url": "https://files.pythonhosted.org/packages/49/72/a1ae02a243be50e48aeedcaa089c153227300ed419880b99ac68bc4a259f/darabonba_core-1.0.9.tar.gz",
+        "sha256": "1026c965b4c2b48f89995eadad7ab780a03959812c8f8de4670eb44c48e5b179",
+        "standalone_license_files": []
+      },
+      "installed_artifacts": {
+        "linux-cpython312": "dafe9bc93639ddd9954322df72382b27f51078dbb41c045274a70e59dce57d80",
+        "windows-cpython312": "dafe9bc93639ddd9954322df72382b27f51078dbb41c045274a70e59dce57d80"
+      },
+      "upstream": {
+        "repository": "https://github.com/aliyun/tea-python",
+        "commit": "328f4190bd915f8bd6a8eca2d8b38738f5ee8f91",
+        "matched_modules": 24,
+        "total_modules": 24,
+        "modules": [
+          {
+            "sdist_path": "darabonba/__init__.py",
+            "sha256": "945a2171d324f035625927eb4dab1246df513dc3177d3be6b249fc21940d970b",
+            "upstream_path": "darabonba/__init__.py"
+          },
+          {
+            "sdist_path": "darabonba/core.py",
+            "sha256": "63bf896fe0f70162e407b40291068d2c2485eab208cf3632822fdda2328b4416",
+            "upstream_path": "darabonba/core.py"
+          },
+          {
+            "sdist_path": "darabonba/date.py",
+            "sha256": "5d8993ee3fba57f67b831ab239148b04bebba7f81a66b95ed94cb0f938205dc5",
+            "upstream_path": "darabonba/date.py"
+          },
+          {
+            "sdist_path": "darabonba/decorators.py",
+            "sha256": "0604d8acf06a22a7d5331b54d9e2f015f334f5384fbcf1ddec505e28d81abdfb",
+            "upstream_path": "darabonba/decorators.py"
+          },
+          {
+            "sdist_path": "darabonba/event.py",
+            "sha256": "81b20b9195a24c8c6d717edeedaf78f0e0d5dcbc3c072ccff62bcc131ff20768",
+            "upstream_path": "darabonba/event.py"
+          },
+          {
+            "sdist_path": "darabonba/exceptions.py",
+            "sha256": "df2d65b1de2a858ac996f3dbd4c964a7937541b5f369bf45c1ecfa1e2181663c",
+            "upstream_path": "darabonba/exceptions.py"
+          },
+          {
+            "sdist_path": "darabonba/file.py",
+            "sha256": "fee4fcce8065d03696b760c0db5cca0da806b2224fa0cf0f7ba80fe45a70dccc",
+            "upstream_path": "darabonba/file.py"
+          },
+          {
+            "sdist_path": "darabonba/model.py",
+            "sha256": "bdb6f92401601af2f5baf5cdabb8da10ae9fc92c558101dc6d905867c9584f8d",
+            "upstream_path": "darabonba/model.py"
+          },
+          {
+            "sdist_path": "darabonba/number.py",
+            "sha256": "e85fbe2c17411f2704a639ea2a75d90e2d70d9638618b14ae789071be18b6fbb",
+            "upstream_path": "darabonba/number.py"
+          },
+          {
+            "sdist_path": "darabonba/policy/__init__.py",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "upstream_path": "darabonba/policy/__init__.py"
+          },
+          {
+            "sdist_path": "darabonba/policy/retry.py",
+            "sha256": "81f1f5df7dafb4576776691d81fdacf67611f3f965821efbf1c626df12f12a64",
+            "upstream_path": "darabonba/policy/retry.py"
+          },
+          {
+            "sdist_path": "darabonba/request.py",
+            "sha256": "796bbb9ed85a8227042d316b49000f006254cd94e3d6666467fd475717238ad7",
+            "upstream_path": "darabonba/request.py"
+          },
+          {
+            "sdist_path": "darabonba/response.py",
+            "sha256": "79bc52dee334d76948bbb525b0f27a0861ef45bc2826eb6c1d65cb085124e55f",
+            "upstream_path": "darabonba/response.py"
+          },
+          {
+            "sdist_path": "darabonba/runtime.py",
+            "sha256": "c3b27c239dcb07fd4d7a3b76b030a433beb290a1b108134ec099b76ac04edac3",
+            "upstream_path": "darabonba/runtime.py"
+          },
+          {
+            "sdist_path": "darabonba/url.py",
+            "sha256": "a84ec936d1fe4896c161ceda9dc506a8eb2d889a9d1a74896d3c4775dd7dcb9a",
+            "upstream_path": "darabonba/url.py"
+          },
+          {
+            "sdist_path": "darabonba/utils/__init__.py",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "upstream_path": "darabonba/utils/__init__.py"
+          },
+          {
+            "sdist_path": "darabonba/utils/bytes.py",
+            "sha256": "daaa7b9c37fc508fb1d16f9c61b111e9d617f8dd661e0a176595ae93d356b81d",
+            "upstream_path": "darabonba/utils/bytes.py"
+          },
+          {
+            "sdist_path": "darabonba/utils/form.py",
+            "sha256": "410e36c6d7ab07dd4fa7d3a6116472efa39f63a4d6c8781d4f0f7421ea2d80ee",
+            "upstream_path": "darabonba/utils/form.py"
+          },
+          {
+            "sdist_path": "darabonba/utils/logger.py",
+            "sha256": "ca2675dcfcaf6835c10136e26b1de04ab335de09b29b885b56de2ee28c144f55",
+            "upstream_path": "darabonba/utils/logger.py"
+          },
+          {
+            "sdist_path": "darabonba/utils/map.py",
+            "sha256": "a4cb70690aaf2145946d4f59c9e19e254789b22a01c9429107db17ee488cc3d2",
+            "upstream_path": "darabonba/utils/map.py"
+          },
+          {
+            "sdist_path": "darabonba/utils/stream.py",
+            "sha256": "9362aed1bfa36204ccf7fb80a3a94a1248449b86c706ce614c87988918ea6b49",
+            "upstream_path": "darabonba/utils/stream.py"
+          },
+          {
+            "sdist_path": "darabonba/utils/validation.py",
+            "sha256": "5527fa2c42706310ddbae73895d5ff84de801f0faa46596da8ba991e9aaa349e",
+            "upstream_path": "darabonba/utils/validation.py"
+          },
+          {
+            "sdist_path": "darabonba/utils/xml.py",
+            "sha256": "0b9d9b6052b223c67d7fc02fc17e19ea845e41241d8b44ed84eec8ad1b103051",
+            "upstream_path": "darabonba/utils/xml.py"
+          },
+          {
+            "sdist_path": "darabonba/websocket.py",
+            "sha256": "97982eb0d53aa62a82dd05b31d2cb6b72487fb651099988cf39fcc46dcca2363",
+            "upstream_path": "darabonba/websocket.py"
+          }
+        ]
+      },
+      "license_evidence_kind": "sdist-readme-reference",
+      "sdist_license_declaration": {
+        "source_path": "README.md",
+        "source_sha256": "f9b53054bed09d473f03112040b57ba3582c88d7f44bf98c75d5166968a65e7d",
+        "section": "License",
+        "copy": {
+          "path": "declarations/darabonba-core.txt",
+          "sha256": "60273f487eade6a4c48e879cf8d8b3e864b480d50247119d2176886b0095f91f"
+        }
+      },
+      "license_text": {
+        "path": "licenses/Apache-2.0.txt",
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "url": "https://www.apache.org/licenses/LICENSE-2.0.txt"
+      },
+      "review_status": "evidence-collected-not-release-approval",
+      "remaining_review": "Source modules match the fixed commit, not a verified release tag; review complete redistribution scope and notices."
+    }
+  ]
+}

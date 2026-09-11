@@ -1,0 +1,1958 @@
+{
+  "schema_version": 1,
+  "scope": "fifty-five-npm-distributions-missing-license-files",
+  "complete_sbom": false,
+  "release_approved": false,
+  "lock_sha256_lf": {
+    "deploy/new_html": "db132f56fe89d2e3f5c2feabe40c860a99c0aa5f390542237bb0b12912c1ffd7",
+    "studio": "117cf6b68d963acf183d3e9300367e0f2476db5364e2b269c675e418bf249d52"
+  },
+  "sources": {
+    "esbuild": {
+      "repository": "evanw/esbuild",
+      "commit": "208f539945b145e7c9d6d844290f81c3fe5af320",
+      "basis": "registry-gitHead",
+      "copies": [
+        {
+          "path": "licenses/npm-esbuild-0.25.12.txt",
+          "url": "https://raw.githubusercontent.com/evanw/esbuild/208f539945b145e7c9d6d844290f81c3fe5af320/LICENSE.md",
+          "git_blob_sha1": "2027e8dcf3787f5aac9fcd835e2b80cb75a39211",
+          "sha256": "b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681",
+          "bytes": 1069,
+          "upstream_path": "LICENSE.md"
+        }
+      ],
+      "binary_reproduced": false,
+      "release_approved": false,
+      "parent_license_match": {
+        "name": "esbuild",
+        "version": "0.25.12",
+        "url": "https://registry.npmjs.org/esbuild/-/esbuild-0.25.12.tgz",
+        "integrity": "sha512-bbPBYYrtZbkt6Os6FiTLCTFxvq4tt3JKall1vRwshA3fdVztsLAatFaZobhkBC8/BrPetoa0oksYoKXoG4ryJg==",
+        "archive_sha256": "227584145829e5c4782734b3fb7b91b49c6aa12876d6cf070e6a3d9d4de543f9",
+        "archive_path": "package/LICENSE.md",
+        "upstream_path": "LICENSE.md",
+        "sha256": "b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681"
+      },
+      "remaining_review": [
+        "Core MIT and fixed-version Go/x/sys root notices collected; runtime and vendored attribution remain open. See npm-esbuild-build-evidence.json.",
+        "Publisher gitHead does not establish a reproducible native binary build."
+      ]
+    },
+    "rollup": {
+      "repository": "rollup/rollup",
+      "commit": "78bfef0cb94479566f81012fafa372c84b90bd34",
+      "basis": "registry-gitHead",
+      "copies": [
+        {
+          "path": "licenses/npm-rollup-4.63.1-core.txt",
+          "url": "https://raw.githubusercontent.com/rollup/rollup/78bfef0cb94479566f81012fafa372c84b90bd34/LICENSE-CORE.md",
+          "git_blob_sha1": "14852a2d22a0ca5d84041cd210ff54c82923d5fd",
+          "sha256": "9dff12bb776f199482bc21fb2aba9615032c0403d19cfd1fa0bf101a9379b146",
+          "bytes": 1135,
+          "upstream_path": "LICENSE-CORE.md"
+        }
+      ],
+      "binary_reproduced": false,
+      "release_approved": false,
+      "parent_license_match": {
+        "name": "rollup",
+        "version": "4.63.1",
+        "url": "https://registry.npmjs.org/rollup/-/rollup-4.63.1.tgz",
+        "integrity": "sha512-3Df9jsstwhccuEfmAMi9l8XUh/GOkVObmFTU7CCVBysEbcOZLl84jCtaAZMcPiMz2EGKsATzQcU+Xr3n/wU6cg==",
+        "archive_sha256": "88b9180834f6d0472f49d379e13cb8d5d909eab28a34a4c766ec1676502e8f78",
+        "archive_path": "package/LICENSE.md",
+        "upstream_path": "LICENSE.md",
+        "sha256": "fa1bd040c5bdeefe65b3821cebf474f2733ce65df13089bd151dda1778e62fe8"
+      },
+      "remaining_review": [
+        "Core MIT license collected; the parent bundle LICENSE matches the fixed source file.",
+        "Parent JavaScript bundle notices do not close native Rust or toolchain attribution."
+      ]
+    },
+    "lzma": {
+      "repository": "Brooooooklyn/lzma",
+      "commit": "f164df92d83e095f195d628b1a68a141ae2eb638",
+      "basis": "registry-gitHead",
+      "copies": [],
+      "binary_reproduced": false,
+      "release_approved": false,
+      "remaining_review": [
+        "No root LICENSE/NOTICE at the publisher commit; MIT is metadata only.",
+        "Native Rust dependencies and binary build provenance remain to review."
+      ]
+    },
+    "dlv": {
+      "repository": "developit/dlv",
+      "commit": "e636db817a96e4ca4710b407163fb992748b3b80",
+      "basis": "registry-gitHead",
+      "copies": [],
+      "binary_reproduced": false,
+      "release_approved": false,
+      "source_comparison": {
+        "upstream_archive_url": "https://codeload.github.com/developit/dlv/tar.gz/e636db817a96e4ca4710b407163fb992748b3b80",
+        "upstream_archive_sha256": "5433b3b8dabf75c77add9d2388fd49bb603bc3f3e8f8c2fa4c7363c54fc86601",
+        "javascript": [
+          {
+            "npm_path": "index.js",
+            "sha256": "621dcd396a2ae770327bfaca6f1ecd0efc7b33c06d28350d373be0f7714e0794",
+            "upstream_path": "index.js"
+          },
+          {
+            "npm_path": "dist/dlv.es.js",
+            "sha256": "4d4b6d701f3f9817d1d882114212b12dc98d60c39b9bbdec172fab3ee0f7a27f",
+            "upstream_path": null
+          },
+          {
+            "npm_path": "dist/dlv.js",
+            "sha256": "4f054c9cffd8bbdd79799b804923b6a6bbc7ddd5d94a26fd2b361377a4847ba9",
+            "upstream_path": null
+          },
+          {
+            "npm_path": "dist/dlv.umd.js",
+            "sha256": "72172cb7c7e92d6342b7fc31ba381e0ebb1d131d79341217286ecb93bdb89829",
+            "upstream_path": null
+          }
+        ],
+        "source_maps": [
+          {
+            "map": "dist/dlv.es.js.map",
+            "sources": ["../index.js"],
+            "embedded_contents": 1
+          },
+          {
+            "map": "dist/dlv.js.map",
+            "sources": ["../index.js"],
+            "embedded_contents": 1
+          },
+          {
+            "map": "dist/dlv.umd.js.map",
+            "sources": ["../index.js"],
+            "embedded_contents": 1
+          }
+        ],
+        "embedded_sources": [
+          {
+            "map": "dist/dlv.es.js.map",
+            "source": "../index.js",
+            "sha256": "621dcd396a2ae770327bfaca6f1ecd0efc7b33c06d28350d373be0f7714e0794",
+            "identical_upstream_paths": ["index.js"]
+          },
+          {
+            "map": "dist/dlv.js.map",
+            "source": "../index.js",
+            "sha256": "621dcd396a2ae770327bfaca6f1ecd0efc7b33c06d28350d373be0f7714e0794",
+            "identical_upstream_paths": ["index.js"]
+          },
+          {
+            "map": "dist/dlv.umd.js.map",
+            "source": "../index.js",
+            "sha256": "621dcd396a2ae770327bfaca6f1ecd0efc7b33c06d28350d373be0f7714e0794",
+            "identical_upstream_paths": ["index.js"]
+          }
+        ]
+      },
+      "declaration": {
+        "path": "declarations/npm-dlv-1.1.3.txt",
+        "sha256": "7b728b208b5df952ad69b3fc863f86d236a4610164af284cd9adc1f164ee4c73",
+        "source_path": "package/README.md",
+        "source_sha256": "9c859d9401ff1e3c62d84595ae8fb368787a6e89cd819b811be06abb2cde26db",
+        "kind": "archive-readme-section-not-license-body"
+      },
+      "remaining_review": [
+        "Source and embedded map contents match, but generated JavaScript was not rebuilt.",
+        "Exact-version README links MIT externally; no standalone license body at this commit."
+      ]
+    },
+    "saxes": {
+      "repository": "lddubeau/saxes",
+      "commit": "211fa0ebec9b628affc09219199639887174bfc3",
+      "basis": "registry-gitHead",
+      "copies": [
+        {
+          "path": "licenses/npm-saxes-6.0.0.txt",
+          "url": "https://raw.githubusercontent.com/lddubeau/saxes/211fa0ebec9b628affc09219199639887174bfc3/LICENSE",
+          "git_blob_sha1": "187f3ba399862022f4e670b2a3a1dbc6d7e6a800",
+          "sha256": "0fac2374380621b22e6b50451057721a9c52935b02d16d106a9f04897f061d0e",
+          "bytes": 3011,
+          "upstream_path": "LICENSE"
+        },
+        {
+          "path": "licenses/npm-saxes-6.0.0-authors.txt",
+          "url": "https://raw.githubusercontent.com/lddubeau/saxes/211fa0ebec9b628affc09219199639887174bfc3/AUTHORS",
+          "git_blob_sha1": "991f71c5d138712b77ca99aad9f99fb0ed157e2c",
+          "sha256": "4e9bfee1d0ed0a8bdacbdc1acf0a999b17054aa7bfc52eff00e869472be2a5cc",
+          "bytes": 408,
+          "upstream_path": "AUTHORS"
+        }
+      ],
+      "binary_reproduced": false,
+      "release_approved": false,
+      "source_comparison": {
+        "upstream_archive_url": "https://codeload.github.com/lddubeau/saxes/tar.gz/211fa0ebec9b628affc09219199639887174bfc3",
+        "upstream_archive_sha256": "220974846392c1066935c239cc73d1701d7271f7d5c400d080080f564fd1399c",
+        "javascript": [
+          {
+            "npm_path": "saxes.js",
+            "sha256": "d00e2ba27ed7d6ac961d03ff14d6b8c0eb5bf063ed2c996c22c6df06ac121423",
+            "upstream_path": null
+          }
+        ],
+        "source_maps": [
+          {
+            "map": "saxes.js.map",
+            "sources": ["../../src/saxes.ts"],
+            "embedded_contents": 0
+          }
+        ],
+        "embedded_sources": []
+      },
+      "remaining_review": [
+        "Full upstream LICENSE and AUTHORS preserved, including inherited notices.",
+        "Compiled JavaScript was not rebuilt; its source map has no embedded sourcesContent."
+      ]
+    },
+    "stackback": {
+      "repository": "defunctzombie/node-stackback",
+      "commit": "2963095372abf7b75ba55f01cef08ab1e62c2ff4",
+      "basis": "matching-tag-and-source",
+      "copies": [],
+      "binary_reproduced": false,
+      "release_approved": false,
+      "source_comparison": {
+        "upstream_archive_url": "https://codeload.github.com/defunctzombie/node-stackback/tar.gz/2963095372abf7b75ba55f01cef08ab1e62c2ff4",
+        "upstream_archive_sha256": "964aaeb99156a42a93e1841189fde599e18e65865ff0dd9e7c78c383dc2a671a",
+        "javascript": [
+          {
+            "npm_path": "formatstack.js",
+            "sha256": "3c1191bd7094a36098418e7d1606e2a49e7ee25b5ddee54b0b2514ea1a43b8a7",
+            "upstream_path": "formatstack.js"
+          },
+          {
+            "npm_path": "index.js",
+            "sha256": "bc58b3118cb8b3d1a674a7e70c2d6091de3dd31deeb3e1d1f06a54a1a452fd34",
+            "upstream_path": "index.js"
+          },
+          {
+            "npm_path": "test.js",
+            "sha256": "bafcd0f7608bbfb56f07ab3a92fee18884dc619ef3bc06ccb207ee7fa43c75e6",
+            "upstream_path": "test.js"
+          }
+        ],
+        "source_maps": [],
+        "embedded_sources": []
+      },
+      "remaining_review": [
+        "All three shipped JavaScript files match the v0.0.2 tag commit.",
+        "No standalone license body at this commit; MIT is package metadata only."
+      ]
+    }
+  },
+  "packages": [
+    {
+      "name": "@esbuild/aix-ppc64",
+      "version": "0.25.12",
+      "source": "esbuild",
+      "archive": {
+        "url": "https://registry.npmjs.org/@esbuild/aix-ppc64/-/aix-ppc64-0.25.12.tgz",
+        "integrity": "sha512-Hhmwd6CInZ3dwpuGTF8fJG6yoWmsToE+vYgD4nytZVxcu1ulHpUQRAB1UJ8+N1Am3Mz4+xOByoQoSZf4D+CpkA==",
+        "sha256": "6f36448f31d26425773b80985184f3bfb5661acede70c503b201c823836a10e8",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Faix-ppc64/0.25.12",
+        "sha256": "425e466b5b48e241ab32cfd4032d8f0225d5609abfae891aee79f0b9e833245a",
+        "git_head": "208f539945b145e7c9d6d844290f81c3fe5af320",
+        "declared_license": "MIT",
+        "author": null
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@esbuild/aix-ppc64",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@esbuild/aix-ppc64",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/android-arm",
+      "version": "0.25.12",
+      "source": "esbuild",
+      "archive": {
+        "url": "https://registry.npmjs.org/@esbuild/android-arm/-/android-arm-0.25.12.tgz",
+        "integrity": "sha512-VJ+sKvNA/GE7Ccacc9Cha7bpS8nyzVv0jdVgwNDaR4gDMC/2TTRc33Ip8qrNYUcpkOHUT5OZ0bUcNNVZQ9RLlg==",
+        "sha256": "5aea75886f091b07287ac357a492bcbbf633532381b31ba71611955faada3c7e",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Fandroid-arm/0.25.12",
+        "sha256": "bf15fa389b5c66753751f16e29b208559ab665656da2887e1ad94366dd1542c2",
+        "git_head": "208f539945b145e7c9d6d844290f81c3fe5af320",
+        "declared_license": "MIT",
+        "author": null
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@esbuild/android-arm",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@esbuild/android-arm",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/android-arm64",
+      "version": "0.25.12",
+      "source": "esbuild",
+      "archive": {
+        "url": "https://registry.npmjs.org/@esbuild/android-arm64/-/android-arm64-0.25.12.tgz",
+        "integrity": "sha512-6AAmLG7zwD1Z159jCKPvAxZd4y/VTO0VkprYy+3N2FtJ8+BQWFXU+OxARIwA46c5tdD9SsKGZ/1ocqBS/gAKHg==",
+        "sha256": "9cb49d434b501e232ec60de75d2bc7e0206477cdc7f38f5f1a8b531ab77e6921",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Fandroid-arm64/0.25.12",
+        "sha256": "476dca7e2616b8e01f25e4e8e7e803de4ef092e427aed6e12356c0085a5aefe5",
+        "git_head": "208f539945b145e7c9d6d844290f81c3fe5af320",
+        "declared_license": "MIT",
+        "author": null
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@esbuild/android-arm64",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@esbuild/android-arm64",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/android-x64",
+      "version": "0.25.12",
+      "source": "esbuild",
+      "archive": {
+        "url": "https://registry.npmjs.org/@esbuild/android-x64/-/android-x64-0.25.12.tgz",
+        "integrity": "sha512-5jbb+2hhDHx5phYR2By8GTWEzn6I9UqR11Kwf22iKbNpYrsmRB18aX/9ivc5cabcUiAT/wM+YIZ6SG9QO6a8kg==",
+        "sha256": "1b1fb12cc646f4b641503116c52d9503ba479f00f8eeba3553e5045fd5b3e808",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Fandroid-x64/0.25.12",
+        "sha256": "9428f81ad0e4375071212901db2714c0968e63c284f249c33787c378f04da4ba",
+        "git_head": "208f539945b145e7c9d6d844290f81c3fe5af320",
+        "declared_license": "MIT",
+        "author": null
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@esbuild/android-x64",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@esbuild/android-x64",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/darwin-arm64",
+      "version": "0.25.12",
+      "source": "esbuild",
+      "archive": {
+        "url": "https://registry.npmjs.org/@esbuild/darwin-arm64/-/darwin-arm64-0.25.12.tgz",
+        "integrity": "sha512-N3zl+lxHCifgIlcMUP5016ESkeQjLj/959RxxNYIthIg+CQHInujFuXeWbWMgnTo4cp5XVHqFPmpyu9J65C1Yg==",
+        "sha256": "2e0d011f852e45046ca5c107db54cfc56338f77aca49d227a063696d958451d7",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Fdarwin-arm64/0.25.12",
+        "sha256": "d2892c9fb6513d8c36969f0b800acd47b993cc2d3dc30358837bbef3fb9e8dab",
+        "git_head": "208f539945b145e7c9d6d844290f81c3fe5af320",
+        "declared_license": "MIT",
+        "author": null
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@esbuild/darwin-arm64",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@esbuild/darwin-arm64",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/darwin-x64",
+      "version": "0.25.12",
+      "source": "esbuild",
+      "archive": {
+        "url": "https://registry.npmjs.org/@esbuild/darwin-x64/-/darwin-x64-0.25.12.tgz",
+        "integrity": "sha512-HQ9ka4Kx21qHXwtlTUVbKJOAnmG1ipXhdWTmNXiPzPfWKpXqASVcWdnf2bnL73wgjNrFXAa3yYvBSd9pzfEIpA==",
+        "sha256": "bf56cdf7b330a8605395ee13de805c784c7346d0802c7cced8490b4bfac2291a",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Fdarwin-x64/0.25.12",
+        "sha256": "c8c781af60dcc1f9e212c49ef6f2467173312d92face7c37569a9335711773e6",
+        "git_head": "208f539945b145e7c9d6d844290f81c3fe5af320",
+        "declared_license": "MIT",
+        "author": null
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@esbuild/darwin-x64",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@esbuild/darwin-x64",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/freebsd-arm64",
+      "version": "0.25.12",
+      "source": "esbuild",
+      "archive": {
+        "url": "https://registry.npmjs.org/@esbuild/freebsd-arm64/-/freebsd-arm64-0.25.12.tgz",
+        "integrity": "sha512-gA0Bx759+7Jve03K1S0vkOu5Lg/85dou3EseOGUes8flVOGxbhDDh/iZaoek11Y8mtyKPGF3vP8XhnkDEAmzeg==",
+        "sha256": "3d140ffd2d7e3d8f747a9dcb8abdbec9505ab795ba6e55a8a9dd4f23378c5d31",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Ffreebsd-arm64/0.25.12",
+        "sha256": "1bf067b3b9728c1ff5ebe6ff49114e93b0e1fb370cf30d45f62640a5cdafc4b0",
+        "git_head": "208f539945b145e7c9d6d844290f81c3fe5af320",
+        "declared_license": "MIT",
+        "author": null
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@esbuild/freebsd-arm64",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@esbuild/freebsd-arm64",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/freebsd-x64",
+      "version": "0.25.12",
+      "source": "esbuild",
+      "archive": {
+        "url": "https://registry.npmjs.org/@esbuild/freebsd-x64/-/freebsd-x64-0.25.12.tgz",
+        "integrity": "sha512-TGbO26Yw2xsHzxtbVFGEXBFH0FRAP7gtcPE7P5yP7wGy7cXK2oO7RyOhL5NLiqTlBh47XhmIUXuGciXEqYFfBQ==",
+        "sha256": "8bf2618e0ff33e342c68f5c9f56dde969551daaea3c89dd30d5859abe066b2a2",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Ffreebsd-x64/0.25.12",
+        "sha256": "017be07c370f6a72a8949e24df2af54a82afcd524692dfcaf010eda764a2422e",
+        "git_head": "208f539945b145e7c9d6d844290f81c3fe5af320",
+        "declared_license": "MIT",
+        "author": null
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@esbuild/freebsd-x64",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@esbuild/freebsd-x64",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/linux-arm",
+      "version": "0.25.12",
+      "source": "esbuild",
+      "archive": {
+        "url": "https://registry.npmjs.org/@esbuild/linux-arm/-/linux-arm-0.25.12.tgz",
+        "integrity": "sha512-lPDGyC1JPDou8kGcywY0YILzWlhhnRjdof3UlcoqYmS9El818LLfJJc3PXXgZHrHCAKs/Z2SeZtDJr5MrkxtOw==",
+        "sha256": "318df2dc59ce5d2f0768fb0721fdcf20e639e2cd9d47765c6ddf4ae36f4a1142",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Flinux-arm/0.25.12",
+        "sha256": "93b182241993a5af470d3ec4ffa683926579c8fc59c63d2380e8e827eca6ddec",
+        "git_head": "208f539945b145e7c9d6d844290f81c3fe5af320",
+        "declared_license": "MIT",
+        "author": null
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@esbuild/linux-arm",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@esbuild/linux-arm",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/linux-arm64",
+      "version": "0.25.12",
+      "source": "esbuild",
+      "archive": {
+        "url": "https://registry.npmjs.org/@esbuild/linux-arm64/-/linux-arm64-0.25.12.tgz",
+        "integrity": "sha512-8bwX7a8FghIgrupcxb4aUmYDLp8pX06rGh5HqDT7bB+8Rdells6mHvrFHHW2JAOPZUbnjUpKTLg6ECyzvas2AQ==",
+        "sha256": "d5e01d210e026823d559e2b82554cdcdab6fd87c4a57b519b392ef183c1f87fd",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Flinux-arm64/0.25.12",
+        "sha256": "804ecfa628c96b7aa71891028ef69b6b269804985700769728f66ce06e3892d1",
+        "git_head": "208f539945b145e7c9d6d844290f81c3fe5af320",
+        "declared_license": "MIT",
+        "author": null
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@esbuild/linux-arm64",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@esbuild/linux-arm64",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/linux-ia32",
+      "version": "0.25.12",
+      "source": "esbuild",
+      "archive": {
+        "url": "https://registry.npmjs.org/@esbuild/linux-ia32/-/linux-ia32-0.25.12.tgz",
+        "integrity": "sha512-0y9KrdVnbMM2/vG8KfU0byhUN+EFCny9+8g202gYqSSVMonbsCfLjUO+rCci7pM0WBEtz+oK/PIwHkzxkyharA==",
+        "sha256": "d9a45a87621f08f3be3017c95283fb5e4f48bdb3808daedd7c57c755a9c9f83b",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Flinux-ia32/0.25.12",
+        "sha256": "352e2d0ec44ea84fec654984a21e35a4c6c94500760720b5b67022d3d04a9671",
+        "git_head": "208f539945b145e7c9d6d844290f81c3fe5af320",
+        "declared_license": "MIT",
+        "author": null
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@esbuild/linux-ia32",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@esbuild/linux-ia32",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/linux-loong64",
+      "version": "0.25.12",
+      "source": "esbuild",
+      "archive": {
+        "url": "https://registry.npmjs.org/@esbuild/linux-loong64/-/linux-loong64-0.25.12.tgz",
+        "integrity": "sha512-h///Lr5a9rib/v1GGqXVGzjL4TMvVTv+s1DPoxQdz7l/AYv6LDSxdIwzxkrPW438oUXiDtwM10o9PmwS/6Z0Ng==",
+        "sha256": "45bee0343b63121ca9ff6e424bada69711bf959bcb649a81c2c0ac9c22ad91fb",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Flinux-loong64/0.25.12",
+        "sha256": "0c5fe2df0d2ac470390a5953f6ebe9125991ae201380114a340a732c1b8a5745",
+        "git_head": "208f539945b145e7c9d6d844290f81c3fe5af320",
+        "declared_license": "MIT",
+        "author": null
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@esbuild/linux-loong64",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@esbuild/linux-loong64",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/linux-mips64el",
+      "version": "0.25.12",
+      "source": "esbuild",
+      "archive": {
+        "url": "https://registry.npmjs.org/@esbuild/linux-mips64el/-/linux-mips64el-0.25.12.tgz",
+        "integrity": "sha512-iyRrM1Pzy9GFMDLsXn1iHUm18nhKnNMWscjmp4+hpafcZjrr2WbT//d20xaGljXDBYHqRcl8HnxbX6uaA/eGVw==",
+        "sha256": "0840450dc4fe6b79cf2390c627f111c61b04266d9b5f0f7b0f291071a70a4825",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Flinux-mips64el/0.25.12",
+        "sha256": "57b83c6ed3a6fe5f935673183eb50e425506362d6b7aad15d71c7a94d53be1eb",
+        "git_head": "208f539945b145e7c9d6d844290f81c3fe5af320",
+        "declared_license": "MIT",
+        "author": null
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@esbuild/linux-mips64el",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@esbuild/linux-mips64el",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/linux-ppc64",
+      "version": "0.25.12",
+      "source": "esbuild",
+      "archive": {
+        "url": "https://registry.npmjs.org/@esbuild/linux-ppc64/-/linux-ppc64-0.25.12.tgz",
+        "integrity": "sha512-9meM/lRXxMi5PSUqEXRCtVjEZBGwB7P/D4yT8UG/mwIdze2aV4Vo6U5gD3+RsoHXKkHCfSxZKzmDssVlRj1QQA==",
+        "sha256": "1cd2f06d19e650b31d01474f82d72ff0a2cd4b15e901a83c22e9678c7958a10a",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Flinux-ppc64/0.25.12",
+        "sha256": "009aa8c796273f88ddd7b0c01787f0cf541593f1e652a789a6424c8a5934eaaf",
+        "git_head": "208f539945b145e7c9d6d844290f81c3fe5af320",
+        "declared_license": "MIT",
+        "author": null
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@esbuild/linux-ppc64",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@esbuild/linux-ppc64",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/linux-riscv64",
+      "version": "0.25.12",
+      "source": "esbuild",
+      "archive": {
+        "url": "https://registry.npmjs.org/@esbuild/linux-riscv64/-/linux-riscv64-0.25.12.tgz",
+        "integrity": "sha512-Zr7KR4hgKUpWAwb1f3o5ygT04MzqVrGEGXGLnj15YQDJErYu/BGg+wmFlIDOdJp0PmB0lLvxFIOXZgFRrdjR0w==",
+        "sha256": "64738a7389ebf341216c634916d8eef90f0cf57636f8de2c117f7ee89fdefa91",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Flinux-riscv64/0.25.12",
+        "sha256": "5049958bf81ea1caff51578ddf1ba8a685312ec46ae921844db96bcc2f6b75ff",
+        "git_head": "208f539945b145e7c9d6d844290f81c3fe5af320",
+        "declared_license": "MIT",
+        "author": null
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@esbuild/linux-riscv64",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@esbuild/linux-riscv64",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/linux-s390x",
+      "version": "0.25.12",
+      "source": "esbuild",
+      "archive": {
+        "url": "https://registry.npmjs.org/@esbuild/linux-s390x/-/linux-s390x-0.25.12.tgz",
+        "integrity": "sha512-MsKncOcgTNvdtiISc/jZs/Zf8d0cl/t3gYWX8J9ubBnVOwlk65UIEEvgBORTiljloIWnBzLs4qhzPkJcitIzIg==",
+        "sha256": "35818fadf6809a5617d8533c2f91d2e321daeaf445729274d22213e831895bc7",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Flinux-s390x/0.25.12",
+        "sha256": "3de5ad92c3990e2e387f70d0e05df7412ef3edd8988f0508ee011ac5f62c9a4a",
+        "git_head": "208f539945b145e7c9d6d844290f81c3fe5af320",
+        "declared_license": "MIT",
+        "author": null
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@esbuild/linux-s390x",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@esbuild/linux-s390x",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/linux-x64",
+      "version": "0.25.12",
+      "source": "esbuild",
+      "archive": {
+        "url": "https://registry.npmjs.org/@esbuild/linux-x64/-/linux-x64-0.25.12.tgz",
+        "integrity": "sha512-uqZMTLr/zR/ed4jIGnwSLkaHmPjOjJvnm6TVVitAa08SLS9Z0VM8wIRx7gWbJB5/J54YuIMInDquWyYvQLZkgw==",
+        "sha256": "f7efc127658a108dcda9d4210b01804ee8f5d6b3acbd6d63f20aa51d3b50bd5f",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Flinux-x64/0.25.12",
+        "sha256": "fbe354283efc0fe2ff022119e42a3d5dba299676426dcae05f1d0fcced689860",
+        "git_head": "208f539945b145e7c9d6d844290f81c3fe5af320",
+        "declared_license": "MIT",
+        "author": null
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@esbuild/linux-x64",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@esbuild/linux-x64",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/netbsd-arm64",
+      "version": "0.25.12",
+      "source": "esbuild",
+      "archive": {
+        "url": "https://registry.npmjs.org/@esbuild/netbsd-arm64/-/netbsd-arm64-0.25.12.tgz",
+        "integrity": "sha512-xXwcTq4GhRM7J9A8Gv5boanHhRa/Q9KLVmcyXHCTaM4wKfIpWkdXiMog/KsnxzJ0A1+nD+zoecuzqPmCRyBGjg==",
+        "sha256": "f746c1aa0f4dc86c6484dae61114ecc9155327cd4a1b0e9d234e32bc7a018858",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Fnetbsd-arm64/0.25.12",
+        "sha256": "8f1fb3021c2147f226123629d4cd13cf6ed7022d463e477a756c1717cc69a41e",
+        "git_head": "208f539945b145e7c9d6d844290f81c3fe5af320",
+        "declared_license": "MIT",
+        "author": null
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@esbuild/netbsd-arm64",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@esbuild/netbsd-arm64",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/netbsd-x64",
+      "version": "0.25.12",
+      "source": "esbuild",
+      "archive": {
+        "url": "https://registry.npmjs.org/@esbuild/netbsd-x64/-/netbsd-x64-0.25.12.tgz",
+        "integrity": "sha512-Ld5pTlzPy3YwGec4OuHh1aCVCRvOXdH8DgRjfDy/oumVovmuSzWfnSJg+VtakB9Cm0gxNO9BzWkj6mtO1FMXkQ==",
+        "sha256": "d706a08a052577e74474036f51604b9c19dff434c1e14b8465ccd452fb225f95",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Fnetbsd-x64/0.25.12",
+        "sha256": "3ac93219c455645a5f8fbc50f4ff57b1b3ddf1cdad4f848213f8b42300281d1b",
+        "git_head": "208f539945b145e7c9d6d844290f81c3fe5af320",
+        "declared_license": "MIT",
+        "author": null
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@esbuild/netbsd-x64",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@esbuild/netbsd-x64",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/openbsd-arm64",
+      "version": "0.25.12",
+      "source": "esbuild",
+      "archive": {
+        "url": "https://registry.npmjs.org/@esbuild/openbsd-arm64/-/openbsd-arm64-0.25.12.tgz",
+        "integrity": "sha512-fF96T6KsBo/pkQI950FARU9apGNTSlZGsv1jZBAlcLL1MLjLNIWPBkj5NlSz8aAzYKg+eNqknrUJ24QBybeR5A==",
+        "sha256": "ad09e31e1a86a5a12fd57304acc7472e59a55ae05385b1770e24b3a3670f7f99",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Fopenbsd-arm64/0.25.12",
+        "sha256": "0c15df01437390e7ac6fb81955bc984af27515872e253ccadd862025322ce73a",
+        "git_head": "208f539945b145e7c9d6d844290f81c3fe5af320",
+        "declared_license": "MIT",
+        "author": null
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@esbuild/openbsd-arm64",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@esbuild/openbsd-arm64",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/openbsd-x64",
+      "version": "0.25.12",
+      "source": "esbuild",
+      "archive": {
+        "url": "https://registry.npmjs.org/@esbuild/openbsd-x64/-/openbsd-x64-0.25.12.tgz",
+        "integrity": "sha512-MZyXUkZHjQxUvzK7rN8DJ3SRmrVrke8ZyRusHlP+kuwqTcfWLyqMOE3sScPPyeIXN/mDJIfGXvcMqCgYKekoQw==",
+        "sha256": "0ce2f4f74522d3b09e249a1ee240179bde15766660a43b772a60cba4781e300b",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Fopenbsd-x64/0.25.12",
+        "sha256": "c6cc19537231e964f1e0cb510da88f7bc018ea6c498f211e50db8b053575d739",
+        "git_head": "208f539945b145e7c9d6d844290f81c3fe5af320",
+        "declared_license": "MIT",
+        "author": null
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@esbuild/openbsd-x64",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@esbuild/openbsd-x64",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/openharmony-arm64",
+      "version": "0.25.12",
+      "source": "esbuild",
+      "archive": {
+        "url": "https://registry.npmjs.org/@esbuild/openharmony-arm64/-/openharmony-arm64-0.25.12.tgz",
+        "integrity": "sha512-rm0YWsqUSRrjncSXGA7Zv78Nbnw4XL6/dzr20cyrQf7ZmRcsovpcRBdhD43Nuk3y7XIoW2OxMVvwuRvk9XdASg==",
+        "sha256": "79828e6d55f5155ca81e55e04717aecb9125fd8b5202ba8b6e9e78cc8943a62d",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Fopenharmony-arm64/0.25.12",
+        "sha256": "95a249ea21534e09076b446effd19d18ebf0f81c2723eca46b91b1d89032a6dc",
+        "git_head": "208f539945b145e7c9d6d844290f81c3fe5af320",
+        "declared_license": "MIT",
+        "author": null
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@esbuild/openharmony-arm64",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@esbuild/openharmony-arm64",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/sunos-x64",
+      "version": "0.25.12",
+      "source": "esbuild",
+      "archive": {
+        "url": "https://registry.npmjs.org/@esbuild/sunos-x64/-/sunos-x64-0.25.12.tgz",
+        "integrity": "sha512-3wGSCDyuTHQUzt0nV7bocDy72r2lI33QL3gkDNGkod22EsYl04sMf0qLb8luNKTOmgF/eDEDP5BFNwoBKH441w==",
+        "sha256": "6b2185ee71e7102c4ab07247769afb6ab84c8e550a51c65324f1455844183e3f",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Fsunos-x64/0.25.12",
+        "sha256": "061758b849680147e99f80e653aab6d4a7ca1a22990cb6f19c04f2d11a30a617",
+        "git_head": "208f539945b145e7c9d6d844290f81c3fe5af320",
+        "declared_license": "MIT",
+        "author": null
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@esbuild/sunos-x64",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@esbuild/sunos-x64",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/win32-arm64",
+      "version": "0.25.12",
+      "source": "esbuild",
+      "archive": {
+        "url": "https://registry.npmjs.org/@esbuild/win32-arm64/-/win32-arm64-0.25.12.tgz",
+        "integrity": "sha512-rMmLrur64A7+DKlnSuwqUdRKyd3UE7oPJZmnljqEptesKM8wx9J8gx5u0+9Pq0fQQW8vqeKebwNXdfOyP+8Bsg==",
+        "sha256": "01979ffafb4bb6a63d824cd57ed76bd257d1e3eed804c3e47fdfd80005dcfa66",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Fwin32-arm64/0.25.12",
+        "sha256": "7c3ec7db833caaedfd551304dfa6f630dff419a7635227820f66adca0bb76e3f",
+        "git_head": "208f539945b145e7c9d6d844290f81c3fe5af320",
+        "declared_license": "MIT",
+        "author": null
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@esbuild/win32-arm64",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@esbuild/win32-arm64",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/win32-ia32",
+      "version": "0.25.12",
+      "source": "esbuild",
+      "archive": {
+        "url": "https://registry.npmjs.org/@esbuild/win32-ia32/-/win32-ia32-0.25.12.tgz",
+        "integrity": "sha512-HkqnmmBoCbCwxUKKNPBixiWDGCpQGVsrQfJoVGYLPT41XWF8lHuE5N6WhVia2n4o5QK5M4tYr21827fNhi4byQ==",
+        "sha256": "a0b88687c8262d88922c08f9aa70f5a8d2d5bf38309046a1b718fc8eb7ad4872",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Fwin32-ia32/0.25.12",
+        "sha256": "6cfd4d585d51aaac8f97669e854ddd855878f9c4c469efe766e7b10a0fddc1ab",
+        "git_head": "208f539945b145e7c9d6d844290f81c3fe5af320",
+        "declared_license": "MIT",
+        "author": null
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@esbuild/win32-ia32",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@esbuild/win32-ia32",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/win32-x64",
+      "version": "0.25.12",
+      "source": "esbuild",
+      "archive": {
+        "url": "https://registry.npmjs.org/@esbuild/win32-x64/-/win32-x64-0.25.12.tgz",
+        "integrity": "sha512-alJC0uCZpTFrSL0CCDjcgleBXPnCrEAhTBILpeAp7M/OFgoqtAetfBzX0xM00MUsVVPpVjlPuMbREqnZCXaTnA==",
+        "sha256": "c77076b48f96323cae6257bd515e5ea96ecf38ab8f7fa34364d4fc4ae5905b74",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40esbuild%2Fwin32-x64/0.25.12",
+        "sha256": "3ba71b8b58f3066452df74b6a6c6a69286b57f624d032e374dee9dcd828c81e5",
+        "git_head": "208f539945b145e7c9d6d844290f81c3fe5af320",
+        "declared_license": "MIT",
+        "author": null
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@esbuild/win32-x64",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@esbuild/win32-x64",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@napi-rs/lzma-linux-x64-gnu",
+      "version": "1.5.1",
+      "source": "lzma",
+      "archive": {
+        "url": "https://registry.npmjs.org/@napi-rs/lzma-linux-x64-gnu/-/lzma-linux-x64-gnu-1.5.1.tgz",
+        "integrity": "sha512-oTXEIha4SsuXdTA4Iyskj0kpdx2yVXdhd75c2v3xGrHFfVMsbhTPZU/nMPL4sWKo4pBHm3aucLaqGlF696dTyQ==",
+        "sha256": "e69ca2a96510be330953f5b04b1d74617e7ce5d4487db4876c4b02b8364ef7e7",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40napi-rs%2Flzma-linux-x64-gnu/1.5.1",
+        "sha256": "583f8b4bfc4c8838baea2394986c9deb1e915ba2a8948481903aa266229ec6cb",
+        "git_head": "f164df92d83e095f195d628b1a68a141ae2eb638",
+        "declared_license": "MIT",
+        "author": null
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@napi-rs/lzma-linux-x64-gnu",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@napi-rs/lzma-linux-x64-gnu",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@rollup/rollup-android-arm-eabi",
+      "version": "4.63.1",
+      "source": "rollup",
+      "archive": {
+        "url": "https://registry.npmjs.org/@rollup/rollup-android-arm-eabi/-/rollup-android-arm-eabi-4.63.1.tgz",
+        "integrity": "sha512-UZ8sUxPTiHWYX9QNdJedb1kDZSpS1t/VPWBWGSgqHNi9w3Cu6IXvu2mzbhiTiPvtrqgTQJ+zqiAq2iPIPilpaQ==",
+        "sha256": "f6730f1a17898821dde053bd388c11be9c2f3a68bf6596825dd89993efd803a9",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rollup%2Frollup-android-arm-eabi/4.63.1",
+        "sha256": "06ca8926b1875c09990f11fcd1deb4aec43bdd30a47742fec0c3fb6696dabd76",
+        "git_head": "78bfef0cb94479566f81012fafa372c84b90bd34",
+        "declared_license": "MIT",
+        "author": {
+          "name": "Lukas Taegert-Atkinson"
+        }
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@rollup/rollup-android-arm-eabi",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@rollup/rollup-android-arm-eabi",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@rollup/rollup-android-arm64",
+      "version": "4.63.1",
+      "source": "rollup",
+      "archive": {
+        "url": "https://registry.npmjs.org/@rollup/rollup-android-arm64/-/rollup-android-arm64-4.63.1.tgz",
+        "integrity": "sha512-cQ4nFQABN5cDvDpbvJ7bMStCpnaVxynZrRMfUJYgxcIk9Sh54FIO1vtfkg0B69REjER77ioZ/ov+eAApx/KmLQ==",
+        "sha256": "10d153b0d95f0306f59bf9b9b5c39a43aca1aa0dd3fdb62274c65b6261d31a93",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rollup%2Frollup-android-arm64/4.63.1",
+        "sha256": "06b3957d310885b3041d19502f3f04581972b014fbe53b0e3aa8830acdd11ad1",
+        "git_head": "78bfef0cb94479566f81012fafa372c84b90bd34",
+        "declared_license": "MIT",
+        "author": {
+          "name": "Lukas Taegert-Atkinson"
+        }
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@rollup/rollup-android-arm64",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@rollup/rollup-android-arm64",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@rollup/rollup-darwin-arm64",
+      "version": "4.63.1",
+      "source": "rollup",
+      "archive": {
+        "url": "https://registry.npmjs.org/@rollup/rollup-darwin-arm64/-/rollup-darwin-arm64-4.63.1.tgz",
+        "integrity": "sha512-FQNqd1lRy/0QhDk3xeRIkSBiCpXCiDnZO3YLVdcDKN1UBiKToNftCzcXYNLshmPDUMlu2TdeS8tGcsU6f3YF1Q==",
+        "sha256": "e77e9727cd510da5656401849661712bf2fb03e3ff78705c694ac291921e07b6",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rollup%2Frollup-darwin-arm64/4.63.1",
+        "sha256": "868182ed9b7b10fc1279715a4bc63326fc125e44ffd5a84f6e6b02d25326e7e0",
+        "git_head": "78bfef0cb94479566f81012fafa372c84b90bd34",
+        "declared_license": "MIT",
+        "author": {
+          "name": "Lukas Taegert-Atkinson"
+        }
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@rollup/rollup-darwin-arm64",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@rollup/rollup-darwin-arm64",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@rollup/rollup-darwin-x64",
+      "version": "4.63.1",
+      "source": "rollup",
+      "archive": {
+        "url": "https://registry.npmjs.org/@rollup/rollup-darwin-x64/-/rollup-darwin-x64-4.63.1.tgz",
+        "integrity": "sha512-pvD16V939D3CloK0+qikpGaxiPrDUXTe7Y5cWOMkMSy7m1cawa8EGy/kXYi/G/cKAC4HDAbSnzCIk1WmsoOKXg==",
+        "sha256": "c23702606083f5782d443cd7bcb8b0b4ceaff3ae32536b445f4a3ba3e0189d59",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rollup%2Frollup-darwin-x64/4.63.1",
+        "sha256": "4675ef6bb5b268af43c5ff4c62d46b567b8065224005ccde0323a1a4d8082a46",
+        "git_head": "78bfef0cb94479566f81012fafa372c84b90bd34",
+        "declared_license": "MIT",
+        "author": {
+          "name": "Lukas Taegert-Atkinson"
+        }
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@rollup/rollup-darwin-x64",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@rollup/rollup-darwin-x64",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@rollup/rollup-freebsd-arm64",
+      "version": "4.63.1",
+      "source": "rollup",
+      "archive": {
+        "url": "https://registry.npmjs.org/@rollup/rollup-freebsd-arm64/-/rollup-freebsd-arm64-4.63.1.tgz",
+        "integrity": "sha512-pcFGeL2345VwdTnJhA6zLbew+YgWB0qBG2+dMtXjCicf6+rm6kO6cOoh5VnTe0ZMrMRgRyuHmCJxZWrIdzYuOw==",
+        "sha256": "63dc6bfd5e0f6e9d8ca44163c44e6c3bf00f9aced86093a354e11e96962a80a3",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rollup%2Frollup-freebsd-arm64/4.63.1",
+        "sha256": "6351cb7574415c528237198e9fa294238679a00b91935e5759844c6768ed9366",
+        "git_head": "78bfef0cb94479566f81012fafa372c84b90bd34",
+        "declared_license": "MIT",
+        "author": {
+          "name": "Lukas Taegert-Atkinson"
+        }
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@rollup/rollup-freebsd-arm64",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@rollup/rollup-freebsd-arm64",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@rollup/rollup-freebsd-x64",
+      "version": "4.63.1",
+      "source": "rollup",
+      "archive": {
+        "url": "https://registry.npmjs.org/@rollup/rollup-freebsd-x64/-/rollup-freebsd-x64-4.63.1.tgz",
+        "integrity": "sha512-mRJlqSRulVzcKq/LKA6ICSIc3K/l4fzlVn/gePn2nXIHy8seRi5z/eeRE0d/XMBxcMldiXtQTSpRj0tkkC3g8Q==",
+        "sha256": "7d34494d3f085f47f1201f42409b41e028075ca2cb6f99de165527ab78add3c0",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rollup%2Frollup-freebsd-x64/4.63.1",
+        "sha256": "e6dd9dc979efa46e77b13f77d5d592db286c48011771add8de5d8491b50262a4",
+        "git_head": "78bfef0cb94479566f81012fafa372c84b90bd34",
+        "declared_license": "MIT",
+        "author": {
+          "name": "Lukas Taegert-Atkinson"
+        }
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@rollup/rollup-freebsd-x64",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@rollup/rollup-freebsd-x64",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@rollup/rollup-linux-arm-gnueabihf",
+      "version": "4.63.1",
+      "source": "rollup",
+      "archive": {
+        "url": "https://registry.npmjs.org/@rollup/rollup-linux-arm-gnueabihf/-/rollup-linux-arm-gnueabihf-4.63.1.tgz",
+        "integrity": "sha512-YDUNvVM85TI3g/1OpnqKP1h4NeW/j64DfWMf+G3M809xNk1bJSnpFp4sh83NpmVE5DXnkh8ULor4LTVZKoYLHw==",
+        "sha256": "2691e02beb5024b69361a740c6c5c99ef9930d546591491006cb09801e551b3a",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rollup%2Frollup-linux-arm-gnueabihf/4.63.1",
+        "sha256": "4807d03c1bb84b468f5a1343babcbde44b0da0c8417574219d32d51d0d31b2d9",
+        "git_head": "78bfef0cb94479566f81012fafa372c84b90bd34",
+        "declared_license": "MIT",
+        "author": {
+          "name": "Lukas Taegert-Atkinson"
+        }
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@rollup/rollup-linux-arm-gnueabihf",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@rollup/rollup-linux-arm-gnueabihf",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@rollup/rollup-linux-arm-musleabihf",
+      "version": "4.63.1",
+      "source": "rollup",
+      "archive": {
+        "url": "https://registry.npmjs.org/@rollup/rollup-linux-arm-musleabihf/-/rollup-linux-arm-musleabihf-4.63.1.tgz",
+        "integrity": "sha512-7Mcn71p9ZuQFAj+h+dhQXy/yeLePRS2yKRnmW1DijA9thKO5qap0GNOIQK4yQ6iP3SU0Mrb/yWo8h8vgRba8lw==",
+        "sha256": "9796db1ee6ddd64b24ba5b39ebed4d89333d4ae88415077f9ba0e5df8637b5cc",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rollup%2Frollup-linux-arm-musleabihf/4.63.1",
+        "sha256": "31c9bd00edeb6557b69131e070603d919cf7ff8a6c746f1f25dab45310d3aac2",
+        "git_head": "78bfef0cb94479566f81012fafa372c84b90bd34",
+        "declared_license": "MIT",
+        "author": {
+          "name": "Lukas Taegert-Atkinson"
+        }
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@rollup/rollup-linux-arm-musleabihf",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@rollup/rollup-linux-arm-musleabihf",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@rollup/rollup-linux-arm64-gnu",
+      "version": "4.63.1",
+      "source": "rollup",
+      "archive": {
+        "url": "https://registry.npmjs.org/@rollup/rollup-linux-arm64-gnu/-/rollup-linux-arm64-gnu-4.63.1.tgz",
+        "integrity": "sha512-4YiLQTX6U4CSl0L9cluep9A9W6UmTfqBDc2/CH6wlu54pl4E7Jn3cOD8oxzvBDEGk/JMKgJ47C8g+radF7mwvg==",
+        "sha256": "a777c17e4a24610d45cd67cefadfb1196e966212b7014cef58cf5684f3a0c7b5",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rollup%2Frollup-linux-arm64-gnu/4.63.1",
+        "sha256": "240bcd33ed39acdc73e0f39f183557b6e4ac121c41a5786a5894ebe1f00ff6f6",
+        "git_head": "78bfef0cb94479566f81012fafa372c84b90bd34",
+        "declared_license": "MIT",
+        "author": {
+          "name": "Lukas Taegert-Atkinson"
+        }
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@rollup/rollup-linux-arm64-gnu",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@rollup/rollup-linux-arm64-gnu",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@rollup/rollup-linux-arm64-musl",
+      "version": "4.63.1",
+      "source": "rollup",
+      "archive": {
+        "url": "https://registry.npmjs.org/@rollup/rollup-linux-arm64-musl/-/rollup-linux-arm64-musl-4.63.1.tgz",
+        "integrity": "sha512-2ra8F7w8OquwZN9z2/fKFnli69wa8PLwaVzRMIPGb13ByMJwC28Fbp8YcVGoUhlYMTt7j5j9bNgpysrN2UM+vw==",
+        "sha256": "9b50bee7736d02634651f30cbbe9788e01e6ae080c8037788a1b99401bc99bec",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rollup%2Frollup-linux-arm64-musl/4.63.1",
+        "sha256": "79b1e11f67a436efa6d95cf4e1c0db38831bf790df2c7aa43a63a25eede39778",
+        "git_head": "78bfef0cb94479566f81012fafa372c84b90bd34",
+        "declared_license": "MIT",
+        "author": {
+          "name": "Lukas Taegert-Atkinson"
+        }
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@rollup/rollup-linux-arm64-musl",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@rollup/rollup-linux-arm64-musl",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@rollup/rollup-linux-loong64-gnu",
+      "version": "4.63.1",
+      "source": "rollup",
+      "archive": {
+        "url": "https://registry.npmjs.org/@rollup/rollup-linux-loong64-gnu/-/rollup-linux-loong64-gnu-4.63.1.tgz",
+        "integrity": "sha512-Sy20ncyhjmBP0Ml+UvQbimjlk6VFgjW5uNP+qqwHB00mTE8Bl2C1TuHTlRwK2YoXeZbee5lP2XevBWVkAQAtSQ==",
+        "sha256": "21ec19f564b2edc2774826781dc392d1480b702b142885eecf96f85cc610df06",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rollup%2Frollup-linux-loong64-gnu/4.63.1",
+        "sha256": "99682128317d5c9323dc55f8443e18b9ecb37f05ad3d5bd1614f676d97106ece",
+        "git_head": "78bfef0cb94479566f81012fafa372c84b90bd34",
+        "declared_license": "MIT",
+        "author": {
+          "name": "Lukas Taegert-Atkinson"
+        }
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@rollup/rollup-linux-loong64-gnu",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@rollup/rollup-linux-loong64-gnu",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@rollup/rollup-linux-loong64-musl",
+      "version": "4.63.1",
+      "source": "rollup",
+      "archive": {
+        "url": "https://registry.npmjs.org/@rollup/rollup-linux-loong64-musl/-/rollup-linux-loong64-musl-4.63.1.tgz",
+        "integrity": "sha512-noITLp8oNjYliPnGWmLyelIHwULGqbHloQHGw1rtxbWhTuWooRpnZarZQJ1y9EUC4szuCusCc+HEpUtxpIwYvA==",
+        "sha256": "072d4c38757183c328867428939bc3519029bfc6fe2ad3bab6bdf1f290b8646a",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rollup%2Frollup-linux-loong64-musl/4.63.1",
+        "sha256": "d3fc88f6c4be79229d672a072471b77157e15d5e2550ee90a6bf72402d666a20",
+        "git_head": "78bfef0cb94479566f81012fafa372c84b90bd34",
+        "declared_license": "MIT",
+        "author": {
+          "name": "Lukas Taegert-Atkinson"
+        }
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@rollup/rollup-linux-loong64-musl",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@rollup/rollup-linux-loong64-musl",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@rollup/rollup-linux-ppc64-gnu",
+      "version": "4.63.1",
+      "source": "rollup",
+      "archive": {
+        "url": "https://registry.npmjs.org/@rollup/rollup-linux-ppc64-gnu/-/rollup-linux-ppc64-gnu-4.63.1.tgz",
+        "integrity": "sha512-hlxxXd+F1mWiAcaFR7Sv9ZQT6m6UfI8+Vy/kFJzztq2pDMU/0wZ9sish0iszNZvsQDo8Gc0i5yuFEOz5dDf6fA==",
+        "sha256": "f787d6d9f3269b668f17a4194efe3001fec50b17447e09c942e0d2c47b26ccfa",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rollup%2Frollup-linux-ppc64-gnu/4.63.1",
+        "sha256": "ee6be121573da7cd381c646129e3570ac4041c1e01979df371364309f405fd2f",
+        "git_head": "78bfef0cb94479566f81012fafa372c84b90bd34",
+        "declared_license": "MIT",
+        "author": {
+          "name": "Lukas Taegert-Atkinson"
+        }
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@rollup/rollup-linux-ppc64-gnu",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@rollup/rollup-linux-ppc64-gnu",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@rollup/rollup-linux-ppc64-musl",
+      "version": "4.63.1",
+      "source": "rollup",
+      "archive": {
+        "url": "https://registry.npmjs.org/@rollup/rollup-linux-ppc64-musl/-/rollup-linux-ppc64-musl-4.63.1.tgz",
+        "integrity": "sha512-EF7OpqQTQ/BvGqLzUi4rEHuagCV9MugAUXSHemwPW5vxZ75RR+jxO/2j95Ph2dalMpFHSVECjRoioHZgA9zOYA==",
+        "sha256": "ff6585d77d9179d202e1b47e40f67c9534351e74d81a8d8c1b53c9bb7446cea9",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rollup%2Frollup-linux-ppc64-musl/4.63.1",
+        "sha256": "f36502e74300909a8e07425e4c8bb07683c4c8ddc9a5fcffd6cd7e0310e906cb",
+        "git_head": "78bfef0cb94479566f81012fafa372c84b90bd34",
+        "declared_license": "MIT",
+        "author": {
+          "name": "Lukas Taegert-Atkinson"
+        }
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@rollup/rollup-linux-ppc64-musl",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@rollup/rollup-linux-ppc64-musl",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@rollup/rollup-linux-riscv64-gnu",
+      "version": "4.63.1",
+      "source": "rollup",
+      "archive": {
+        "url": "https://registry.npmjs.org/@rollup/rollup-linux-riscv64-gnu/-/rollup-linux-riscv64-gnu-4.63.1.tgz",
+        "integrity": "sha512-wQO3JesW9PRkwlabQ27y7sPfVOOTLRG73I4F2UYHG5PXun3J9U3y+b7ezVKSYbsvSKGQ1k1cq8Qlun4C9kLt3w==",
+        "sha256": "1f476a74a267a2047a360ed047fa63db6e98862d19ec4e73801280663a939b21",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rollup%2Frollup-linux-riscv64-gnu/4.63.1",
+        "sha256": "0389465cace8f6b1ac2b4388b4a4b4edfbe8952fbbc7740cc41ad67ce9ec46cc",
+        "git_head": "78bfef0cb94479566f81012fafa372c84b90bd34",
+        "declared_license": "MIT",
+        "author": {
+          "name": "Lukas Taegert-Atkinson"
+        }
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@rollup/rollup-linux-riscv64-gnu",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@rollup/rollup-linux-riscv64-gnu",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@rollup/rollup-linux-riscv64-musl",
+      "version": "4.63.1",
+      "source": "rollup",
+      "archive": {
+        "url": "https://registry.npmjs.org/@rollup/rollup-linux-riscv64-musl/-/rollup-linux-riscv64-musl-4.63.1.tgz",
+        "integrity": "sha512-ouAGwhO6wHRXdnOVCOsB0tRFkA7nhNB2Nwax6oECXN0YiN8EYUTBAOudADOB1PI+yDL61TeNx/u7MVCzksNbkQ==",
+        "sha256": "a7e4a65b51f672fd7b2007ca008c1915520a29f6c68087cd1d4b450fa4f1be1d",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rollup%2Frollup-linux-riscv64-musl/4.63.1",
+        "sha256": "cdf1ade0fc9c17a4fa7a9dd2df64c1dca557ced468999599f2a3ed5785648d58",
+        "git_head": "78bfef0cb94479566f81012fafa372c84b90bd34",
+        "declared_license": "MIT",
+        "author": {
+          "name": "Lukas Taegert-Atkinson"
+        }
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@rollup/rollup-linux-riscv64-musl",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@rollup/rollup-linux-riscv64-musl",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@rollup/rollup-linux-s390x-gnu",
+      "version": "4.63.1",
+      "source": "rollup",
+      "archive": {
+        "url": "https://registry.npmjs.org/@rollup/rollup-linux-s390x-gnu/-/rollup-linux-s390x-gnu-4.63.1.tgz",
+        "integrity": "sha512-q2R38Sn+1J8RxhfJ+T54wSWmyKXWec+9jgDfqO2AtArEqHO5R2aeayp5H5OYLr5UYDVGsVaZPEFUooMhYCdz5A==",
+        "sha256": "093422bf27774e58cd34a2796da2b2579db107d9cc1c84829ace2d7f3c30fe03",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rollup%2Frollup-linux-s390x-gnu/4.63.1",
+        "sha256": "1fedf63c0fa25cae6759319623611b3d8360ac9e9a2d89d06ffecc96cef9f010",
+        "git_head": "78bfef0cb94479566f81012fafa372c84b90bd34",
+        "declared_license": "MIT",
+        "author": {
+          "name": "Lukas Taegert-Atkinson"
+        }
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@rollup/rollup-linux-s390x-gnu",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@rollup/rollup-linux-s390x-gnu",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@rollup/rollup-linux-x64-gnu",
+      "version": "4.63.1",
+      "source": "rollup",
+      "archive": {
+        "url": "https://registry.npmjs.org/@rollup/rollup-linux-x64-gnu/-/rollup-linux-x64-gnu-4.63.1.tgz",
+        "integrity": "sha512-gfI5T24WLLuFfSKw7Go/zDXjAAV0fny0swTaDv+WjK7vqcw4cRhFfdsyKL1n+ukI+ooBxn3bVQnyrn06WpI50w==",
+        "sha256": "283f7ac6dc628d2c8693cd78ad438c21a4230f8f39c37df85ddceb704fea28eb",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rollup%2Frollup-linux-x64-gnu/4.63.1",
+        "sha256": "abb5770c5c11e60d59ad49c6adf28b082c1a49f5d0402e874afa4a2612f6bdab",
+        "git_head": "78bfef0cb94479566f81012fafa372c84b90bd34",
+        "declared_license": "MIT",
+        "author": {
+          "name": "Lukas Taegert-Atkinson"
+        }
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@rollup/rollup-linux-x64-gnu",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@rollup/rollup-linux-x64-gnu",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@rollup/rollup-linux-x64-musl",
+      "version": "4.63.1",
+      "source": "rollup",
+      "archive": {
+        "url": "https://registry.npmjs.org/@rollup/rollup-linux-x64-musl/-/rollup-linux-x64-musl-4.63.1.tgz",
+        "integrity": "sha512-4h6XqthmB4Hspji84wvgk+ElodTsGj+dbZqHJHHtKxj4mYq0ANSEEPX9ys3moJueqsRjwpaJYH7874Itwnj2ow==",
+        "sha256": "22b35af63ff1b414c42836064eb74c06e5c18f82821399de00117fd1c076a2d2",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rollup%2Frollup-linux-x64-musl/4.63.1",
+        "sha256": "e80acff720e96237d9257c873c9c5240c20c832a1b15c4e42d29052402f01869",
+        "git_head": "78bfef0cb94479566f81012fafa372c84b90bd34",
+        "declared_license": "MIT",
+        "author": {
+          "name": "Lukas Taegert-Atkinson"
+        }
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@rollup/rollup-linux-x64-musl",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@rollup/rollup-linux-x64-musl",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@rollup/rollup-openbsd-x64",
+      "version": "4.63.1",
+      "source": "rollup",
+      "archive": {
+        "url": "https://registry.npmjs.org/@rollup/rollup-openbsd-x64/-/rollup-openbsd-x64-4.63.1.tgz",
+        "integrity": "sha512-dlfCOa87o1VAYegLQ9EKilx2JCeRofiyPGhTCmqnuXZ6bMPiycO1rq1+sKoulAp7pGLIsTIw+1x5R+zgh5LhhA==",
+        "sha256": "76a0757f065ee179f76267c2eef25f3d3d39204af49b02ed7b907bc99bfc6a7b",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rollup%2Frollup-openbsd-x64/4.63.1",
+        "sha256": "cbd338740cabee8c184925b7e535581e390916d941507727286ea647e10d89f3",
+        "git_head": "78bfef0cb94479566f81012fafa372c84b90bd34",
+        "declared_license": "MIT",
+        "author": {
+          "name": "Lukas Taegert-Atkinson"
+        }
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@rollup/rollup-openbsd-x64",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@rollup/rollup-openbsd-x64",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@rollup/rollup-openharmony-arm64",
+      "version": "4.63.1",
+      "source": "rollup",
+      "archive": {
+        "url": "https://registry.npmjs.org/@rollup/rollup-openharmony-arm64/-/rollup-openharmony-arm64-4.63.1.tgz",
+        "integrity": "sha512-cjkLbOlfcm3QGhMM1J5zaZjsw1GggbN6rw9UTSSRrPrR1KkcXnN7Uq9rPw34xImQ9VOY9GN+6u2Zj80B9ptkcw==",
+        "sha256": "c3e890e02d191a67bae3746424fa04fca3bc27868706e853a7ee4d93d7b40fb3",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rollup%2Frollup-openharmony-arm64/4.63.1",
+        "sha256": "1d5f635963b69370aacd1268b5791b3d2223fe272aef136a01d32c4932362160",
+        "git_head": "78bfef0cb94479566f81012fafa372c84b90bd34",
+        "declared_license": "MIT",
+        "author": {
+          "name": "Lukas Taegert-Atkinson"
+        }
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@rollup/rollup-openharmony-arm64",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@rollup/rollup-openharmony-arm64",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@rollup/rollup-win32-arm64-msvc",
+      "version": "4.63.1",
+      "source": "rollup",
+      "archive": {
+        "url": "https://registry.npmjs.org/@rollup/rollup-win32-arm64-msvc/-/rollup-win32-arm64-msvc-4.63.1.tgz",
+        "integrity": "sha512-Li1KdUnWGE4N3e1F/B4RTB1ms+nG4WBgjByO46pkeBVX/2UBsY53xf5vK9WygVmnH3RwncIST7lkSdLSY6P9lg==",
+        "sha256": "a39eeb0af798c6d62112f1c3e64947b8ff17e106a0d494d7a3223adddab5215a",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rollup%2Frollup-win32-arm64-msvc/4.63.1",
+        "sha256": "ef97b753bc3a4f2d3cf108f85d32093851e35a9db64c8137a96d66227dc935f8",
+        "git_head": "78bfef0cb94479566f81012fafa372c84b90bd34",
+        "declared_license": "MIT",
+        "author": {
+          "name": "Lukas Taegert-Atkinson"
+        }
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@rollup/rollup-win32-arm64-msvc",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@rollup/rollup-win32-arm64-msvc",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@rollup/rollup-win32-ia32-msvc",
+      "version": "4.63.1",
+      "source": "rollup",
+      "archive": {
+        "url": "https://registry.npmjs.org/@rollup/rollup-win32-ia32-msvc/-/rollup-win32-ia32-msvc-4.63.1.tgz",
+        "integrity": "sha512-t4ZYOSoLTgwhuFMrmTMLx/+i1DQVK7HYqMc6kY46EApwi8X0nIVphzdNoThU3xt6n+N5urG1/gxBdCaKDLavfg==",
+        "sha256": "a04c1a3e0a784b0165ee675f61d030ad6af3174a760de185cc1154938224943c",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rollup%2Frollup-win32-ia32-msvc/4.63.1",
+        "sha256": "4784d58301b7882b74ea7c0cf5d7513138f1f39face136425a7f72d24282d804",
+        "git_head": "78bfef0cb94479566f81012fafa372c84b90bd34",
+        "declared_license": "MIT",
+        "author": {
+          "name": "Lukas Taegert-Atkinson"
+        }
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@rollup/rollup-win32-ia32-msvc",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@rollup/rollup-win32-ia32-msvc",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@rollup/rollup-win32-x64-gnu",
+      "version": "4.63.1",
+      "source": "rollup",
+      "archive": {
+        "url": "https://registry.npmjs.org/@rollup/rollup-win32-x64-gnu/-/rollup-win32-x64-gnu-4.63.1.tgz",
+        "integrity": "sha512-RgroPfMmKlD1RzSDxvwgcPiy2HNQKoYV7OmwIXDsk73uKW5t6B/V8KIy27SMv/FNXFo/oSBtWc9J0X7t91ezZg==",
+        "sha256": "b1f34a880f78ac7d777dbb5f5dc505a6f9a87b67e1de4c6770382c618078cee6",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rollup%2Frollup-win32-x64-gnu/4.63.1",
+        "sha256": "979ce12f2e3f4eed996f711f5fd93f34c5ba59293b70978d15901d72dfe3c348",
+        "git_head": "78bfef0cb94479566f81012fafa372c84b90bd34",
+        "declared_license": "MIT",
+        "author": {
+          "name": "Lukas Taegert-Atkinson"
+        }
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@rollup/rollup-win32-x64-gnu",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@rollup/rollup-win32-x64-gnu",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "@rollup/rollup-win32-x64-msvc",
+      "version": "4.63.1",
+      "source": "rollup",
+      "archive": {
+        "url": "https://registry.npmjs.org/@rollup/rollup-win32-x64-msvc/-/rollup-win32-x64-msvc-4.63.1.tgz",
+        "integrity": "sha512-at8QVep6S3h5Y6gSbdGU06bRY5WJkf6WUduM9YtvYMbYhB1MOFfUgc6kehitQXzOtMSaT70q7f9ydPhpqu821w==",
+        "sha256": "e2d8ac0f4f9e51ad0b647332ddd3da836a54c27250600c121002e342419a228a",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/%40rollup%2Frollup-win32-x64-msvc/4.63.1",
+        "sha256": "18b600ce38d9ddb0b19a41bbf02f173d6983110f81520ed47e49874a24f16b00",
+        "git_head": "78bfef0cb94479566f81012fafa372c84b90bd34",
+        "declared_license": "MIT",
+        "author": {
+          "name": "Lukas Taegert-Atkinson"
+        }
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/@rollup/rollup-win32-x64-msvc",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/@rollup/rollup-win32-x64-msvc",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "dlv",
+      "version": "1.1.3",
+      "source": "dlv",
+      "archive": {
+        "url": "https://registry.npmjs.org/dlv/-/dlv-1.1.3.tgz",
+        "integrity": "sha512-+HlytyjlPKnIG8XuRG8WvmBP8xs8P71y+SKKS6ZXWoEgLuePxtDoUEiH7WkdePWrQ5JBpE6aoVqfZfJUQkjXwA==",
+        "sha256": "7c316193a4d49e70b3f552e4d52573ecb5b8154075f049cb30c9c2dc9ebb7c90",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/dlv/1.1.3",
+        "sha256": "4203b1373bc97e4132afa78a94503a14d6952329544bc20460d4188664348105",
+        "git_head": "e636db817a96e4ca4710b407163fb992748b3b80",
+        "declared_license": "MIT",
+        "author": {
+          "url": "http://jasonformat.com",
+          "name": "Jason Miller",
+          "email": "jason@developit.ca"
+        }
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/dlv",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/dlv",
+          "declared_license": "MIT"
+        }
+      ]
+    },
+    {
+      "name": "saxes",
+      "version": "6.0.0",
+      "source": "saxes",
+      "archive": {
+        "url": "https://registry.npmjs.org/saxes/-/saxes-6.0.0.tgz",
+        "integrity": "sha512-xAg7SOnEhrm5zI3puOOKyy1OMcMlIJZYNJY7xLBwSze0UjhPLnWfj2GF2EpT0jmzaJKIWKHLsaSSajf35bcYnA==",
+        "sha256": "1cdf52fbbe1ccbd175c365d2b8e63f46e590e74aff23fa6a44a6ec51522e96db",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/saxes/6.0.0",
+        "sha256": "49e633171169d15e096b3a85f976a723bfcd25f97d2d63915901e0990b0e8c42",
+        "git_head": "211fa0ebec9b628affc09219199639887174bfc3",
+        "declared_license": "ISC",
+        "author": {
+          "name": "Louis-Dominique Dubeau",
+          "email": "ldd@lddubeau.com"
+        }
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/saxes",
+          "declared_license": "ISC"
+        }
+      ]
+    },
+    {
+      "name": "stackback",
+      "version": "0.0.2",
+      "source": "stackback",
+      "archive": {
+        "url": "https://registry.npmjs.org/stackback/-/stackback-0.0.2.tgz",
+        "integrity": "sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw==",
+        "sha256": "3e663c82d1ccf9748ed446b648ec21a7dd6c5895ecf4a95310a60a320ca55858",
+        "standalone_license_files": []
+      },
+      "registry": {
+        "url": "https://registry.npmjs.org/stackback/0.0.2",
+        "sha256": "b165861241d958f5111d25594d60d3be317f38e4f09271bc5a757dc66d409f4c",
+        "git_head": null,
+        "declared_license": "MIT",
+        "author": {
+          "name": "Roman Shtylman",
+          "email": "shtylman@gmail.com"
+        }
+      },
+      "consumers": [
+        {
+          "project": "deploy/new_html",
+          "path": "node_modules/stackback",
+          "declared_license": "MIT"
+        },
+        {
+          "project": "studio",
+          "path": "node_modules/stackback",
+          "declared_license": "MIT"
+        }
+      ]
+    }
+  ]
+}

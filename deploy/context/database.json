@@ -1,0 +1,3254 @@
+[
+  {
+    "name": "users",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "user_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "username",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "password_hash",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "email",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "avatar_url",
+        "type": "TEXT"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "last_login_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "is_active",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "storage_quota_gb",
+        "type": "INT"
+      },
+      {
+        "name": "used_storage_bytes",
+        "type": "BIGINT"
+      },
+      {
+        "name": "permissions",
+        "type": "JSONB"
+      }
+    ],
+    "file": "database_schema.sql"
+  },
+  {
+    "name": "projects",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "project_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "user_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "project_name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "description",
+        "type": "TEXT"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "last_accessed_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "is_archived",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "settings",
+        "type": "JSONB"
+      }
+    ],
+    "file": "database_schema.sql"
+  },
+  {
+    "name": "versions",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "version_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "project_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "user_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "version_number",
+        "type": "INT"
+      },
+      {
+        "name": "version_name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "description",
+        "type": "TEXT"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "is_current",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "parent_version_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "metadata",
+        "type": "JSONB"
+      }
+    ],
+    "file": "database_schema.sql"
+  },
+  {
+    "name": "files",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "file_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "version_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "user_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "file_type",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "file_name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "file_path",
+        "type": "TEXT"
+      },
+      {
+        "name": "file_url",
+        "type": "TEXT"
+      },
+      {
+        "name": "file_size_bytes",
+        "type": "BIGINT"
+      },
+      {
+        "name": "mime_type",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "width",
+        "type": "INT"
+      },
+      {
+        "name": "height",
+        "type": "INT"
+      },
+      {
+        "name": "duration_seconds",
+        "type": "FLOAT"
+      },
+      {
+        "name": "thumbnail_url",
+        "type": "TEXT"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "metadata",
+        "type": "JSONB"
+      },
+      {
+        "name": "is_deleted",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "deleted_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "database_schema.sql"
+  },
+  {
+    "name": "text_contents",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "content_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "version_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "user_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "content_type",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "title",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "content",
+        "type": "TEXT"
+      },
+      {
+        "name": "language",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "word_count",
+        "type": "INT"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "metadata",
+        "type": "JSONB"
+      },
+      {
+        "name": "is_deleted",
+        "type": "BOOLEAN"
+      }
+    ],
+    "file": "database_schema.sql"
+  },
+  {
+    "name": "tasks",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "task_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "user_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "project_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "version_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "task_type",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "priority",
+        "type": "INT"
+      },
+      {
+        "name": "task_data",
+        "type": "JSONB"
+      },
+      {
+        "name": "result_data",
+        "type": "JSONB"
+      },
+      {
+        "name": "error_message",
+        "type": "TEXT"
+      },
+      {
+        "name": "node_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "started_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "completed_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "retry_count",
+        "type": "INT"
+      },
+      {
+        "name": "max_retries",
+        "type": "INT"
+      },
+      {
+        "name": "metadata",
+        "type": "JSONB"
+      }
+    ],
+    "file": "database_schema.sql"
+  },
+  {
+    "name": "task_files",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "task_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "file_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "file_role",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "database_schema.sql"
+  },
+  {
+    "name": "activity_logs",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "user_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "action",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "resource_type",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "resource_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "ip_address",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "user_agent",
+        "type": "TEXT"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "metadata",
+        "type": "JSONB"
+      }
+    ],
+    "file": "database_schema.sql"
+  },
+  {
+    "name": "system_configs",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "config_key",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "config_value",
+        "type": "JSONB"
+      },
+      {
+        "name": "description",
+        "type": "TEXT"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "database_schema.sql"
+  },
+  {
+    "name": "file_shares",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "share_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "file_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "user_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "share_token",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "expires_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "password_hash",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "access_count",
+        "type": "INT"
+      },
+      {
+        "name": "max_access_count",
+        "type": "INT"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "is_active",
+        "type": "BOOLEAN"
+      }
+    ],
+    "file": "database_schema.sql"
+  },
+  {
+    "name": "comfyui_agents",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "agent_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "token",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "last_heartbeat",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "system_info",
+        "type": "JSONB"
+      },
+      {
+        "name": "comfyui_instances",
+        "type": "JSONB"
+      },
+      {
+        "name": "stats",
+        "type": "JSONB"
+      },
+      {
+        "name": "enabled",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "db_migration_admin.sql"
+  },
+  {
+    "name": "workflow_templates",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "template_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "category",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "description",
+        "type": "TEXT"
+      },
+      {
+        "name": "workflow_json",
+        "type": "JSONB"
+      },
+      {
+        "name": "placeholders",
+        "type": "JSONB"
+      },
+      {
+        "name": "node_type",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "estimated_time",
+        "type": "INT"
+      },
+      {
+        "name": "enabled",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "version",
+        "type": "INT"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "db_migration_admin.sql"
+  },
+  {
+    "name": "api_configurations",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "config_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "provider",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "endpoint",
+        "type": "TEXT"
+      },
+      {
+        "name": "api_key_encrypted",
+        "type": "TEXT"
+      },
+      {
+        "name": "model_name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "request_template",
+        "type": "JSONB"
+      },
+      {
+        "name": "headers",
+        "type": "JSONB"
+      },
+      {
+        "name": "proxy_mode",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "custom_proxy",
+        "type": "TEXT"
+      },
+      {
+        "name": "enabled",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "db_migration_admin.sql"
+  },
+  {
+    "name": "task_history",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "task_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "agent_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "workflow_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "task_type",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "params",
+        "type": "JSONB"
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "result",
+        "type": "JSONB"
+      },
+      {
+        "name": "error_message",
+        "type": "TEXT"
+      },
+      {
+        "name": "queued_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "started_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "completed_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "db_migration_admin.sql"
+  },
+  {
+    "name": "system_settings",
+    "columns": [
+      {
+        "name": "key",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "value",
+        "type": "TEXT"
+      },
+      {
+        "name": "description",
+        "type": "TEXT"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "db_migration_admin.sql"
+  },
+  {
+    "name": "assets",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "asset_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "project_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "episode_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "asset_type",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "description",
+        "type": "TEXT"
+      },
+      {
+        "name": "thumbnail_url",
+        "type": "TEXT"
+      },
+      {
+        "name": "reference_images",
+        "type": "JSONB"
+      },
+      {
+        "name": "style_params",
+        "type": "JSONB"
+      },
+      {
+        "name": "tags",
+        "type": "JSONB"
+      },
+      {
+        "name": "created_by",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "db_migration_assets.sql"
+  },
+  {
+    "name": "audio_tracks",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "track_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "episode_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "track_type",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "audio_url",
+        "type": "TEXT"
+      },
+      {
+        "name": "duration_ms",
+        "type": "INT"
+      },
+      {
+        "name": "start_item_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "end_item_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "generation_params",
+        "type": "JSONB"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "db_migration_audio_tracks.sql"
+  },
+  {
+    "name": "character_voices",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "voice_id",
+        "type": "UUID"
+      },
+      {
+        "name": "project_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "asset_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "character_name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "voice_provider",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "voice_model_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "voice_name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "voice_params",
+        "type": "JSONB"
+      },
+      {
+        "name": "sample_audio_url",
+        "type": "TEXT"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "db_migration_character_voices.sql"
+  },
+  {
+    "name": "episode_scripts",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "script_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "episode_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "original_content",
+        "type": "TEXT"
+      },
+      {
+        "name": "adapted_script",
+        "type": "TEXT"
+      },
+      {
+        "name": "metadata",
+        "type": "JSONB"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "db_migration_episode_scripts.sql"
+  },
+  {
+    "name": "episodes",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "episode_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "project_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "episode_number",
+        "type": "INT"
+      },
+      {
+        "name": "episode_name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "description",
+        "type": "TEXT"
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "settings",
+        "type": "JSONB"
+      },
+      {
+        "name": "sort_order",
+        "type": "INT"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "db_migration_episodes.sql"
+  },
+  {
+    "name": "notifications",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "notification_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "user_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "task_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "type",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "category",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "title",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "message",
+        "type": "TEXT"
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "target_view",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "target_project_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "target_page",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "target_item_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "metadata",
+        "type": "JSONB"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "read_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "db_migration_notifications.sql"
+  },
+  {
+    "name": "project_members",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "project_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "user_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "role",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "responsibility",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "joined_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "db_migration_project_hub.sql"
+  },
+  {
+    "name": "canvas_boards",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "board_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "project_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "user_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "description",
+        "type": "TEXT"
+      },
+      {
+        "name": "viewport",
+        "type": "JSONB"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "is_deleted",
+        "type": "BOOLEAN"
+      }
+    ],
+    "file": "db_migration_project_hub.sql"
+  },
+  {
+    "name": "canvas_nodes",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "node_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "board_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "node_type",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "x",
+        "type": "FLOAT"
+      },
+      {
+        "name": "y",
+        "type": "FLOAT"
+      },
+      {
+        "name": "width",
+        "type": "FLOAT"
+      },
+      {
+        "name": "height",
+        "type": "FLOAT"
+      },
+      {
+        "name": "data",
+        "type": "JSONB"
+      },
+      {
+        "name": "z_index",
+        "type": "INT"
+      },
+      {
+        "name": "is_locked",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "db_migration_project_hub.sql"
+  },
+  {
+    "name": "canvas_connections",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "connection_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "board_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "source_node_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "target_node_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "source_port",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "target_port",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "label",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "db_migration_project_hub.sql"
+  },
+  {
+    "name": "storyboard_items",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "item_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "episode_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "sort_order",
+        "type": "INT"
+      },
+      {
+        "name": "scene_heading",
+        "type": "TEXT"
+      },
+      {
+        "name": "action_text",
+        "type": "TEXT"
+      },
+      {
+        "name": "dialogue",
+        "type": "TEXT"
+      },
+      {
+        "name": "camera_movement",
+        "type": "TEXT"
+      },
+      {
+        "name": "image_prompt",
+        "type": "TEXT"
+      },
+      {
+        "name": "video_prompt",
+        "type": "TEXT"
+      },
+      {
+        "name": "generated_image_url",
+        "type": "TEXT"
+      },
+      {
+        "name": "bound_assets",
+        "type": "JSONB"
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "dialogue_audio_url",
+        "type": "TEXT"
+      },
+      {
+        "name": "narration_audio_url",
+        "type": "TEXT"
+      },
+      {
+        "name": "sfx_audio_url",
+        "type": "TEXT"
+      },
+      {
+        "name": "audio_duration_ms",
+        "type": "INT"
+      },
+      {
+        "name": "planned_duration_ms",
+        "type": "INT"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "db_migration_storyboard_items.sql"
+  },
+  {
+    "name": "timeline_tracks",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "track_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "episode_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "track_type",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "track_name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "sort_order",
+        "type": "INT"
+      },
+      {
+        "name": "items",
+        "type": "JSONB"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "db_migration_timeline_tracks.sql"
+  },
+  {
+    "name": "video_segments",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "segment_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "episode_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "storyboard_item_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "sort_order",
+        "type": "INT"
+      },
+      {
+        "name": "generation_mode",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "model",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "input_params",
+        "type": "JSONB"
+      },
+      {
+        "name": "video_url",
+        "type": "TEXT"
+      },
+      {
+        "name": "thumbnail_url",
+        "type": "TEXT"
+      },
+      {
+        "name": "duration_ms",
+        "type": "INT"
+      },
+      {
+        "name": "task_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "db_migration_video_segments.sql"
+  },
+  {
+    "name": "comfyui_agents",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "agent_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "token",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "last_heartbeat",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "system_info",
+        "type": "JSONB"
+      },
+      {
+        "name": "comfyui_instances",
+        "type": "JSONB"
+      },
+      {
+        "name": "stats",
+        "type": "JSONB"
+      },
+      {
+        "name": "enabled",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "deploy/db_migration_admin.sql"
+  },
+  {
+    "name": "workflow_templates",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "template_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "category",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "description",
+        "type": "TEXT"
+      },
+      {
+        "name": "workflow_json",
+        "type": "JSONB"
+      },
+      {
+        "name": "placeholders",
+        "type": "JSONB"
+      },
+      {
+        "name": "node_type",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "estimated_time",
+        "type": "INT"
+      },
+      {
+        "name": "enabled",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "version",
+        "type": "INT"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "deploy/db_migration_admin.sql"
+  },
+  {
+    "name": "api_configurations",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "config_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "provider",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "endpoint",
+        "type": "TEXT"
+      },
+      {
+        "name": "api_key_encrypted",
+        "type": "TEXT"
+      },
+      {
+        "name": "model_name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "request_template",
+        "type": "JSONB"
+      },
+      {
+        "name": "headers",
+        "type": "JSONB"
+      },
+      {
+        "name": "proxy_mode",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "custom_proxy",
+        "type": "TEXT"
+      },
+      {
+        "name": "enabled",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "deploy/db_migration_admin.sql"
+  },
+  {
+    "name": "task_history",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "task_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "agent_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "workflow_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "task_type",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "params",
+        "type": "JSONB"
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "result",
+        "type": "JSONB"
+      },
+      {
+        "name": "error_message",
+        "type": "TEXT"
+      },
+      {
+        "name": "queued_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "started_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "completed_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "deploy/db_migration_admin.sql"
+  },
+  {
+    "name": "system_settings",
+    "columns": [
+      {
+        "name": "key",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "value",
+        "type": "TEXT"
+      },
+      {
+        "name": "description",
+        "type": "TEXT"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "deploy/db_migration_admin.sql"
+  },
+  {
+    "name": "character_voices",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "voice_id",
+        "type": "UUID"
+      },
+      {
+        "name": "project_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "asset_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "character_name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "voice_provider",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "voice_model_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "voice_name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "voice_params",
+        "type": "JSONB"
+      },
+      {
+        "name": "sample_audio_url",
+        "type": "TEXT"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "deploy/db_migration_character_voices.sql"
+  },
+  {
+    "name": "users",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "user_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "username",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "password_hash",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "email",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "avatar_url",
+        "type": "TEXT"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "last_login_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "is_active",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "storage_quota_gb",
+        "type": "INT"
+      },
+      {
+        "name": "used_storage_bytes",
+        "type": "BIGINT"
+      },
+      {
+        "name": "permissions",
+        "type": "JSONB"
+      }
+    ],
+    "file": "deploy/sql/database_schema.sql"
+  },
+  {
+    "name": "projects",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "project_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "user_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "project_name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "description",
+        "type": "TEXT"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "last_accessed_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "is_archived",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "settings",
+        "type": "JSONB"
+      }
+    ],
+    "file": "deploy/sql/database_schema.sql"
+  },
+  {
+    "name": "versions",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "version_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "project_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "user_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "version_number",
+        "type": "INT"
+      },
+      {
+        "name": "version_name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "description",
+        "type": "TEXT"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "is_current",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "parent_version_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "metadata",
+        "type": "JSONB"
+      }
+    ],
+    "file": "deploy/sql/database_schema.sql"
+  },
+  {
+    "name": "files",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "file_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "version_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "user_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "file_type",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "file_name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "file_path",
+        "type": "TEXT"
+      },
+      {
+        "name": "file_url",
+        "type": "TEXT"
+      },
+      {
+        "name": "file_size_bytes",
+        "type": "BIGINT"
+      },
+      {
+        "name": "mime_type",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "width",
+        "type": "INT"
+      },
+      {
+        "name": "height",
+        "type": "INT"
+      },
+      {
+        "name": "duration_seconds",
+        "type": "FLOAT"
+      },
+      {
+        "name": "thumbnail_url",
+        "type": "TEXT"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "metadata",
+        "type": "JSONB"
+      },
+      {
+        "name": "is_deleted",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "deleted_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "deploy/sql/database_schema.sql"
+  },
+  {
+    "name": "text_contents",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "content_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "version_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "user_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "content_type",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "title",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "content",
+        "type": "TEXT"
+      },
+      {
+        "name": "language",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "word_count",
+        "type": "INT"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "metadata",
+        "type": "JSONB"
+      },
+      {
+        "name": "is_deleted",
+        "type": "BOOLEAN"
+      }
+    ],
+    "file": "deploy/sql/database_schema.sql"
+  },
+  {
+    "name": "tasks",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "task_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "user_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "project_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "version_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "task_type",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "priority",
+        "type": "INT"
+      },
+      {
+        "name": "task_data",
+        "type": "JSONB"
+      },
+      {
+        "name": "result_data",
+        "type": "JSONB"
+      },
+      {
+        "name": "error_message",
+        "type": "TEXT"
+      },
+      {
+        "name": "node_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "started_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "completed_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "retry_count",
+        "type": "INT"
+      },
+      {
+        "name": "max_retries",
+        "type": "INT"
+      },
+      {
+        "name": "metadata",
+        "type": "JSONB"
+      }
+    ],
+    "file": "deploy/sql/database_schema.sql"
+  },
+  {
+    "name": "task_files",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "task_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "file_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "file_role",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "deploy/sql/database_schema.sql"
+  },
+  {
+    "name": "activity_logs",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "user_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "action",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "resource_type",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "resource_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "ip_address",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "user_agent",
+        "type": "TEXT"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "metadata",
+        "type": "JSONB"
+      }
+    ],
+    "file": "deploy/sql/database_schema.sql"
+  },
+  {
+    "name": "system_configs",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "config_key",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "config_value",
+        "type": "JSONB"
+      },
+      {
+        "name": "description",
+        "type": "TEXT"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "deploy/sql/database_schema.sql"
+  },
+  {
+    "name": "file_shares",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "share_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "file_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "user_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "share_token",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "expires_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "password_hash",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "access_count",
+        "type": "INT"
+      },
+      {
+        "name": "max_access_count",
+        "type": "INT"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "is_active",
+        "type": "BOOLEAN"
+      }
+    ],
+    "file": "deploy/sql/database_schema.sql"
+  },
+  {
+    "name": "comfyui_agents",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "agent_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "token",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "last_heartbeat",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "system_info",
+        "type": "JSONB"
+      },
+      {
+        "name": "comfyui_instances",
+        "type": "JSONB"
+      },
+      {
+        "name": "stats",
+        "type": "JSONB"
+      },
+      {
+        "name": "enabled",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "deploy/sql/db_migration_admin.sql"
+  },
+  {
+    "name": "workflow_templates",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "template_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "category",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "description",
+        "type": "TEXT"
+      },
+      {
+        "name": "workflow_json",
+        "type": "JSONB"
+      },
+      {
+        "name": "placeholders",
+        "type": "JSONB"
+      },
+      {
+        "name": "node_type",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "estimated_time",
+        "type": "INT"
+      },
+      {
+        "name": "enabled",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "version",
+        "type": "INT"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "deploy/sql/db_migration_admin.sql"
+  },
+  {
+    "name": "api_configurations",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "config_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "provider",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "endpoint",
+        "type": "TEXT"
+      },
+      {
+        "name": "api_key_encrypted",
+        "type": "TEXT"
+      },
+      {
+        "name": "model_name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "request_template",
+        "type": "JSONB"
+      },
+      {
+        "name": "headers",
+        "type": "JSONB"
+      },
+      {
+        "name": "proxy_mode",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "custom_proxy",
+        "type": "TEXT"
+      },
+      {
+        "name": "enabled",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "deploy/sql/db_migration_admin.sql"
+  },
+  {
+    "name": "task_history",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "task_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "agent_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "workflow_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "task_type",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "params",
+        "type": "JSONB"
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "result",
+        "type": "JSONB"
+      },
+      {
+        "name": "error_message",
+        "type": "TEXT"
+      },
+      {
+        "name": "queued_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "started_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "completed_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "deploy/sql/db_migration_admin.sql"
+  },
+  {
+    "name": "system_settings",
+    "columns": [
+      {
+        "name": "key",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "value",
+        "type": "TEXT"
+      },
+      {
+        "name": "description",
+        "type": "TEXT"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "deploy/sql/db_migration_admin.sql"
+  },
+  {
+    "name": "assets",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "asset_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "project_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "episode_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "asset_type",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "description",
+        "type": "TEXT"
+      },
+      {
+        "name": "thumbnail_url",
+        "type": "TEXT"
+      },
+      {
+        "name": "reference_images",
+        "type": "JSONB"
+      },
+      {
+        "name": "style_params",
+        "type": "JSONB"
+      },
+      {
+        "name": "tags",
+        "type": "JSONB"
+      },
+      {
+        "name": "created_by",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "deploy/sql/db_migration_assets.sql"
+  },
+  {
+    "name": "audio_tracks",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "track_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "episode_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "track_type",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "audio_url",
+        "type": "TEXT"
+      },
+      {
+        "name": "duration_ms",
+        "type": "INT"
+      },
+      {
+        "name": "start_item_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "end_item_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "generation_params",
+        "type": "JSONB"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "deploy/sql/db_migration_audio_tracks.sql"
+  },
+  {
+    "name": "character_voices",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "voice_id",
+        "type": "UUID"
+      },
+      {
+        "name": "project_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "asset_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "character_name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "voice_provider",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "voice_model_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "voice_name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "voice_params",
+        "type": "JSONB"
+      },
+      {
+        "name": "sample_audio_url",
+        "type": "TEXT"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "deploy/sql/db_migration_character_voices.sql"
+  },
+  {
+    "name": "episode_scripts",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "script_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "episode_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "original_content",
+        "type": "TEXT"
+      },
+      {
+        "name": "adapted_script",
+        "type": "TEXT"
+      },
+      {
+        "name": "metadata",
+        "type": "JSONB"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "deploy/sql/db_migration_episode_scripts.sql"
+  },
+  {
+    "name": "episodes",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "episode_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "project_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "episode_number",
+        "type": "INT"
+      },
+      {
+        "name": "episode_name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "description",
+        "type": "TEXT"
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "settings",
+        "type": "JSONB"
+      },
+      {
+        "name": "sort_order",
+        "type": "INT"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "deploy/sql/db_migration_episodes.sql"
+  },
+  {
+    "name": "notifications",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "notification_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "user_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "task_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "type",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "category",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "title",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "message",
+        "type": "TEXT"
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "target_view",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "target_project_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "target_page",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "target_item_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "metadata",
+        "type": "JSONB"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "read_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "deploy/sql/db_migration_notifications.sql"
+  },
+  {
+    "name": "project_members",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "project_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "user_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "role",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "responsibility",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "joined_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "deploy/sql/db_migration_project_hub.sql"
+  },
+  {
+    "name": "canvas_boards",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "board_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "project_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "user_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "description",
+        "type": "TEXT"
+      },
+      {
+        "name": "viewport",
+        "type": "JSONB"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "is_deleted",
+        "type": "BOOLEAN"
+      }
+    ],
+    "file": "deploy/sql/db_migration_project_hub.sql"
+  },
+  {
+    "name": "canvas_nodes",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "node_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "board_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "node_type",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "x",
+        "type": "FLOAT"
+      },
+      {
+        "name": "y",
+        "type": "FLOAT"
+      },
+      {
+        "name": "width",
+        "type": "FLOAT"
+      },
+      {
+        "name": "height",
+        "type": "FLOAT"
+      },
+      {
+        "name": "data",
+        "type": "JSONB"
+      },
+      {
+        "name": "z_index",
+        "type": "INT"
+      },
+      {
+        "name": "is_locked",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "deploy/sql/db_migration_project_hub.sql"
+  },
+  {
+    "name": "canvas_connections",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "connection_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "board_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "source_node_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "target_node_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "source_port",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "target_port",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "label",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "deploy/sql/db_migration_project_hub.sql"
+  },
+  {
+    "name": "storyboard_items",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "item_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "episode_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "sort_order",
+        "type": "INT"
+      },
+      {
+        "name": "scene_heading",
+        "type": "TEXT"
+      },
+      {
+        "name": "action_text",
+        "type": "TEXT"
+      },
+      {
+        "name": "dialogue",
+        "type": "TEXT"
+      },
+      {
+        "name": "camera_movement",
+        "type": "TEXT"
+      },
+      {
+        "name": "image_prompt",
+        "type": "TEXT"
+      },
+      {
+        "name": "video_prompt",
+        "type": "TEXT"
+      },
+      {
+        "name": "generated_image_url",
+        "type": "TEXT"
+      },
+      {
+        "name": "bound_assets",
+        "type": "JSONB"
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "dialogue_audio_url",
+        "type": "TEXT"
+      },
+      {
+        "name": "narration_audio_url",
+        "type": "TEXT"
+      },
+      {
+        "name": "sfx_audio_url",
+        "type": "TEXT"
+      },
+      {
+        "name": "audio_duration_ms",
+        "type": "INT"
+      },
+      {
+        "name": "planned_duration_ms",
+        "type": "INT"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "deploy/sql/db_migration_storyboard_items.sql"
+  },
+  {
+    "name": "timeline_tracks",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "track_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "episode_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "track_type",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "track_name",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "sort_order",
+        "type": "INT"
+      },
+      {
+        "name": "items",
+        "type": "JSONB"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "deploy/sql/db_migration_timeline_tracks.sql"
+  },
+  {
+    "name": "video_segments",
+    "columns": [
+      {
+        "name": "id",
+        "type": "SERIAL"
+      },
+      {
+        "name": "segment_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "episode_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "storyboard_item_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "sort_order",
+        "type": "INT"
+      },
+      {
+        "name": "generation_mode",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "model",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "input_params",
+        "type": "JSONB"
+      },
+      {
+        "name": "video_url",
+        "type": "TEXT"
+      },
+      {
+        "name": "thumbnail_url",
+        "type": "TEXT"
+      },
+      {
+        "name": "duration_ms",
+        "type": "INT"
+      },
+      {
+        "name": "task_id",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ],
+    "file": "deploy/sql/db_migration_video_segments.sql"
+  }
+]

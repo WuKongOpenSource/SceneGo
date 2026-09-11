@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "allowJs": false,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "types": ["vite/client", "vitest/globals"],
+    "baseUrl": ".",
+    "paths": {
+      "@runtime/videoTaskService": ["../deploy/new_html/services/videoTaskService.ts"],
+      "@runtime/videoMediaService": ["../deploy/new_html/services/videoMediaService.ts"],
+      "@runtime/audioGenerationService": ["../deploy/new_html/services/audioGenerationService.ts"],
+      "@runtime/comfyuiGenerationService": ["../deploy/new_html/services/comfyuiGenerationService.ts"],
+      "@runtime/comfyuiTaskWaitService": ["../deploy/new_html/services/comfyuiTaskWaitService.ts"],
+      "@runtime/comfyuiTaskQueue": ["../deploy/new_html/services/comfyuiTaskQueue.ts"],
+      "@runtime/comfyuiBridgeService": ["../deploy/new_html/services/comfyuiBridgeService.ts"],
+      "@runtime/clusterNodeService": ["../deploy/new_html/services/clusterNodeService.ts"],
+      "@runtime/processingQueueService": ["../deploy/new_html/services/processingQueueService.ts"],
+      "@runtime/GpuNodeSelector": ["../deploy/new_html/components/GpuNodeSelector.tsx"],
+      "@runtime/AdminPage": ["../deploy/new_html/components/AdminPage.tsx"],
+      "@runtime/adminAuth": ["../deploy/new_html/admin/adminAuth.ts"],
+      "@app/*": ["../deploy/new_html/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["dist", "node_modules", "../deploy/new_html/__tests__"]
+}

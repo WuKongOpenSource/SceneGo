@@ -1,0 +1,43 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
+    "module": "ESNext",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "skipLibCheck": true,
+    "types": [
+      "node",
+      "vitest/globals"
+    ],
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "allowJs": true,
+    "jsx": "react-jsx",
+    "paths": {
+      "@runtime/videoTaskService": ["./services/videoTaskService.ts"],
+      "@runtime/videoMediaService": ["./services/videoMediaService.ts"],
+      "@runtime/audioGenerationService": ["./services/audioGenerationService.ts"],
+      "@runtime/comfyuiGenerationService": ["./services/comfyuiGenerationService.ts"],
+      "@runtime/comfyuiTaskWaitService": ["./services/comfyuiTaskWaitService.ts"],
+      "@runtime/comfyuiTaskQueue": ["./services/comfyuiTaskQueue.ts"],
+      "@runtime/comfyuiBridgeService": ["./services/comfyuiBridgeService.ts"],
+      "@runtime/clusterNodeService": ["./services/clusterNodeService.ts"],
+      "@runtime/processingQueueService": ["./services/processingQueueService.ts"],
+      "@runtime/GpuNodeSelector": ["./components/GpuNodeSelector.tsx"],
+      "@runtime/AdminPage": ["./components/AdminPage.tsx"],
+      "@runtime/adminAuth": ["./admin/adminAuth.ts"],
+      "@/*": [
+        "./*"
+      ]
+    },
+    "allowImportingTsExtensions": true,
+    "noEmit": true
+  }
+}

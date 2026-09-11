@@ -1,0 +1,62 @@
+# Never commit live credentials; only sanitized example files belong in Git.
+deploy/local_start.ps1
+deploy/scripts/start_cluster.sh
+deploy/new_html/ENV_SETUP_GUIDE.md
+gen_api_doc.py
+API密钥清单.md
+# Ignore environment files except the sanitized template.
+.env
+.env.*
+!.env.example
+deploy/configs/database.env
+# Locally generated JWT signing material is never source-controlled.
+deploy/.jwt_secret
+.jwt_secret
+
+# Build outputs and runtime data
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+node_modules/
+deploy/new_html/dist/
+deploy/dist/
+deploy/logs/
+deploy/persistent_storage/
+deploy/uploads/
+deploy/outputs/
+deploy/storage_audit_reports/
+deploy/clean_migration_export/
+deploy/orphan_storage_export/
+deploy/redis_data/
+deploy/temp/
+deploy/history/
+*.log
+
+# Local archives and snapshots
+/deploy.zip
+
+# Nested repositories retain their own history.
+/drama-docs/
+
+# Operating-system and editor files
+.DS_Store
+Thumbs.db
+*.swp
+
+# Generated media
+deploy/output_film/
+/outputs/
+
+# Local deployment snapshots and transient workflow backups
+/deploy-v1.zip
+deploy/workflows.zip
+deploy/server_backups/
+deploy/new_html/pnpm-lock.yaml
+deploy/new_html/pnpm-workspace.yaml
+
+# Local Codex artifacts and detached scratch apps
+/.codex-screenshots/
+/sunstudio/
+/temp/

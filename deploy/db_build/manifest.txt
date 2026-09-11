@@ -1,0 +1,86 @@
+# Canonical migration manifest shared by fresh installs and release tooling.
+# Paths are relative to deploy/. Preserve dependency order; alphabetical order
+# can apply foreign keys or ALTER statements before their target tables exist.
+
+# 0. Base schema
+sql/database_schema.sql
+
+# 1. Early base-table extensions
+sql/db_migration_add_permissions.sql        # ALTER users
+sql/db_migration_unified_files.sql          # ALTER files
+sql/db_migration_project_soft_delete.sql    # ALTER projects
+
+# 2. Creation core: episodes, scripts, storyboards, and assets
+sql/db_migration_episodes.sql               # REF projects
+sql/db_migration_episode_scripts.sql        # REF episodes
+sql/db_migration_episode_script_segments.sql# REF episode_scripts, episodes
+sql/db_migration_multi_scripts.sql          # ALTER episode_scripts
+sql/db_migration_episode_script_sources.sql # ALTER episode_scripts; source idempotency
+sql/db_migration_storyboard_items.sql       # REF episodes
+sql/db_migration_assets.sql                 # REF episodes, projects
+sql/db_migration_script_id.sql              # ALTER assets, storyboard_items
+sql/db_migration_script_conversations.sql   # REF episode_scripts/storyboard_items; persistent chat versions
+sql/db_migration_storyboard_audio_mix.sql   # ALTER storyboard_items
+sql/db_migration_storyboard_pipeline_fields.sql # ALTER storyboard_items
+sql/db_migration_storyboard_reference_config.sql # ALTER storyboard_items
+sql/db_migration_storyboard_reference_initialization.sql # ALTER storyboard_items
+sql/db_migration_storyboard_audio_segments.sql # ALTER storyboard_items
+sql/db_migration_clean_storyboard_data_urls.sql # Data cleanup after storyboard_items
+sql/db_migration_files_project_episode_source.sql # ALTER files; REF projects/episodes
+sql/db_migration_character_voices.sql       # REF assets, projects
+sql/db_migration_video_segments.sql         # REF episodes, storyboard_items
+sql/db_migration_video_voice_references.sql # REF projects/files
+sql/db_migration_timeline_tracks.sql        # REF episodes
+
+# 3. Project hub before dependent audio tracks
+sql/db_migration_project_hub.sql            # CREATE project members and canvas tables
+sql/db_migration_audio_tracks.sql           # REF episodes/storyboard_items; ALTER canvas_boards
+sql/db_migration_admin_users_groups.sql     # CREATE project_groups; ALTER projects/users
+sql/db_migration_user_profile.sql           # ALTER users; self-service profile fields
+
+# 4. User-scoped business tables
+sql/db_migration_credits.sql                # REF users
+sql/db_migration_script_credit_rules.sql    # INSERT script/storyboard usage rules
+sql/db_migration_script_model_tier_credit_rules.sql # UPDATE script/storyboard model tier multipliers
+sql/db_migration_design_credit_rules.sql    # INSERT design image/angle/upscale usage rules
+sql/db_migration_design_image_credit_tiers.sql # UPDATE public image tiers and 40-100 credits/image
+sql/db_migration_design_image_credit_pricing_v2.sql # UPDATE tier/resolution creation-point matrix
+sql/db_migration_design_prompt_refinement_credit_rule.sql # INSERT 1-4 credit prompt refinement rule
+sql/db_migration_design_multi_angle_credit_rule.sql # INSERT fixed 60-credit human multi-angle rule
+sql/db_migration_generation_credit_rules.sql # INSERT queued video enhancement credit rule
+sql/db_migration_image_upscale_credit_rule.sql # INSERT 8-50 point standalone image upscale rule
+sql/db_migration_image_upscale_credit_pricing_v2.sql # UPDATE DPI and text-clarity surcharges
+sql/db_migration_video_credit_pricing.sql # UPDATE model-aware video generation credit rule
+sql/db_migration_video_credit_pricing_v2.sql # UPDATE local H3 720P post-upscale surcharge
+sql/db_migration_seedance_credit_pricing_v4.sql # UPDATE Seedance PAYG and reference-video pricing
+sql/db_migration_credit_onboarding.sql      # REF users, credit_accounts, credit_transactions
+sql/db_migration_notifications.sql          # REF users
+sql/db_migration_organizations.sql          # REF users; CREATE organizations/resource_shares
+
+# 5. Media library after files, projects, and users
+sql/db_migration_media_library.sql          # REF files, projects, users
+sql/db_migration_media_library_folders.sql  # REF projects; ALTER media_library_items
+sql/db_migration_final_product_shares.sql    # REF media_library_items/users/projects/episodes
+
+# 6. Administration tables
+sql/db_migration_admin.sql                  # CREATE administrative runtime tables
+sql/db_migration_gpu_agent_display_name.sql # ALTER comfyui_agents; display-only rename
+sql/db_migration_workflow_template_recovery.sql # repair legacy placeholder GPU workflow rows
+sql/db_migration_api_config_category.sql    # ALTER api_configurations
+sql/db_migration_api_config_model_bindings.sql # ALTER api_configurations
+sql/db_migration_gpt_image_providers.sql    # INSERT api_configurations defaults
+sql/db_migration_provider_remote_objects.sql # REF users; provider remote object ownership
+
+# 7. Cross-cutting extensions after their dependencies
+sql/db_migration_admin_extra.sql            # CREATE admin_audit_logs; ALTER credit_*/media_library_items
+sql/db_migration_visibility_columns.sql     # ALTER media_library_items/project_groups; REF organizations
+sql/db_migration_video_reverse.sql          # REF files, projects, users
+
+# 8. Content workflow after creation core, files, assets, and video segments
+sql/db_migration_content_workflow_model.sql # takes/selected/stale/bindings/lineage/script patches
+sql/db_migration_content_workflow_slot_width.sql # widen qualified audio slots used by stale propagation
+sql/db_migration_phone_email_auth.sql # phone-first auth, verified email preferences, delivery outbox
+sql/db_migration_session_version.sql # revocable user sessions after password, status, role, or permission changes
+sql/db_migration_creation_points.sql # permanent and expiring creation-point buckets
+sql/db_migration_wechat_creation_point_recharge.sql # WeChat Native orders and idempotent permanent-point crediting
+sql/db_migration_agent_registry_kind.sql # administrative node classification only

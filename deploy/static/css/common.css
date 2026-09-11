@@ -1,0 +1,46 @@
+
+body { 
+    font-family: 'Inter', sans-serif; 
+    background-color: #0f172a; 
+    color: #e2e8f0; 
+}
+
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #1e293b; }
+::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+
+.glass-panel { 
+    background: rgba(30, 41, 59, 0.7); 
+    backdrop-filter: blur(10px); 
+    border: 1px solid rgba(255, 255, 255, 0.05); 
+}
+
+
+.loader-spin { animation: spin 1s linear infinite; }
+@keyframes spin { 
+    from { transform: rotate(0deg); } 
+    to { transform: rotate(360deg); } 
+}
+
+
+.prompt-input:focus-within { 
+    border-color: #6366f1; 
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); 
+}
+
+
+.draggable-item { cursor: grab; }
+.draggable-item:active { cursor: grabbing; }
+.dragging { 
+    opacity: 0.5; 
+    border: 2px dashed #6366f1 !important; 
+    background-color: #1e293b !important; 
+}
+.drag-over { border-top: 2px solid #3b82f6 !important; }
+

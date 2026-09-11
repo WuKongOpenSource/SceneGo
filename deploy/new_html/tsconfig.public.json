@@ -1,0 +1,27 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./*"],
+      "@runtime/videoTaskService": ["./public-source/videoTaskService.ts"],
+      "@runtime/videoMediaService": ["./public-source/videoMediaService.ts"],
+      "@runtime/audioGenerationService": ["./public-source/audioGenerationService.ts"],
+      "@runtime/comfyuiGenerationService": ["./public-source/comfyuiGenerationService.ts"],
+      "@runtime/comfyuiTaskWaitService": ["./public-source/comfyuiTaskWaitService.ts"],
+      "@runtime/comfyuiTaskQueue": ["./public-source/comfyuiTaskQueue.ts"],
+      "@runtime/comfyuiBridgeService": ["./public-source/comfyuiBridgeService.ts"],
+      "@runtime/clusterNodeService": ["./public-source/clusterNodeService.ts"],
+      "@runtime/processingQueueService": ["./public-source/processingQueueService.ts"],
+      "@runtime/GpuNodeSelector": ["./public-source/GpuNodeSelector.tsx"],
+      "@runtime/AdminPage": ["./public-source/AdminPage.tsx"],
+      "@runtime/adminAuth": ["./public-source/adminAuth.ts"]
+    }
+  },
+  "exclude": [
+    "node_modules", "__tests__/private-runtime/**",
+    "services/videoTaskService.ts", "services/videoMediaService.ts",
+    "services/audioGenerationService.ts", "services/comfyui*.ts",
+    "services/clusterNodeService.ts", "services/processingQueueService.ts",
+    "components/GpuNodeSelector.tsx", "components/AdminPage.tsx", "admin/adminAuth.ts"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@app/*": ["../deploy/new_html/*"],
+      "@runtime/videoTaskService": ["../deploy/new_html/public-source/videoTaskService.ts"],
+      "@runtime/videoMediaService": ["../deploy/new_html/public-source/videoMediaService.ts"],
+      "@runtime/audioGenerationService": ["../deploy/new_html/public-source/audioGenerationService.ts"],
+      "@runtime/comfyuiGenerationService": ["../deploy/new_html/public-source/comfyuiGenerationService.ts"],
+      "@runtime/comfyuiTaskWaitService": ["../deploy/new_html/public-source/comfyuiTaskWaitService.ts"],
+      "@runtime/comfyuiTaskQueue": ["../deploy/new_html/public-source/comfyuiTaskQueue.ts"],
+      "@runtime/comfyuiBridgeService": ["../deploy/new_html/public-source/comfyuiBridgeService.ts"],
+      "@runtime/clusterNodeService": ["../deploy/new_html/public-source/clusterNodeService.ts"],
+      "@runtime/processingQueueService": ["../deploy/new_html/public-source/processingQueueService.ts"],
+      "@runtime/GpuNodeSelector": ["../deploy/new_html/public-source/GpuNodeSelector.tsx"],
+      "@runtime/AdminPage": ["../deploy/new_html/public-source/AdminPage.tsx"],
+      "@runtime/adminAuth": ["../deploy/new_html/public-source/adminAuth.ts"]
+    }
+  }
+}
