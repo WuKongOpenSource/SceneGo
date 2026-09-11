@@ -5013,10 +5013,14 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 );
             }
             if (status.state === 'failed') {
+                const keptHistory = hasStoredVideoResult(status);
                 return (
-                    <div className="text-xs text-danger flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        {hasStoredVideoResult(status) ? '本次失败，历史结果已保留' : '失败'}
+                    <div
+                        className="flex min-w-0 max-w-[96px] shrink items-center gap-1 whitespace-nowrap text-xs text-danger"
+                        title={keptHistory ? '本次失败，历史结果已保留' : '失败'}
+                    >
+                        <AlertCircle className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{keptHistory ? '失败·结果保留' : '失败'}</span>
                     </div>
                 );
             }
@@ -5183,8 +5187,8 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 }`}
             >
 
-                <div className="flex justify-between items-center w-full pb-2 border-b border-n40 shrink-0">
-                    <div className="flex items-center gap-2">
+                <div className="flex w-full min-w-0 shrink-0 items-center justify-between gap-2 border-b border-n40 pb-2">
+                    <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
                         <input
                             type="checkbox"
                             checked={status.selected || false}
@@ -5196,7 +5200,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                                 分段 {String(shotRange.start.segmentNo).padStart(2, '0')}
                             </span>
                         )}
-                        <span className="text-xs font-bold text-n700">{shotRange.label} {isPair ? '首尾帧过渡' : '图生视频'}</span>
+                        <span className="min-w-0 truncate text-xs font-bold text-n700" title={`${shotRange.label} ${isPair ? '首尾帧过渡' : '图生视频'}`}>{shotRange.label} {isPair ? '首尾帧过渡' : '图生视频'}</span>
                         {renderStatusBadge()}
                         {activeVideoVoiceReference && (
                             <span
@@ -5209,7 +5213,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                     </div>
 
 
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex shrink-0 items-center gap-1.5">
                         <button type="button" onClick={() => setVideoUploadTarget(group.uuid)}
                             disabled={!episodeId || ['pending', 'running', 'processing'].includes(status.state || '')}
                             className="flex items-center gap-1 rounded px-2 py-1 text-[10px] text-primary hover:bg-primary-light disabled:opacity-40"

@@ -65,7 +65,10 @@ describe.each([['workspace', submitSeedanceTask], ['public', submitPublicSeedanc
     expect(apiFetch).toHaveBeenCalledTimes(1);
     const body = JSON.parse(String(vi.mocked(apiFetch).mock.calls[0][1]?.body));
     expect(body.reference_audio_policy).toBe('trim_to_15');
-    expect(body.media_inputs).toEqual(params.media_inputs);
+    expect(body.media_inputs).toEqual([
+      { ...params.media_inputs[0], role: 'reference_audio' },
+    ]);
+    expect(params.media_inputs[0]).not.toHaveProperty('role');
     expect(body.duration).toBe(15);
   });
 });

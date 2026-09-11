@@ -166,13 +166,17 @@ describe('Seedance 2.0 Jimeng-style controls', () => {
     expect(screen.queryByTestId('seedance-output-selectors')).not.toBeInTheDocument();
     expect(screen.getByTestId('seedance-control-row')).toHaveClass('flex-wrap');
     const body = screen.getByTestId('seedance-composer-body');
+    const content = screen.getByTestId('seedance-composer-content');
     const rail = screen.getByTestId('seedance-media-rail');
     const referenceStrip = screen.getByTestId('seedance-reference-strip');
     expect(rail.parentElement).toBe(body);
-    expect(referenceStrip.parentElement).toBe(rail);
-    expect(rail).toHaveClass('min-h-0', 'w-[64px]', 'overflow-hidden');
-    expect(referenceStrip).toHaveClass('min-h-0', 'flex-1', 'flex-col', 'overflow-x-hidden', 'overflow-y-auto');
-    expect(screen.getByRole('img', { name: '图片1' }).parentElement?.parentElement).toHaveClass('w-full', 'overflow-hidden');
+    expect(referenceStrip.parentElement).toBe(content);
+    expect(content.lastElementChild).toBe(referenceStrip);
+    expect(rail).toHaveClass('shrink-0', 'items-start');
+    expect(rail).not.toHaveClass('w-[64px]');
+    expect(referenceStrip).toHaveClass('h-12', 'min-h-12', 'shrink-0', 'flex-nowrap', 'overflow-x-auto', 'overflow-y-hidden');
+    expect(screen.getByRole('img', { name: '图片1' })).toHaveClass('h-7', 'w-9', 'object-cover');
+    expect(screen.getByPlaceholderText(/输入文字描述，或输入 @ 选择参考内容/)).toHaveClass('min-h-[96px]');
 
     expect(screen.queryByLabelText('选择比例')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '画面规格' }));

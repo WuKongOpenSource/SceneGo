@@ -173,14 +173,22 @@ export function normalizeSeedanceMediaForSubmission(
   // server correctly reject the request. Keep the URL and discard only known
   // UI-only ids so existing saved cards repair themselves on their next run.
   const normalized = media.map((item) => {
+    const defaultRole: Record<SeedanceMediaInput['kind'], NonNullable<SeedanceMediaInput['role']>> = {
+      image: 'reference_image',
+      video: 'reference_video',
+      audio: 'reference_audio',
+    };
+    const withRole = String(item.role || '').trim()
+      ? item
+      : { ...item, role: defaultRole[item.kind] };
     const fileId = String(item.file_id || '').trim();
     if (!fileId || fileId.startsWith('sb_') || fileId.startsWith('ref_')) {
-      if (!Object.prototype.hasOwnProperty.call(item, 'file_id')) return item;
-      const withoutUiId = { ...item };
+      if (!Object.prototype.hasOwnProperty.call(item, 'file_id')) return withRole;
+      const withoutUiId = { ...withRole };
       delete withoutUiId.file_id;
       return withoutUiId;
     }
-    return item;
+    return withRole;
   });
 
   if (!agentPlanCompat || !normalized.length) return normalized;

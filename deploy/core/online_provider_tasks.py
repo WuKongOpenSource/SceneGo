@@ -350,7 +350,11 @@ class OnlineProviderTaskHandlers:
 
             for idx, m in enumerate(media_inputs):
                 kind = (m.get('kind') or '').lower()
-                role = m.get('role')  # None / first_frame / last_frame / reference_image / reference_video / reference_audio
+                role = m.get('role') or {
+                    'image': 'reference_image',
+                    'video': 'reference_video',
+                    'audio': 'reference_audio',
+                }.get(kind)
                 
                 
                 

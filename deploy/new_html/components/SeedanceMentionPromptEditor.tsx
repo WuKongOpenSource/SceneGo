@@ -22,6 +22,8 @@ export interface SeedanceMentionPromptEditorProps {
 
     rows?: number;
     fillHeight?: boolean;
+    /** Allow the embedded card editor to yield height to a sibling media strip. */
+    compactFillHeight?: boolean;
 
     openUpward?: boolean;
 }
@@ -39,7 +41,7 @@ const GROUP_LABELS: Record<string, string> = {
 };
 
 export const SeedanceMentionPromptEditor: React.FC<SeedanceMentionPromptEditorProps> = (props) => {
-    const { value, onChange, candidates, disabled, autoOpenOnMount, placeholder, onPreviewMedia, hideTokensRow, rows, openUpward, fillHeight } = props;
+    const { value, onChange, candidates, disabled, autoOpenOnMount, placeholder, onPreviewMedia, hideTokensRow, rows, openUpward, fillHeight, compactFillHeight } = props;
     const taRef = useRef<HTMLTextAreaElement | null>(null);
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState('');
@@ -283,7 +285,7 @@ export const SeedanceMentionPromptEditor: React.FC<SeedanceMentionPromptEditorPr
     return (
         <div className={fillHeight ? 'relative flex min-h-0 flex-1 flex-col' : 'relative'}>
 
-            <div className={fillHeight ? 'relative min-h-[140px] flex-1' : 'relative'}>
+            <div className={fillHeight ? `relative ${compactFillHeight ? 'min-h-[96px]' : 'min-h-[140px]'} flex-1` : 'relative'}>
 
 
             <div
@@ -326,7 +328,7 @@ export const SeedanceMentionPromptEditor: React.FC<SeedanceMentionPromptEditorPr
                 disabled={disabled}
                 rows={rows ?? 3}
                 className={
-                    `${SHARED_TEXT_CLS} ${fillHeight ? 'h-full min-h-[140px]' : ''} relative bg-transparent border border-n40 rounded ` +
+                    `${SHARED_TEXT_CLS} ${fillHeight ? `h-full ${compactFillHeight ? 'min-h-[96px]' : 'min-h-[140px]'}` : ''} relative bg-transparent border border-n40 rounded ` +
                     `${composing ? 'text-n800' : 'text-transparent'} ` +
                     'caret-n800 placeholder:text-n100 resize-none ' +
 

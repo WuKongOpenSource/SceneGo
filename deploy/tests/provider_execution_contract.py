@@ -512,6 +512,11 @@ class ProviderFailureContract(ProviderWorkerFixture):
             'video_url',
             'audio_url',
         ]
+        assert [item['role'] for item in contents[1:]] == [
+            'reference_image',
+            'reference_video',
+            'reference_audio',
+        ]
         fake_client.download_video.assert_called_once_with(
             'https://media.example.invalid/output.mp4', task_id='ark-task'
         )

@@ -12,6 +12,15 @@ describe('VideoPage queued task state', () => {
   });
 });
 
+describe('VideoPage result header layout', () => {
+  it('keeps long failed-state copy from squeezing the action buttons', () => {
+    expect(source).toContain("<span className=\"truncate\">{keptHistory ? '失败·结果保留' : '失败'}</span>");
+    expect(source).toContain('max-w-[96px]');
+    expect(source).toContain('flex min-w-0 flex-1 items-center gap-2 overflow-hidden');
+    expect(source).toContain('flex shrink-0 items-center gap-1.5');
+  });
+});
+
 describe('VideoPage source media layout', () => {
   it('uses the same stable four-column media row as generated video results', () => {
     expect(source).toContain('data-testid="video-source-grid"');
