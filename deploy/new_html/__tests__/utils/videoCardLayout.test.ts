@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   CARD_MEDIA_HEIGHT_CLASS,
+  RESULT_MEDIA_HEIGHT_CLASS,
+  RESULT_MEDIA_GRID_CLASS,
   getCardHeightClass,
   getPreviewImageHeightClass,
   getResultVisualHeightClass,
@@ -14,14 +16,18 @@ describe('video card media layout', () => {
     expect(getCardHeightClass('HappyHorse')).toContain('h-[560px]');
     expect(getCardHeightClass('Seedance2')).toContain('h-[560px]');
     expect(getCardHeightClass('Seedance15')).toContain('h-[560px]');
-    expect(getCardHeightClass('Seedance2', true)).toContain('h-[320px]');
+    expect(getCardHeightClass('Seedance2', true)).toContain('h-[400px]');
   });
 
-  it('keeps source and result media at the same height for every model and pair mode', () => {
+  it('keeps source height and reserves two uncompressed result rows for every model', () => {
     expect(getPreviewImageHeightClass('MINI', false)).toBe(CARD_MEDIA_HEIGHT_CLASS);
     expect(getPreviewImageHeightClass('Seedance2', true)).toBe(CARD_MEDIA_HEIGHT_CLASS);
-    expect(getResultVisualHeightClass('MINI')).toBe(CARD_MEDIA_HEIGHT_CLASS);
-    expect(getResultVisualHeightClass('Seedance2')).toBe(CARD_MEDIA_HEIGHT_CLASS);
+    expect(getResultVisualHeightClass('MINI')).toBe(RESULT_MEDIA_HEIGHT_CLASS);
+    expect(getResultVisualHeightClass('Seedance2')).toBe(RESULT_MEDIA_HEIGHT_CLASS);
+    expect(RESULT_MEDIA_HEIGHT_CLASS).toBe('h-[232px] shrink-0');
+    expect(RESULT_MEDIA_GRID_CLASS).toContain('auto-rows-[112px]');
+    expect(RESULT_MEDIA_GRID_CLASS).toContain('content-start');
+    expect(RESULT_MEDIA_GRID_CLASS).toContain('overflow-y-auto');
   });
 
   it('fills the active result row to four stable slots', () => {

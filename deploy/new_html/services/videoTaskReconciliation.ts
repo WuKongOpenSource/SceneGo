@@ -1,6 +1,7 @@
 import { ALL_MODELS, type VideoModel } from './videoModelService';
 import type { TaskGroup, TaskStatus, VideoTask } from './videoTaskTypes';
 import { sanitizeProcessingTerminology } from '../utils/processingTerminology';
+import { captureVideoPromptHistory, videoPromptKey } from '../utils/videoPromptHistory';
 
 const ACTIVE_VIDEO_TASK_STATES = new Set(['queued', 'pending', 'running', 'processing']);
 const RECONCILABLE_VIDEO_TASK_STATES = new Set([...ACTIVE_VIDEO_TASK_STATES, 'completed', 'failed', 'cancelled']);
@@ -102,6 +103,7 @@ export function reconcileActiveVideoTasks(
     const videos = [...previousVideos];
     const times = [...previousTimes];
     const models = [...previousModels];
+    let videoPrompts = { ...previous.videoPrompts };
     orderedTasks
       .filter(candidate => candidate.status === 'completed')
       .forEach(completedTask => {
@@ -112,6 +114,7 @@ export function reconcileActiveVideoTasks(
           generateTime: Number(video?.generateTime || 0),
         }))
         .filter(video => Boolean(video.url));
+        videoPrompts = captureVideoPromptHistory({ ...previous, videoPrompts }, completedTask, generated.map(video => video.url));
         generated.forEach(video => {
           const normalized = video.url.split('?')[0];
           const existingIndex = videos.findIndex(existing => String(existing).split('?')[0] === normalized);
@@ -139,6 +142,7 @@ export function reconcileActiveVideoTasks(
         videos: cappedVideos,
         videoGenerateTimes: cappedTimes,
         videoModels: cappedModels,
+        videoPrompts,
       };
       resumable.push({ uuid, taskId: previous.taskId });
       return;
@@ -150,9 +154,11 @@ export function reconcileActiveVideoTasks(
         state: 'failed',
         taskId: task.task_id,
         pendingVideoModel: undefined,
+        pendingVideoPrompt: undefined,
         videos: cappedVideos,
         videoGenerateTimes: cappedTimes,
         videoModels: cappedModels,
+        videoPrompts,
         keepResult: true,
         error: sanitizeProcessingTerminology(task.error || (task.status === 'cancelled' ? '任务已取消' : '任务失败')),
       };
@@ -165,11 +171,14 @@ export function reconcileActiveVideoTasks(
         state: 'done',
         taskId: task.task_id,
         progress: 100,
-        result: cappedVideos[cappedVideos.length - 1] || previous.result || '',
+        result: previous.result && cappedVideos.some(url => videoPromptKey(url) === videoPromptKey(previous.result!))
+          ? previous.result : cappedVideos[cappedVideos.length - 1] || '',
         videos: cappedVideos,
         videoGenerateTimes: cappedTimes,
         videoModels: cappedModels,
+        videoPrompts,
         pendingVideoModel: undefined,
+        pendingVideoPrompt: undefined,
         keepResult: true,
         error: undefined,
       };
@@ -184,7 +193,10 @@ export function reconcileActiveVideoTasks(
       videos: cappedVideos,
       videoGenerateTimes: cappedTimes,
       videoModels: cappedModels,
+      videoPrompts,
       pendingVideoModel: model,
+      pendingVideoPrompt: typeof task.data?.prompt === 'string' ? task.data.prompt
+        : previous.taskId === task.task_id ? previous.pendingVideoPrompt : undefined,
       keepResult: true,
       error: undefined,
     };

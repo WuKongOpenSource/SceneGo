@@ -41,6 +41,15 @@ describe('storyboardVideoPrompt', () => {
       .toBe('用户手工修改的提示词');
   });
 
+  it('repairs first-only legacy pairs but never replaces edited pair prompts', () => {
+    const sources = [shot, { ...shot, action_text: '第二镜头动作', dialogue: '第二镜头对白' }];
+    const fixed = upgradeLegacyStoryboardVideoPrompt(buildStoryboardVideoPrompt(shot), sources, true);
+    expect(fixed).toContain('第二镜头动作');
+    expect(fixed).toContain('第二镜头对白');
+    expect(fixed.match(/视频提示词：/g)).toHaveLength(1);
+    expect(upgradeLegacyStoryboardVideoPrompt('手工改写首尾帧动作', sources, true)).toBe('手工改写首尾帧动作');
+  });
+
   it('keeps every shot action and dialogue in order, sharing only identical video blocks', () => {
     const shared = '【视觉风格】暖色。\n【正向稳定约束】人物服装一致。';
     const prompts = ['推门', '抬头', '放下菜单', '指向菜单', '转身'].map((action, i) =>

@@ -84,6 +84,7 @@ import {
     CARD_BODY_SCROLL_CLASS,
     PLACEHOLDER_PROMPT_TEXTAREA_CLASS,
     RESULT_PROMPT_READONLY_CLASS,
+    RESULT_MEDIA_GRID_CLASS,
     getVideoResultPlaceholderCount,
 } from '../utils/videoCardLayout';
 import {
@@ -114,6 +115,7 @@ import { extractFileId, resolveVideoImageIdentifier } from '../utils/videoImageI
 import { deleteEntityFile } from '../services/entityFileService';
 import { getVideoTaskModel, reconcileActiveVideoTasks } from '../services/videoTaskReconciliation';
 import { hasStoredVideoResult, mergeStoredVideoResult } from '../utils/videoResultPresentation';
+import { captureVideoPromptHistory, getVideoResultPrompt } from '../utils/videoPromptHistory';
 import {
     buildDownwardMergePlan,
     buildVideoStoryboardShotLookup,
@@ -688,6 +690,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         return upgradeLegacyStoryboardVideoPrompt(
             current,
             getStoryboardPromptSourcesForGroup(group),
+            group.ids.length === 2 && !group.mergedFrom?.length,
         );
     }, [getStoryboardPromptSourcesForGroup, imagePrompts, getImageShotInfo]);
 
@@ -776,6 +779,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             const prompt = upgradeLegacyStoryboardVideoPrompt(
                 existing.prompt,
                 getStoryboardPromptSourcesForGroup(group),
+                group.ids.length === 2 && !group.mergedFrom?.length,
             );
             return applyPreferredReferenceAudio(
                 group,
@@ -827,7 +831,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         const nextParams: SeedanceParams = {
             sub_model: seedanceSubModelForVideoModel(model),
             prompt: promptSources.length > 0
-                ? upgradeLegacyStoryboardVideoPrompt(legacyPrompt, promptSources)
+                ? upgradeLegacyStoryboardVideoPrompt(legacyPrompt, promptSources, group?.ids.length === 2 && !group.mergedFrom?.length)
                 : legacyPrompt,
             media_inputs: seedMedia,
             resolution: '720p',
@@ -863,6 +867,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             const prompt = upgradeLegacyStoryboardVideoPrompt(
                 existing.prompt,
                 getStoryboardPromptSourcesForGroup(group),
+                group?.ids.length === 2 && !group.mergedFrom?.length,
             );
             return prompt === existing.prompt ? existing : { ...existing, prompt };
         }
@@ -1465,6 +1470,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             const prompt = upgradeLegacyStoryboardVideoPrompt(
                 current.prompt,
                 getStoryboardPromptSourcesForGroup(group),
+                group.ids.length === 2 && !group.mergedFrom?.length,
             );
             if (current.duration !== duration || current.prompt !== prompt) {
                 next[group.uuid] = { ...current, duration, prompt };
@@ -1508,7 +1514,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         return await saveWorkspaceSession({
             task_groups: patch?.task_groups ?? taskGroups,
             uploaded_images: validImages,
-            image_prompts: imagePrompts,
+            image_prompts: patch?.image_prompts ?? imagePrompts,
             tasks_status: cleanedStatus,
             seedance_params: patch?.seedance_params ?? seedanceParamsForSession,
             storyboard_meta: storyboardMetaByItemId,
@@ -1964,6 +1970,24 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
         const groupA = taskGroups[index];
         const groupB = taskGroups[index + 1];
+        if ([groupA, groupB].some(g => ['pending', 'running', 'processing'].includes(tasksStatus[g.uuid]?.state || ''))) {
+            showToast('请等待当前任务完成后再组成首尾帧');
+            return;
+        }
+        const children = [groupA, groupB].map((g): MergedCardSnapshot => {
+            const seed = isSeedanceVideoModel(g.model) ? getSeedanceParams(g.uuid, g.model) : undefined;
+            const dash = isDashScopeVideoModel(g.model) ? getDashScopeParams(g.uuid, g.model) : undefined;
+            return { ...g, ids: [...g.ids], prompt: seed?.prompt ?? dash?.prompt ?? getEffectiveGroupPrompt(g),
+                seedanceParams: seed, dashScopeParams: dash, taskStatus: tasksStatus[g.uuid] };
+        });
+        const prompt = mergeStoryboardVideoPrompts(children.map((child, offset) =>
+            `${getGroupShotRange([groupA, groupB][offset], index + offset).label.replace(/^#/, '镜头')}\n${child.prompt}`));
+        // Frame roles belong to this new pair, not to either child's cached inputs.
+        const media = [groupA, groupB].flatMap<SeedanceMediaInput>((g, offset) => {
+            const image = uploadedImages.find(candidate => candidate.id === g.ids[0]);
+            const url = image?.storageUrl || image?.url;
+            return url ? [{ kind: 'image', role: offset === 0 ? 'first_frame' : 'last_frame', url }] : [];
+        });
 
         const newGroup: TaskGroup = {
             uuid: generateUUID(),
@@ -1974,26 +1998,63 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             shotType: groupA.shotType,
             h3SageAttention: groupA.h3SageAttention,
             candidateImages: [...(groupA.candidateImages || []), ...(groupB.candidateImages || [])],
+            firstLastFrom: children,
         };
-
-        setTaskGroups(prev => {
-            const next = [...prev];
-            next.splice(index, 2, newGroup);
-            return next;
-        });
-
-        setTasksStatus(prev => {
-            const next = { ...prev };
-            delete next[groupA.uuid];
-            delete next[groupB.uuid];
-            return next;
-        });
+        const nextGroups = [...taskGroups];
+        nextGroups.splice(index, 2, newGroup);
+        const nextPrompts = { ...imagePrompts, [groupA.ids[0]]: prompt };
+        const nextSeed = { ...seedanceParamsByUuid };
+        const nextDash = { ...dashScopeParamsByUuid };
+        if (children[0].seedanceParams) nextSeed[newGroup.uuid] = {
+            ...children[0].seedanceParams, prompt, reference_mode: 'first_last', media_inputs: media,
+        };
+        if (children[0].dashScopeParams) nextDash[newGroup.uuid] = { ...children[0].dashScopeParams, prompt, media_inputs: media };
+        const nextStatuses = { ...tasksStatus };
+        const history = mergeTaskStatusHistories(children.map(child => child.taskStatus));
+        if (history) nextStatuses[newGroup.uuid] = history;
+        [groupA, groupB].forEach(g => { delete nextStatuses[g.uuid]; delete nextSeed[g.uuid]; delete nextDash[g.uuid]; });
+        setTaskGroups(nextGroups);
+        setImagePrompts(nextPrompts);
+        setSeedanceParamsByUuid(nextSeed);
+        setDashScopeParamsByUuid(nextDash);
+        setTasksStatus(nextStatuses);
+        void saveSession({ task_groups: nextGroups, image_prompts: nextPrompts, seedance_params: nextSeed,
+            dashscope_params: nextDash, tasks_status: nextStatuses });
         showToast('已合并为首尾帧任务');
-    }, [taskGroups, showToast]);
+    }, [taskGroups, tasksStatus, uploadedImages, imagePrompts, seedanceParamsByUuid, dashScopeParamsByUuid,
+        getSeedanceParams, getDashScopeParams, getEffectiveGroupPrompt, getGroupShotRange, saveSession, showToast]);
 
     const unlinkGroup = useCallback((index: number) => {
         const group = taskGroups[index];
-        if (group.ids.length !== 2) return;
+        if (!group || group.ids.length !== 2) return;
+        if (['pending', 'running', 'processing'].includes(tasksStatus[group.uuid]?.state || '')) {
+            showToast('请等待当前任务完成后再拆开首尾帧');
+            return;
+        }
+        if (group.firstLastFrom?.length === 2) {
+            const children = group.firstLastFrom;
+            const nextGroups = [...taskGroups];
+            nextGroups.splice(index, 1, ...children.map(({ prompt: _prompt, taskStatus: _status,
+                seedanceParams: _seed, dashScopeParams: _dash, ...child }) => child));
+            const nextPrompts = { ...imagePrompts };
+            const nextSeed = { ...seedanceParamsByUuid };
+            const nextDash = { ...dashScopeParamsByUuid };
+            const nextStatuses = { ...tasksStatus };
+            const extra = getTaskStatusHistoryDelta(tasksStatus[group.uuid], children.map(c => c.taskStatus));
+            delete nextSeed[group.uuid]; delete nextDash[group.uuid]; delete nextStatuses[group.uuid];
+            children.forEach((child, offset) => {
+                nextPrompts[child.ids[0]] = child.prompt;
+                if (child.seedanceParams) nextSeed[child.uuid] = child.seedanceParams;
+                if (child.dashScopeParams) nextDash[child.uuid] = child.dashScopeParams;
+                const status = mergeTaskStatusHistories([child.taskStatus, offset === 0 ? extra : undefined]);
+                if (status) nextStatuses[child.uuid] = status;
+            });
+            setTaskGroups(nextGroups); setImagePrompts(nextPrompts); setSeedanceParamsByUuid(nextSeed);
+            setDashScopeParamsByUuid(nextDash); setTasksStatus(nextStatuses);
+            void saveSession({ task_groups: nextGroups, image_prompts: nextPrompts, seedance_params: nextSeed,
+                dashscope_params: nextDash, tasks_status: nextStatuses });
+            return;
+        }
 
         const newA: TaskGroup = { uuid: generateUUID(), ids: [group.ids[0]], model: group.model, h3SageAttention: group.h3SageAttention, candidateImages: group.candidateImages };
         const newB: TaskGroup = { uuid: generateUUID(), ids: [group.ids[1]], model: group.model, h3SageAttention: group.h3SageAttention, candidateImages: group.candidateImages };
@@ -2012,7 +2073,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             delete next[group.uuid];
             return next;
         });
-    }, [taskGroups]);
+    }, [taskGroups, tasksStatus, imagePrompts, seedanceParamsByUuid, dashScopeParamsByUuid, saveSession, showToast]);
 
 
 
@@ -2192,8 +2253,9 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         };
 
         const childrenOf = (g: TaskGroup): MergedCardSnapshot[] => {
-            if (!g.mergedFrom?.length) return [snap(g)];
-            const children = g.mergedFrom.map(child => ({
+            const snapshots = g.mergedFrom?.length ? g.mergedFrom : g.firstLastFrom;
+            if (!snapshots?.length) return [snap(g)];
+            const children = snapshots.map(child => ({
                 ...child,
                 duration: child.duration ?? snapshotDuration(child),
             }));
@@ -2218,7 +2280,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 ? getDashScopeParams(g.uuid, g.model as DashScopeVideoModel).prompt
                 : isSeedanceModel(g.model) ? getSeedanceParams(g.uuid, g.model).prompt
                     : getEffectiveGroupPrompt(g);
-            return g.mergedFrom?.length ? prompt
+            return g.mergedFrom?.length || g.firstLastFrom?.length ? prompt
                 : `${getGroupShotRange(g, taskGroups.indexOf(g)).label.replace(/^#/, '镜头')}\n${prompt}`;
         }));
         setImagePrompts(prev => ({ ...prev, [A.ids[0]]: mergedPrompt }));
@@ -2274,6 +2336,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 duration: plan.totalDuration,
                 durationUserOverride: true,
                 mergedFrom,
+                firstLastFrom: undefined,
                 candidateImages: groupsToMerge.flatMap(group => group.candidateImages || []),
                 h3LongVideo: mergedFrom.length <= 8 ? current.h3LongVideo : false,
                 h3Upscale720p: current.h3Upscale720p,
@@ -2709,16 +2772,21 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 status: 'completed',
             });
             segmentIdByGroupRef.current[group.uuid] = segmentId;
-            setTasksStatus(prev => ({
-                ...prev,
+            const latestStatuses = videoUploadState.current.tasksStatus;
+            const currentStatus = latestStatuses[group.uuid] || {};
+            const active = ['pending', 'running', 'processing'].includes(currentStatus.state || '');
+            const nextStatuses = {
+                ...latestStatuses,
                 [group.uuid]: {
-                    ...(prev[group.uuid] || {}),
-                    state: 'done',
-                    progress: 100,
+                    ...currentStatus,
+                    ...(!active ? { state: 'done' as const, progress: 100 } : {}),
                     result: videoUrl,
                     keepResult: true,
                 },
-            }));
+            };
+            setTasksStatus(nextStatuses);
+            const saved = await saveSessionRef.current({ tasks_status: nextStatuses });
+            if (!saved.success) throw new Error('视频已选中，但工作区保存失败，请重试');
             showToast('已设为美化使用');
         } catch (error: any) {
             console.error('设为美化使用失败:', error);
@@ -2921,7 +2989,11 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 return {
                     ...prev,
                     [uuid]: {
+                        ...oldStatus,
                         state: 'running',
+                        taskId: undefined,
+                        error: undefined,
+                        pendingVideoPrompt: params.prompt,
                         progress: 0,
                         keepResult: true,
                         videos: oldStatus.videos || [],
@@ -2988,7 +3060,11 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 return {
                     ...prev,
                     [uuid]: {
+                        ...oldStatus,
                         state: 'running',
+                        taskId: undefined,
+                        error: undefined,
+                        pendingVideoPrompt: params.prompt,
                         progress: 0,
                         keepResult: true,
                         videos: oldStatus.videos || [],
@@ -3054,7 +3130,11 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             return {
                 ...prev,
                 [uuid]: {
+                    ...oldStatus,
                     state: 'running',
+                    taskId: undefined,
+                    error: undefined,
+                    pendingVideoPrompt: getEffectiveGroupPrompt(group),
                     progress: 0,
                     keepResult: true,
                     videos: oldStatus.videos || [],
@@ -3266,7 +3346,9 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                         videos: allVideos,
                         videoGenerateTimes: allTimes,
                         videoModels: allModels,
+                        videoPrompts: captureVideoPromptHistory(oldStatus, status, videos),
                         pendingVideoModel: undefined,
+                        pendingVideoPrompt: undefined,
                         keepResult: true,
                     },
                 };
@@ -3932,7 +4014,9 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         if (!group.ids) return null;
         const isPair = group.ids.length === 2 && !group.mergedFrom?.length;
         const status = tasksStatus[group.uuid] || { state: 'idle' };
-        const promptText = getEffectiveGroupPrompt(group);
+        const promptText = getVideoResultPrompt(status, isSeedanceVideoModel(group.model)
+            ? getSeedanceParams(group.uuid, group.model).prompt
+            : isDashScopeVideoModel(group.model) ? getDashScopeParams(group.uuid, group.model).prompt : getEffectiveGroupPrompt(group));
         const videos = status.videos || [];
         const latestVideoModel = status.videoModels?.[Math.max(0, videos.length - 1)];
         const latestVideoModelLabel = status.uploadedVideos?.[String(normVideoKey(videos[videos.length - 1]))]
@@ -4004,7 +4088,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 </div>
 
 
-                <div className="flex-1 min-w-0 text-xs text-n300 truncate px-2">
+                <div data-testid="video-result-prompt" className="flex-1 min-w-0 text-xs text-n300 truncate px-2">
                     {promptText || <span className="italic opacity-50">无描述...</span>}
                 </div>
 
@@ -4856,7 +4940,9 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         if (!group.ids) return null;
         const isPair = group.ids.length === 2 && !group.mergedFrom?.length;
         const status = tasksStatus[group.uuid] || { state: 'idle' };
-        const promptText = getEffectiveGroupPrompt(group);
+        const promptText = getVideoResultPrompt(status, isSeedanceVideoModel(group.model)
+            ? getSeedanceParams(group.uuid, group.model).prompt
+            : isDashScopeVideoModel(group.model) ? getDashScopeParams(group.uuid, group.model).prompt : getEffectiveGroupPrompt(group));
 
 
 
@@ -4957,8 +5043,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
                 if (videoCount >= 1) {
                     return (
-                        <div className={`w-full ${CARD_MEDIA_HEIGHT_CLASS}`} data-testid="video-result-grid">
-                            <div className="grid h-full grid-cols-4 gap-2 overflow-y-auto">
+                        <div className={RESULT_MEDIA_GRID_CLASS} data-testid="video-result-grid">
                                 {videos.map((videoUrl, idx) => {
                                     const active = isBeautifyVideo(videoUrl);
                                     const videoModel = status.videoModels?.[idx];
@@ -5010,17 +5095,16 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                                     );
                                 })}
 
-                                {isRunning && (
+                                {(isRunning || isQueued) && (
                                     <div className="h-full min-h-[72px] bg-gradient-to-br from-n30 to-n20 rounded border border-n40 flex flex-col items-center justify-center">
                                         <div className="relative w-8 h-8 mb-2">
                                             <div className="absolute inset-0 border-2 border-t-indigo-500 border-r-indigo-500 border-b-transparent border-l-transparent rounded-full animate-spin" />
                                         </div>
-                                        <div className="text-primary text-[10px] font-medium">生成中</div>
-                                        <div className="text-n100 text-[9px]">{status.progress || 0}%</div>
+                                        <div className="text-primary text-[10px] font-medium">{isQueued ? '排队中...' : '生成中'}</div>
+                                        {!isQueued && <div className="text-n100 text-[9px]">{status.progress || 0}%</div>}
                                     </div>
                                 )}
-                                {renderEmptyResultSlots(getVideoResultPlaceholderCount(videoCount, isRunning))}
-                            </div>
+                                {renderEmptyResultSlots(getVideoResultPlaceholderCount(videoCount, isRunning || isQueued))}
                         </div>
                     );
                 }
@@ -5029,7 +5113,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
             if (isQueued) {
                 return (
-                    <div className={`grid w-full grid-cols-4 gap-2 ${CARD_MEDIA_HEIGHT_CLASS}`} data-testid="video-result-grid">
+                    <div className={RESULT_MEDIA_GRID_CLASS} data-testid="video-result-grid">
                         <div className="h-full rounded border border-warning/30 flex flex-col items-center justify-center bg-warning/5">
                             <Clock className="w-5 h-5 mb-1 text-warning" />
                             <div className="text-warning text-[10px] font-medium">排队中...</div>
@@ -5042,7 +5126,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
             if (status.state === 'running' || status.state === 'processing') {
                 return (
-                    <div className={`grid w-full grid-cols-4 gap-2 ${CARD_MEDIA_HEIGHT_CLASS}`} data-testid="video-result-grid">
+                    <div className={RESULT_MEDIA_GRID_CLASS} data-testid="video-result-grid">
                         <div className="h-full rounded border border-n40 flex flex-col items-center justify-center bg-gradient-to-br from-n30 to-n20">
                             <div className="relative w-8 h-8 mb-1">
                                 <div className="absolute inset-0 border-2 border-t-indigo-500 border-r-indigo-500 border-b-transparent border-l-transparent rounded-full animate-spin" />
@@ -5057,7 +5141,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
 
             return (
-                <div className={`grid w-full grid-cols-4 gap-2 ${CARD_MEDIA_HEIGHT_CLASS}`} data-testid="video-result-grid">
+                <div className={RESULT_MEDIA_GRID_CLASS} data-testid="video-result-grid">
                     {renderEmptyResultSlots(4)}
                 </div>
             );
@@ -5171,6 +5255,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
                 <div className={`${CARD_BODY_SCROLL_CLASS} flex flex-col`}>
                     <div
+                        data-testid="video-result-prompt"
                         className={RESULT_PROMPT_READONLY_CLASS}
                         title={promptText || ''}
                     >

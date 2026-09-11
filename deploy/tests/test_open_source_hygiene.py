@@ -28,3 +28,11 @@ def test_public_company_site_is_allowed_without_exposing_service_subdomains() ->
     assert pattern.search(f"https://www.{company_domain}") is None
     assert pattern.search(f"https://{company_domain}") is not None
     assert pattern.search(f"https://internal.{company_domain}") is not None
+
+
+def test_private_distributed_storage_identifier_is_forbidden_without_substring_false_positives() -> None:
+    pattern = FORBIDDEN_CONTENT["private distributed-storage identifier"]
+    private_name = "D" + "FS"
+    assert pattern.search(private_name) is not None
+    assert pattern.search(f"{private_name} gateway") is not None
+    assert pattern.search("appendfsync") is None

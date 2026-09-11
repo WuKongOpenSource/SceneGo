@@ -1,6 +1,6 @@
 import { isDashScopeVideoModel, type VideoModel } from '../services/videoModelService';
 
-export const PLACEHOLDER_CARD_HEIGHT_CLASS = 'h-[320px] flex flex-col overflow-hidden';
+export const PLACEHOLDER_CARD_HEIGHT_CLASS = 'h-[400px] flex flex-col overflow-hidden';
 
 export const COMPACT_CARD_HEIGHT_CLASS = 'h-[560px] flex flex-col overflow-hidden';
 
@@ -15,8 +15,10 @@ export const PARAMETRIC_CARD_HEIGHT_CLASS = DASHSCOPE_CARD_HEIGHT_CLASS;
 
 export const CARD_MEDIA_HEIGHT_CLASS = 'h-28 shrink-0';
 
-export const RESULT_MEDIA_HEIGHT_CLASS = CARD_MEDIA_HEIGHT_CLASS;
-export const SEEDANCE_RESULT_MEDIA_HEIGHT_CLASS = CARD_MEDIA_HEIGHT_CLASS;
+/** Two full-height video rows (112px each + 8px gap); extra rows scroll, never shrink. */
+export const RESULT_MEDIA_HEIGHT_CLASS = 'h-[232px] shrink-0';
+export const SEEDANCE_RESULT_MEDIA_HEIGHT_CLASS = RESULT_MEDIA_HEIGHT_CLASS;
+export const RESULT_MEDIA_GRID_CLASS = `grid w-full grid-cols-4 auto-rows-[112px] content-start gap-2 overflow-y-auto overflow-x-hidden ${RESULT_MEDIA_HEIGHT_CLASS}`;
 
 export const CARD_BODY_SCROLL_CLASS = 'flex-1 min-h-0 overflow-y-auto mt-2 pr-0.5';
 
@@ -50,7 +52,7 @@ export function getPreviewImageHeightClass(model: VideoModel, isPair: boolean): 
 }
 
 export function getResultVisualHeightClass(model: VideoModel): string {
-    return CARD_MEDIA_HEIGHT_CLASS;
+    return RESULT_MEDIA_HEIGHT_CLASS;
 }
 
 /** Fill the current four-column result row with stable dashed placeholders. */

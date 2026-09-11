@@ -89,8 +89,9 @@ export function mergeStoryboardVideoPrompts(prompts: string[]): string {
  * storyboard-derived value is treated as a user edit and is preserved.
  */
 export function upgradeLegacyStoryboardVideoPrompt(
-  currentPrompt: string,
-  sources: StoryboardVideoPromptSource[],
+    currentPrompt: string,
+    sources: StoryboardVideoPromptSource[],
+    firstLastPair = false,
 ): string {
   const legacyPrompt = sources
     .map(storyboardBaseVideoPrompt)
@@ -104,7 +105,13 @@ export function upgradeLegacyStoryboardVideoPrompt(
   if (!legacyPrompt || !enrichedPrompt) {
     return currentPrompt;
   }
-  if ([legacyPrompt, enrichedPrompt].some(prompt => normalized(currentPrompt) === normalized(prompt))) {
+  const oldDefaults = [legacyPrompt, enrichedPrompt];
+  // Old first/last pairs kept only the first shot's untouched default prompt.
+  // Upgrade that precise signature, never overwrite a manually edited prompt.
+  if (firstLastPair && sources.length === 2) {
+    oldDefaults.push(storyboardBaseVideoPrompt(sources[0]), buildStoryboardVideoPrompt(sources[0]));
+  }
+  if (oldDefaults.some(prompt => prompt && normalized(currentPrompt) === normalized(prompt))) {
     return mergeStoryboardVideoPrompts(sources.map(source => {
       const label = firstText(source.source_video_shot_no, source.sourceVideoShotNo).replace(/^分镜/, '镜头');
       return `${sources.length > 1 && label ? label + '\n' : ''}${buildStoryboardVideoPrompt(source)}`;

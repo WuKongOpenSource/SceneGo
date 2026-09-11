@@ -53,6 +53,9 @@ import {
 import { formatProcessingNodeName } from '../utils/processingTerminology';
 import { fitAngleOutputDimensions } from '../utils/angleOutputSize';
 import { StoryboardResultImage } from './StoryboardResultImage';
+import { StoryboardTaskCards } from './StoryboardTaskCards';
+import { useTaskManager } from '../contexts/TaskContext';
+import { storyboardToolTasks, IMAGE_TOOL_LABELS } from '../utils/storyboardTaskStatus';
 import {
   applyComputerOperationOrientationConstraint,
   buildIdentityAnchoredPrompt,
@@ -251,6 +254,7 @@ export const GenerationPage: React.FC<GenerationPageProps> = ({
   defaultImageRatio = '16:9',
 }) => {
   const queryClient = useQueryClient();
+  const { registeredTasks } = useTaskManager();
   const navigate = useNavigate();
   const selectedFile = files.find(f => f.id === selectedFileId);
 
@@ -292,6 +296,10 @@ export const GenerationPage: React.FC<GenerationPageProps> = ({
     onVisibleShotCountChange?.(visibleShotCount);
   }, [visibleShotCount, onVisibleShotCountChange]);
 
+  const currentToolTasks = useMemo(() => storyboardToolTasks(registeredTasks, {
+    shotId: selectedShotId, projectId, episodeId,
+  }), [registeredTasks, selectedShotId, projectId, episodeId]);
+
   useEffect(() => {
     setVisibleShotCount(SHOT_PAGE_SIZE);
   }, [selectedFileId, SHOT_PAGE_SIZE]);
@@ -306,9 +314,10 @@ export const GenerationPage: React.FC<GenerationPageProps> = ({
     const resolvedProjectId = projectId || (() => {
       try { return localStorage.getItem('current_project_id') || undefined; } catch { return undefined; }
     })();
-    const shotLabel = shot?.shotNumber || (shot?.id ? `#${String(shot.id).slice(0, 6)}` : '?');
+    const shotLabel = (shot?.id && storyboardSegmentLookup.get(shot.id)?.localShotLabel)
+      || ('镜头' + (shot?.shotNumber || '?'));
     return {
-      title: `${titlePrefix} · 镜头 ${shotLabel}`,
+      title: titlePrefix + ' · ' + shotLabel,
       kind,
       targetPage: 'generation',
       targetEntityType: 'storyboard_item',
@@ -318,7 +327,7 @@ export const GenerationPage: React.FC<GenerationPageProps> = ({
       episodeId,
       fileRole: 'generated_image',
     };
-  }, [episodeId, projectId]);
+  }, [episodeId, projectId, storyboardSegmentLookup]);
 
 
   const userEditedPromptRef = useRef<boolean>(false);
@@ -2882,6 +2891,7 @@ export const GenerationPage: React.FC<GenerationPageProps> = ({
                        const hasImage = (item.generatedImages && item.generatedImages.length > 0) || !!item.generatedImage;
                        const isChecked = selectedShotIds.has(item.id);
                        const isShotGenerating = generatingShotIds.has(item.id);
+                       const shotToolTasks = storyboardToolTasks(registeredTasks, { shotId: item.id, projectId, episodeId });
                        const shotProgress = generationProgressByShot[item.id];
 
 
@@ -2964,10 +2974,10 @@ export const GenerationPage: React.FC<GenerationPageProps> = ({
                                            <ImageIcon className="w-3 h-3 text-n100" />
                                        </div>
                                    )}
-                                   {isShotGenerating && (
+                                   {(isShotGenerating || shotToolTasks.length > 0) && (
                                        <div className="absolute inset-0 bg-n900/60 flex flex-col items-center justify-center text-white">
                                            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                           <span className="mt-0.5 text-[8px] font-mono">{shotProgress?.percent || 0}%</span>
+                                           <span className="mt-0.5 text-[8px] font-mono">{isShotGenerating ? `${shotProgress?.percent || 0}%` : '处理中'}</span>
                                        </div>
                                    )}
                                    {copyingImageToShotId === item.id && (
@@ -2978,6 +2988,7 @@ export const GenerationPage: React.FC<GenerationPageProps> = ({
                                </div>
                                <div className="flex-1 min-w-0">
                                     <p className="line-clamp-2 min-h-10 text-xs leading-5 text-n100">{item.scriptSegment || '暂无分镜内容'}</p>
+                                    {shotToolTasks.length > 0 && <p className="mt-1 text-[10px] text-primary">{IMAGE_TOOL_LABELS[shotToolTasks[0].kind]} · {shotToolTasks.length} 个任务处理中</p>}
                                     {isShotGenerating && (
                                       <div className="mt-1">
                                         <div className="flex items-center justify-between gap-1 text-[8px]">
@@ -3620,6 +3631,7 @@ export const GenerationPage: React.FC<GenerationPageProps> = ({
                                 </div>
                             ))}
 
+                            <StoryboardTaskCards tasks={currentToolTasks} />
                             {isCurrentShotGenerating && (
                                 <div className="aspect-video bg-n0 border-2 border-dashed border-primary/50 rounded-md flex flex-col items-center justify-center px-8">
                                     <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-3"></div>
@@ -3645,7 +3657,7 @@ export const GenerationPage: React.FC<GenerationPageProps> = ({
                                 </div>
                             )}
 
-                            {!isCurrentShotGenerating && currentGeneratedImages.length === 0 && (
+                            {!isCurrentShotGenerating && currentToolTasks.length === 0 && currentGeneratedImages.length === 0 && (
                                 <div className="col-span-full py-12 border-2 border-dashed border-n40 rounded-md flex flex-col items-center justify-center text-n100 bg-n0">
                                     <ImageIcon className="w-12 h-12 mb-3 opacity-20" />
                                     <p className="text-sm">暂无生成结果</p>

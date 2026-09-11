@@ -48,6 +48,76 @@ async function uploadToPage() {
 }
 
 describe('VideoPage external video persistence', () => {
+  it.each([1, 4, 8, 9, 12])('keeps %i results in full-height rows, with two rows above the prompt', async count => {
+    vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: {
+      ...emptySession, task_groups: [{ uuid: 'card', ids: ['i'], model: 'Seedance15' }],
+      uploaded_images: [{ id: 'i', url: '/first.png', filename: '', uploadTime: 0 }],
+      tasks_status: { card: { state: 'done', videos: Array.from({ length: count }, (_, i) => `/v${i}.mp4`) } },
+    } });
+    render(<VideoPage sessionScope="ep-1" />);
+    const grid = await screen.findByTestId('video-result-grid');
+    expect(grid).toHaveClass('h-[232px]', 'auto-rows-[112px]', 'grid-cols-4', 'overflow-y-auto', 'shrink-0', 'content-start');
+    expect(grid.querySelectorAll('[title="设为美化使用"]')).toHaveLength(count);
+    const prompt = screen.getByTestId('video-result-prompt');
+    expect(grid.compareDocumentPosition(prompt) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+  it.each(['Seedance15', 'Seedance2'] as const)('pairs %s current prompts, restores both frames on reload and splits without losing history', async model => {
+    const shared = '视频提示词：分镜2-1至分镜2-2，共同风格';
+    const sources = [1, 2].map(i => ({ item_id: `s${i}`, source_video_shot_no: `分镜2-${i}`, sort_order: i,
+      action_text: `原始${i}`, video_prompt: '分镜2-1至分镜2-2，共同风格' }));
+    const prompts = [`动作说明：手工推门。\n${shared}`, `动作说明：手工抬眼。\n对白：你好。\n${shared}`];
+    vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: {
+      ...emptySession, task_groups: sources.map(s => ({ uuid: s.item_id, ids: [s.item_id], model, duration: 3 })),
+      uploaded_images: sources.map(s => ({ id: s.item_id, storyboardItemId: s.item_id, url: `/${s.item_id}.png`, filename: '', uploadTime: 0 })),
+      seedance_params: Object.fromEntries(sources.map((s, i) => [s.item_id, {
+        sub_model: model === 'Seedance15' ? 'agent_plan' : 'standard', prompt: prompts[i], duration: 3, resolution: '720p', media_inputs: [],
+      }])),
+      tasks_status: { s1: { state: 'done', videos: ['/old.mp4'], result: '/old.mp4', videoPrompts: { '/old.mp4': '旧生成文本' } } },
+    } });
+    const props = { sessionScope: 'ep-1', episodeId: 'ep-1', storyboardItems: sources };
+    const view = render(<VideoPage {...props} />);
+    fireEvent.click((await screen.findAllByTitle('与下一张卡片组成首尾帧任务'))[0]);
+    await screen.findByText('已合并为首尾帧任务');
+    const saved = vi.mocked(saveWorkspaceSession).mock.calls.at(-1)![0];
+    const pair = saved.task_groups[0];
+    const expected = `镜头2-1\n动作说明：手工推门。\n镜头2-2\n动作说明：手工抬眼。\n对白：你好。\n${shared}`;
+    expect(saved.seedance_params?.[pair.uuid].prompt).toBe(expected);
+    expect(saved.image_prompts.s1).toBe(expected);
+    expect(saved.seedance_params?.[pair.uuid].media_inputs).toEqual([
+      { kind: 'image', role: 'first_frame', url: '/s1.png' }, { kind: 'image', role: 'last_frame', url: '/s2.png' },
+    ]);
+    expect(saved.tasks_status[pair.uuid].videoPrompts).toEqual({ '/old.mp4': '旧生成文本' });
+    view.unmount();
+    vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: JSON.parse(JSON.stringify(saved)) });
+    render(<VideoPage {...props} />);
+    fireEvent.click(await screen.findByTitle('拆开当前首尾帧任务'));
+    await waitFor(() => expect(vi.mocked(saveWorkspaceSession).mock.calls.at(-1)?.[0].task_groups.map(g => g.uuid)).toEqual(['s1', 's2']));
+    const split = vi.mocked(saveWorkspaceSession).mock.calls.at(-1)![0];
+    expect(split.seedance_params?.s1.prompt).toBe(prompts[0]);
+    expect(split.seedance_params?.s2.prompt).toBe(prompts[1]);
+    expect(split.tasks_status.s1.videoPrompts).toEqual({ '/old.mp4': '旧生成文本' });
+  });
+
+  it('shows and persists the beautify-selected result prompt instead of the currently edited Seedance draft', async () => {
+    vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: {
+      ...emptySession, task_groups: [{ uuid: 'card', videoSegmentId: 'seg-real', ids: ['i'], model: 'Seedance15' }],
+      uploaded_images: [{ id: 'i', url: '/first.png', filename: '', uploadTime: 0 }],
+      seedance_params: { card: { sub_model: 'agent_plan', prompt: '新编辑，尚未生成', resolution: '720p', duration: 5, media_inputs: [] } },
+      tasks_status: { card: { state: 'done', result: '/a.mp4', videos: ['/a.mp4', '/b.mp4'],
+        videoPrompts: { '/a.mp4': '第一次生成的动作', '/b.mp4': '第二次生成的动作' } } },
+    } });
+    const view = render(<VideoPage sessionScope="ep-1" episodeId="ep-1" />);
+    await waitFor(() => expect(screen.getByTestId('video-result-prompt')).toHaveTextContent('第一次生成的动作'));
+    fireEvent.click(screen.getByTitle('设为美化使用'));
+    await waitFor(() => expect(screen.getByTestId('video-result-prompt')).toHaveTextContent('第二次生成的动作'));
+    const saved = vi.mocked(saveWorkspaceSession).mock.calls.at(-1)![0];
+    expect(saved.tasks_status.card.videoPrompts).toEqual({ '/a.mp4': '第一次生成的动作', '/b.mp4': '第二次生成的动作' });
+    view.unmount();
+    vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: saved });
+    render(<VideoPage sessionScope="ep-1" episodeId="ep-1" />);
+    await waitFor(() => expect(screen.getByTestId('video-result-prompt')).toHaveTextContent('第二次生成的动作'));
+  });
+
   it('keeps live action edits when an already merged card is merged again instead of replaying old snapshots', async () => {
     const shared = '视频提示词：分镜2-1至分镜2-3，共同风格约束';
     const live = `镜头2-1\n动作说明：修改后推门动作。\n镜头2-2\n动作说明：修改后抬眼动作。\n对白：保留对白。\n${shared}`;
@@ -154,6 +224,8 @@ describe('VideoPage external video persistence', () => {
       headers: new Headers({ 'content-type': 'application/json' }), json: async () =>
         options?.method === 'POST' && url.includes('/video-segments') ? { success: true, segment: { segment_id: 'seg-real' } }
           : options?.method === 'POST' && url.endsWith('/api/generate') ? { task_id: 'generated-task' }
+          : url.endsWith('/api/task/generated-task') ? { task_id: 'generated-task', status: 'completed', task_type: 'seedance_multi',
+              created_at: '2026-09-11', data: { sub_model: 'agent_plan', prompt: 'building a house' }, result: { videos: [{ url: '/generated.mp4' }] } }
           : { success: true, tasks: [], models: [], balance: 100 },
     }));
     render(<VideoPage sessionScope="ep-1" episodeId="ep-1" projectId="project-1" />);
@@ -169,6 +241,9 @@ describe('VideoPage external video persistence', () => {
       media_inputs: [{ kind: 'image', url: expect.stringContaining('/first.png'), role: 'first_frame' }, { kind: 'image', url: expect.stringContaining('/last.png'), role: 'last_frame' }] });
     const saved = vi.mocked(saveWorkspaceSession).mock.calls.find(([session]) => session.task_groups[0]?.videoSegmentId === 'seg-real')?.[0];
     expect(saved?.seedance_params?.['manual-card'].media_inputs).toHaveLength(2);
+    await waitFor(() => expect(vi.mocked(saveWorkspaceSession).mock.calls.at(-1)?.[0].tasks_status['manual-card'].videoPrompts)
+      .toEqual({ '/generated.mp4': 'building a house' }));
+    expect(screen.getByTestId('video-result-prompt')).toHaveTextContent('building a house');
   });
 
   it('does not submit against a fabricated segment id when segment creation fails', async () => {

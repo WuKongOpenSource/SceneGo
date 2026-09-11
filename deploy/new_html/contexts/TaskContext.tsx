@@ -14,6 +14,7 @@ import type { ServerNotificationRow } from '../services/notificationMapping';
 import { getStoredUserId } from '../services/accountStorage';
 import { sanitizeProcessingTerminology } from '../utils/processingTerminology';
 import { isAdminPath } from '../admin/adminRoute';
+import { inferImageToolKind, IMAGE_TOOL_LABELS } from '../utils/storyboardTaskStatus';
 
 interface TaskContextValue {
   activeTasks: GlobalTask[];
@@ -80,6 +81,8 @@ function isPublicShareRoute(): boolean {
 function inferRuntimeTaskKind(task: GlobalTask): TaskKind {
   const category = String(task.category || '').toLowerCase();
   const name = `${task.displayName || ''} ${task.taskType || ''} ${task.id || ''}`.toLowerCase();
+  const toolKind = inferImageToolKind(name);
+  if (toolKind) return toolKind;
   if (category.includes('image') || name.includes('image') || name.includes('图像') || name.includes('生图')) {
     if (name.includes('doubao') || name.includes('豆包')) return 'doubao-image';
     if (name.includes('gemini') || name.includes('ai 生图任务')) return 'gemini-image';
@@ -159,6 +162,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     seenNotificationIdsRef.current.clear();
 
     let disposed = false;
+    const recoveryController = new AbortController();
     let stopRuntime: (() => void) | null = null;
 
     try {
@@ -168,9 +172,30 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('[TaskContext] rehydrate failed:', e);
     }
 
-    const unsubscribeRegistry = taskRegistry.subscribe((_event, snapshot) => {
+    const unsubscribeRegistry = taskRegistry.subscribe((event, snapshot) => {
       setRegisteredTasks(snapshot);
+      // Also handles baseline server reconciliation, which deliberately emits no toast.
+      if (event.type === 'complete' && event.task.targetEntityType === 'storyboard_item' && IMAGE_TOOL_LABELS[event.task.kind]) {
+        const task = event.task;
+        if (task.targetEntityType && task.targetEntityId) {
+          void queryClient.invalidateQueries({ queryKey: ['entityFiles', task.targetEntityType, task.targetEntityId] });
+        }
+        if (task.episodeId) {
+          void queryClient.invalidateQueries({ queryKey: ['storyboardItems', task.episodeId] });
+        }
+        if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('ostory:episode-data-changed', {
+          detail: {
+            episodeId: task.episodeId, entityType: task.targetEntityType, entityId: task.targetEntityId,
+            fileRole: task.fileRole, targetPage: task.targetPage, targetItemId: task.targetItemId,
+            taskId: task.taskId, status: 'completed', type: 'image',
+          },
+        }));
+      }
     });
+
+    void import('../services/taskRegistryRecovery').then(({ recoverSubmittedRegistryTasks }) => {
+      if (!disposed) return recoverSubmittedRegistryTasks(taskRegistry, recoveryController.signal);
+    }).catch(() => {});
 
     void (async () => {
       const [
@@ -196,7 +221,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       getNotifications(undefined, 50, 0)
         .then(res => {
-          if (!res?.success || !Array.isArray(res.notifications)) return;
+          if (disposed || !res?.success || !Array.isArray(res.notifications)) return;
           const tasks = mapNotificationsToTasks(res.notifications as ServerNotificationRow[]);
           if (tasks.length > 0) {
             const stats = taskRegistry.mergeFromServer(tasks);
@@ -215,7 +240,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
               taskRegistry.register({
                 taskId: t.id,
                 kind: inferRuntimeTaskKind(t),
-                title: t.displayName || t.id,
+                title: IMAGE_TOOL_LABELS[inferRuntimeTaskKind(t)] || t.displayName || t.id,
                 targetPage: t.sourcePage as SourcePage,
                 initialStatus: t.status === 'running' ? 'running' : 'queued',
                 targetItemId: t.sourceItemId,
@@ -236,11 +261,16 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
               || existing.progress !== t.progress
               || existing.metadata?.canCancel !== t.canCancel
               || existing.error
+              || (inferImageToolKind(t.taskType || t.displayName || '') && existing.kind !== inferRuntimeTaskKind(t))
               || (t.provider && existing.metadata?.provider !== t.provider)
               || (t.modelName && existing.metadata?.modelName !== t.modelName)
             ) {
               taskRegistry.update(t.id, {
                 status: t.status,
+                ...(inferImageToolKind(t.taskType || t.displayName || '') ? {
+                  kind: inferRuntimeTaskKind(t),
+                  title: IMAGE_TOOL_LABELS[inferRuntimeTaskKind(t)] || existing.title,
+                } : {}),
                 progress: t.progress,
                 error: undefined,
                 metadata: {
@@ -259,7 +289,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (!existing) continue;
             taskRegistry.update(t.id, {
               kind: inferRuntimeTaskKind(t),
-              title: t.displayName || existing.title,
+              title: IMAGE_TOOL_LABELS[inferRuntimeTaskKind(t)] || t.displayName || existing.title,
               targetPage: t.sourcePage,
               targetProjectId: t.projectId || existing.targetProjectId,
               targetItemId: t.sourceItemId || existing.targetItemId,
@@ -358,6 +388,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       disposed = true;
+      recoveryController.abort();
       stopRuntime?.();
       unsubscribeRegistry();
       startedRef.current = false;

@@ -61,6 +61,22 @@ def test_older_client_preserves_omitted_params_but_explicit_clear_works():
     assert client.get('/api/workspace/load-session?scope=ep-1').json()['session']['seedance_params'] == {}
 
 
+def test_result_prompt_history_and_pair_snapshots_survive_roundtrip():
+    client, _ = client_and_store()
+    data = payload()
+    data['task_groups'][0]['firstLastFrom'] = [
+        {'uuid': 'child', 'ids': ['first'], 'prompt': 'original child action'}]
+    data['tasks_status']['manual'] = {
+        'result': '/old.mp4', 'videos': ['/old.mp4', '/new.mp4'],
+        'videoPrompts': {'/old.mp4': 'old action', '/new.mp4': 'new action'},
+        'taskId': 'pending', 'pendingVideoPrompt': 'submitted action',
+    }
+    assert client.post('/api/workspace/save-session', json=data).status_code == 200
+    restored = client.get('/api/workspace/load-session?scope=ep-1').json()['session']
+    assert restored['task_groups'] == data['task_groups']
+    assert restored['tasks_status'] == data['tasks_status']
+
+
 def test_failed_read_is_not_an_empty_workspace():
     client, dao = client_and_store()
     dao.load_session.side_effect = RuntimeError('temporary unavailable')

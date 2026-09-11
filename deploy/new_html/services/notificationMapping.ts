@@ -12,6 +12,7 @@
 
 import type { RegisteredTask, SourcePage, TaskKind, GlobalTaskStatus, TaskNotification } from '../types';
 import { formatPublicTaskText } from '../utils/publicTaskTerminology';
+import { inferImageToolKind } from '../utils/storyboardTaskStatus';
 
 
 export interface ServerNotificationRow {
@@ -65,6 +66,8 @@ function inferKindFromCategoryAndTitle(
         metadata?.sub_model,
     ].filter(value => typeof value === 'string').join(' ').toLowerCase();
     const t = context;
+    const toolKind = inferImageToolKind(t);
+    if (toolKind) return toolKind;
     if (/image[_ -]?upscale|图片高清放大/.test(t)) return 'image-upscale';
     if (category === 'video' || /upscale|放大|i2v|视频|seedance|wan2|kling|vidu|happyhorse|sora|veo/.test(t)) {
         if (/upscale|放大/.test(t)) return 'video-upscale';

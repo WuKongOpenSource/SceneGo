@@ -131,10 +131,13 @@ class TaskRegistry {
 
     register(input: RegisterInput): RegisteredTask {
         const now = Date.now();
-        const existing = this.tasks.get(input.taskId);
+        const existing = this.get(input.taskId);
 
         const task: RegisteredTask = existing
-            ? { ...existing, ...this.toTaskFields(input) }
+            ? { ...existing, ...this.toTaskFields(input),
+                status: existing.status === 'completed' || existing.status === 'cancelled'
+                    ? existing.status : input.initialStatus || existing.status,
+                metadata: { ...existing.metadata, ...input.metadata } }
             : {
                 taskId: input.taskId,
                 kind: input.kind,
@@ -154,9 +157,10 @@ class TaskRegistry {
             };
 
         this.tasks.set(task.taskId, task);
+        this.collapseBackendDuplicate(task);
         this.persist();
         this.emit({ type: existing ? 'update' : 'register', task });
-        return task;
+        return this.get(task.taskId)!;
     }
 
     private toTaskFields(input: RegisterInput): Partial<RegisteredTask> {
@@ -184,11 +188,21 @@ class TaskRegistry {
 
 
     update(taskId: string, updates: Partial<RegisteredTask>): RegisteredTask | null {
-        const existing = this.tasks.get(taskId);
+        const existing = this.get(taskId);
         if (!existing) return null;
         if (existing.status === 'cancelled' && updates.status && updates.status !== 'cancelled') return existing;
+        if (existing.status === 'completed' && updates.status && updates.status !== 'completed') return existing;
+        // A failed local query can still recover from the authoritative server;
+        // completed/cancelled work must never be resurrected by late polling.
 
-        const next: RegisteredTask = { ...existing, ...updates };
+        const next: RegisteredTask = { ...existing, ...updates, taskId: existing.taskId };
+        if (taskId !== existing.taskId) {
+            // Backend rows often carry only a raw workflow name and partial scope.
+            // Keep the richer submission identity when updating via its alias.
+            next.kind = existing.kind;
+            next.title = existing.title;
+            next.targetPage = existing.targetPage;
+        }
 
 
 
@@ -208,15 +222,15 @@ class TaskRegistry {
             next.completedAt = now;
         }
 
-        this.tasks.set(taskId, next);
+        this.tasks.set(next.taskId, next);
         this.persist();
 
         if (becameComplete) {
             this.emit({ type: 'complete', task: next });
-            this.runCallbacks(this.completeCallbacks, taskId, next);
+            this.runCallbacks(this.completeCallbacks, next.taskId, next);
         } else if (becameFailed) {
             this.emit({ type: 'fail', task: next });
-            this.runCallbacks(this.failCallbacks, taskId, next);
+            this.runCallbacks(this.failCallbacks, next.taskId, next);
         } else {
             this.emit({ type: 'update', task: next });
         }
@@ -228,7 +242,7 @@ class TaskRegistry {
         return this.update(taskId, {
             status: 'completed',
             progress: result?.progress ?? 1,
-            resultUrls: result?.resultUrls,
+            ...(result?.resultUrls ? { resultUrls: result.resultUrls } : {}),
         });
     }
 
@@ -247,14 +261,14 @@ class TaskRegistry {
 
 
     cancel(taskId: string): RegisteredTask | null {
-        const existing = this.tasks.get(taskId);
+        const existing = this.get(taskId);
         if (!existing) return null;
         const next: RegisteredTask = {
             ...existing,
             status: 'cancelled',
             completedAt: Date.now(),
         };
-        this.tasks.set(taskId, next);
+        this.tasks.set(next.taskId, next);
         this.persist();
         this.emit({ type: 'cancel', task: next });
         return next;
@@ -262,6 +276,7 @@ class TaskRegistry {
 
 
     remove(taskId: string): void {
+        taskId = this.get(taskId)?.taskId || taskId;
         if (!this.tasks.has(taskId)) return;
         this.tasks.delete(taskId);
         this.completeCallbacks.delete(taskId);
@@ -294,7 +309,37 @@ class TaskRegistry {
 
 
     get(taskId: string): RegisteredTask | undefined {
+        for (const task of this.tasks.values()) {
+            if (task.taskId !== taskId && task.metadata?.backendTaskId === taskId) return task;
+        }
         return this.tasks.get(taskId);
+    }
+
+    /** Only an explicit submission-to-backend link may collapse two records. */
+    private collapseBackendDuplicate(task: RegisteredTask): void {
+        const backendId = task.metadata?.backendTaskId;
+        if (typeof backendId !== 'string' || !backendId || backendId === task.taskId) return;
+        const duplicate = this.tasks.get(backendId);
+        if (!duplicate) return;
+        this.tasks.delete(backendId);
+        for (const callbacks of [this.completeCallbacks, this.failCallbacks]) {
+            const source = callbacks.get(backendId);
+            if (!source) continue;
+            const target = callbacks.get(task.taskId) || new Set<TaskCompleteListener>();
+            source.forEach(callback => target.add(callback));
+            callbacks.set(task.taskId, target);
+            callbacks.delete(backendId);
+        }
+        if (isActive(task.status)) {
+            this.update(backendId, {
+                status: duplicate.status,
+                progress: duplicate.progress ?? task.progress,
+                completedAt: duplicate.completedAt,
+                error: duplicate.error,
+                notificationId: duplicate.notificationId,
+                metadata: { ...duplicate.metadata, ...task.metadata },
+            });
+        }
     }
 
     list(filter?: TaskFilter): RegisteredTask[] {
@@ -358,6 +403,7 @@ class TaskRegistry {
 
 
     onComplete(taskId: string, callback: TaskCompleteListener): () => void {
+        taskId = this.get(taskId)?.taskId || taskId;
         const existing = this.tasks.get(taskId);
         if (existing && existing.status === 'completed') {
 
@@ -377,6 +423,7 @@ class TaskRegistry {
     }
 
     onFail(taskId: string, callback: TaskCompleteListener): () => void {
+        taskId = this.get(taskId)?.taskId || taskId;
         const existing = this.tasks.get(taskId);
         if (existing && existing.status === 'failed') {
             try { callback(existing); } catch (e) { console.error('[taskRegistry] onFail callback error', e); }
@@ -426,12 +473,21 @@ class TaskRegistry {
             if (!raw) return [];
             const data = JSON.parse(raw) as { active?: RegisteredTask[]; done?: RegisteredTask[] };
             const all = [...(data.active || []), ...(data.done || [])];
+            const linkedBackendIds = new Set(all.map(t => t.metadata?.backendTaskId).filter(Boolean));
             this.tasks.clear();
 
             const cutoff = Date.now() - COMPLETED_RETAIN_MS;
             const staleCutoff = Date.now() - STALE_ACTIVE_MS;
             let mutated = false;
             for (const t of all) {
+                // Earlier versions incorrectly failed submitted local IDs on reload.
+                // Their backend task still owns the actual outcome.
+                if (t.metadata?.backendTaskId && t.error === FRONTEND_QUEUE_TASK_LOST_MESSAGE) {
+                    t.status = 'running';
+                    t.error = undefined;
+                    t.completedAt = undefined;
+                    mutated = true;
+                }
                 if (!isActive(t.status)) {
                     if (t.completedAt && t.completedAt < cutoff) { mutated = true; continue; }
                     this.tasks.set(t.taskId, t);
@@ -446,13 +502,14 @@ class TaskRegistry {
                         error: FRONTEND_QUEUE_TASK_LOST_MESSAGE,
                     });
                     mutated = true;
-                } else if (t.createdAt < staleCutoff) {
+                } else if (t.createdAt < staleCutoff && !t.metadata?.backendTaskId && !linkedBackendIds.has(t.taskId)) {
                     this.tasks.set(t.taskId, { ...t, status: 'failed', completedAt: Date.now(), error: '任务超时，已自动清理' });
                     mutated = true;
                 } else {
                     this.tasks.set(t.taskId, t);
                 }
             }
+            for (const task of this.tasks.values()) this.collapseBackendDuplicate(task);
             if (mutated) this.persist();
             const snapshot = this.list();
             this.emit({ type: 'rehydrate', tasks: snapshot });
@@ -483,14 +540,14 @@ class TaskRegistry {
                 skipped++;
                 continue;
             }
-            const existing = this.tasks.get(incoming.taskId);
+            const existing = this.get(incoming.taskId);
             if (!existing) {
                 this.tasks.set(incoming.taskId, incoming);
                 added++;
             } else if (isActive(existing.status) && isActive(incoming.status)) {
 
                 skipped++;
-            } else if (isActive(existing.status)) {
+            } else if (isActive(existing.status) || (existing.status === 'failed' && incoming.status === 'completed')) {
 
 
                 this.update(incoming.taskId, {
@@ -512,7 +569,7 @@ class TaskRegistry {
                 updated++;
             } else {
 
-                this.tasks.set(incoming.taskId, {
+                this.tasks.set(existing.taskId, {
                     ...incoming,
                     ...existing,
                     createdAt: existing.createdAt || incoming.createdAt,
@@ -581,7 +638,7 @@ function isActive(status: GlobalTaskStatus): boolean {
 }
 
 function isFrontendOnlyQueueTask(task: RegisteredTask): boolean {
-    return FRONTEND_QUEUE_TASK_ID_RE.test(task.taskId);
+    return FRONTEND_QUEUE_TASK_ID_RE.test(task.taskId) && !task.metadata?.backendTaskId;
 }
 
 

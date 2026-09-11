@@ -54,6 +54,8 @@ export interface TaskGroup {
   /** After H3 unloads, serially upscale its result to a 720P delivery file. */
   h3Upscale720p?: boolean;
   mergedFrom?: MergedCardSnapshot[];
+  /** Pairing keeps individual prompts/parameters available for a later split. */
+  firstLastFrom?: MergedCardSnapshot[];
 }
 
 export interface MergedCardSnapshot {
@@ -82,6 +84,9 @@ export interface TaskStatus {
   videoGenerateTimes?: number[];
   /** Model used for each entry in videos; indexes are kept aligned. */
   videoModels?: Array<VideoModel | undefined>;
+  /** Immutable generation-time prompts keyed by canonical video path. */
+  videoPrompts?: Record<string, string>;
+  pendingVideoPrompt?: string;
   /** Upload metadata keyed by the canonical media path, independent of history indexes. */
   uploadedVideos?: Record<string, { fileId: string; filename: string; durationMs: number }>;
   /** Captured at submission so changing the card model cannot relabel a running result. */

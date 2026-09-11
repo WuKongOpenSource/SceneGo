@@ -49,6 +49,9 @@ FORBIDDEN_CONTENT = {
     "private machine path": re.compile(r"(?:[A-Z]:\\Codex\\Drama|/[^\s]*/Drama/deploy)", re.IGNORECASE),
     "personal fixture identifier": re.compile(r"\bwuqi80\b", re.IGNORECASE),
     "legacy product identifier": re.compile(r"(?:\bMY2\b|my2[_:-]|h-my2)", re.IGNORECASE),
+    "private distributed-storage identifier": re.compile(
+        r"(?<![A-Za-z0-9_])D[F][S](?![A-Za-z0-9_])", re.IGNORECASE
+    ),
 }
 
 FORBIDDEN_PATH = {

@@ -31,6 +31,8 @@ release script is prohibited. See `docs/repository-boundary.md`.
 
 - Public code must not contain private repository names, internal domains,
   personal usernames, machine paths, credentials, or migration-source labels.
+- The private distributed-storage project name and acronym are forbidden in
+  every tracked path, file, test fixture, document, and reachable history blob.
 - Provider and deployment configuration belongs in environment variables and
   documented examples. Never commit a usable secret.
 - Historical import paths may remain only in the compatibility layer. Each shim

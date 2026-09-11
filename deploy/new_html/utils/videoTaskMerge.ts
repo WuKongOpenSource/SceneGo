@@ -309,6 +309,7 @@ export function mergeTaskStatusHistories(
     videos,
     videoGenerateTimes: times,
     videoModels: models,
+    videoPrompts: Object.assign({}, ...existing.map(status => status.videoPrompts || {})),
     uploadedVideos: Object.assign({}, ...existing.map(status => status.uploadedVideos || {})),
   };
 }
