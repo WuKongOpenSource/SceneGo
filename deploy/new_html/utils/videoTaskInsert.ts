@@ -1,6 +1,6 @@
 import { generateUUID } from '@runtime/videoTaskService';
 import type { UploadedImage, TaskGroup } from '../services/videoTaskTypes';
-import type { VideoModel } from '../services/videoModelService';
+import { DEFAULT_VIDEO_MODEL, type VideoModel } from '../services/videoModelService';
 
 
 
@@ -14,7 +14,7 @@ import type { VideoModel } from '../services/videoModelService';
 
 
 
-export function buildEmptyTaskGroup(model: VideoModel = 'Seedance15'): {
+export function buildEmptyTaskGroup(model: VideoModel = DEFAULT_VIDEO_MODEL): {
     image: UploadedImage;
     group: TaskGroup;
 } {

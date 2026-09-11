@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import {
     ALL_MODELS,
+    DEFAULT_VIDEO_MODEL,
     SELECTABLE_MODELS,
     buildVideoModelOptions,
     formatVideoModelOptionLabel,
@@ -312,6 +313,7 @@ function dedupVideosWithTimes(
 
 const VIDEO_GROUP_PAGE_SIZE = 10;
 const VIDEO_BATCH_WAIT_TIMEOUT_MS = 2 * 60 * 60 * 1000;
+const VIDEO_MODEL_DEFAULT_PREFERENCE_VERSION = 4;
 const VIDEO_LIBRARY_CANDIDATE_PARAMS: SeedanceParams = {
     sub_model: 'standard',
     prompt: '',
@@ -487,14 +489,16 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
 
 
-        version: 3,
-        defaultValue: 'Seedance15',
+        version: VIDEO_MODEL_DEFAULT_PREFERENCE_VERSION,
+        defaultValue: DEFAULT_VIDEO_MODEL,
     });
     useEffect(() => {
         if (!videoCapabilityReady) return;
         const availableOptions = selectableVideoModelOptions.filter(option => option.available);
         if (availableOptions.length === 0) return;
         if (availableOptions.some(option => option.value === globalModel)) return;
+        // Cost safety: never silently replace the 1.5 default with a more expensive model.
+        if (globalModel === DEFAULT_VIDEO_MODEL) return;
         setGlobalModel(availableOptions[0].value);
     }, [globalModel, selectableVideoModelOptions, setGlobalModel, videoCapabilityReady]);
 
@@ -4238,7 +4242,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             currentStoryboardItemId: storyboardItemId,
         });
         const group = taskGroups.find(candidate => candidate.uuid === groupUuid);
-        const model = group?.model ?? 'Seedance15';
+        const model = group?.model ?? DEFAULT_VIDEO_MODEL;
         const supportsMultimodal = seedanceSupportsMultimodal(model);
         return (
             <React.Suspense fallback={<VideoModalFallback label="加载 Seedance 详情..." />}>

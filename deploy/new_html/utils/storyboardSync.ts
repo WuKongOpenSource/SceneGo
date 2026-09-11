@@ -8,7 +8,12 @@
 
 import type { SyncMode } from '../components/video/StoryboardSyncModal';
 import { generateUUID } from '@runtime/videoTaskService';
-import type { SeedanceParams, ShotType, VideoModel } from '../services/videoModelService';
+import {
+    DEFAULT_VIDEO_MODEL,
+    seedanceSubModelForVideoModel,
+    type SeedanceParams,
+    type ShotType,
+} from '../services/videoModelService';
 import type { TaskGroup, UploadedImage } from '../services/videoTaskTypes';
 import { buildStoryboardVideoPrompt } from './storyboardVideoPrompt';
 import {
@@ -88,17 +93,17 @@ function buildArtifacts(item: any): PerItemArtifacts | null {
     const group: TaskGroup = {
         uuid: groupUuid,
         ids: [itemId],
-        model: 'Seedance2' as VideoModel,
+        model: DEFAULT_VIDEO_MODEL,
         shotType: 'single' as ShotType,
         duration: initialDuration,
         durationUserOverride: false,
     };
     const sp: SeedanceParams = {
-        sub_model: 'standard',
+        sub_model: seedanceSubModelForVideoModel(DEFAULT_VIDEO_MODEL),
         prompt: prompt || (isPlaceholder ? '@' : ''),
-        // Mirrors VideoGenPage.handleImportAll: reference_image is the default.
+        // Mirrors VideoGenPage.handleImportAll: the 1.5 default starts from the storyboard image.
         media_inputs: imgUrl
-            ? [{ kind: 'image', url: imgUrl, role: 'reference_image' }]
+            ? [{ kind: 'image', url: imgUrl, role: 'first_frame' }]
             : [],
         duration: initialDuration,
         ratio: 'adaptive',

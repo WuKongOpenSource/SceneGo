@@ -44,8 +44,10 @@ describe('storyboardSync', () => {
     const patch = mutator(emptySession);
     const params = Object.values(patch.seedance_params)[0] as any;
 
+    expect(patch.task_groups[0].model).toBe('Seedance15');
+    expect(params.sub_model).toBe('agent_plan');
     expect(params.media_inputs).toEqual([
-      { kind: 'image', url: '/storage/image/shot.png', role: 'reference_image' },
+      { kind: 'image', url: '/storage/image/shot.png', role: 'first_frame' },
       { kind: 'audio', url: '/storage/audio/dialogue.mp3', role: 'reference_audio' },
     ]);
     expect(params.prompt).toBe([

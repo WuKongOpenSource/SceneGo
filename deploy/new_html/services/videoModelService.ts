@@ -10,6 +10,8 @@ export type VideoModel =
   | 'Seedance15' | 'Seedance2' | 'Seedance2Fast' | 'Seedance2Mini'
   | 'Kling' | 'Vidu' | 'HappyHorse';
 
+export const DEFAULT_VIDEO_MODEL: VideoModel = 'Seedance15';
+
 export type MiniMaxVideoModelName = string;
 export type MiniMaxVideoDuration = 6 | 10;
 export type MiniMaxVideoResolution = '768P' | '1080P';

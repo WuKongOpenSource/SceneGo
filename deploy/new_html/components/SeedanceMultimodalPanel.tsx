@@ -176,26 +176,32 @@ export const SeedanceMultimodalPanel: React.FC<Props> = ({
                 <p className="min-w-0 text-[10px] leading-4 text-n100" title={getModelDisplayName(LABELS[value.sub_model])}>{hint}</p>
                 <button type="button" onClick={() => setPromptModalOpen(true)} className="inline-flex shrink-0 items-center gap-1 text-[10px] text-primary"><Maximize2 size={12} />放大编辑</button>
             </div>
-            <div className="flex min-h-0 flex-1 gap-3">
-                <div className="flex shrink-0 items-start gap-1 pt-1">
+            <div className="flex min-h-0 flex-1 gap-3" data-testid="seedance-composer-body">
+                <div
+                    className={mode === 'reference'
+                        ? 'flex min-h-0 w-[64px] shrink-0 flex-col items-stretch gap-2 overflow-hidden pt-1'
+                        : 'flex shrink-0 items-start gap-1 pt-1'}
+                    data-testid="seedance-media-rail"
+                >
                     {mode === 'first_last' ? <>{frame(first, '首帧', firstInput)}{frame(last, '尾帧', lastInput)}</>
-                        : <VideoControlPopover title="添加参考内容" dismissKey={pickerOpen} disabled={disabled} hideChevron triggerClassName="flex h-[80px] w-[64px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-n40 bg-n20/70 text-[10px] text-n100 transition hover:border-primary hover:text-primary disabled:opacity-40" label={<><Plus size={18} />参考内容</>}>
+                        : <VideoControlPopover title="添加参考内容" dismissKey={pickerOpen} disabled={disabled} hideChevron triggerClassName="flex h-[80px] w-[64px] shrink-0 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-n40 bg-n20/70 text-[10px] text-n100 transition hover:border-primary hover:text-primary disabled:opacity-40" label={<><Plus size={18} />参考内容</>}>
                             <button type="button" disabled={disabled} onClick={() => setPickerOpen(true)} className={VIDEO_CONTROL_PILL_CLASS}>从素材库选择</button>
                             <button type="button" disabled={disabled || uploadBusy || images.length >= 9} onClick={() => imageInput.current?.click()} className={VIDEO_CONTROL_PILL_CLASS}>上传图片</button>
                             <button type="button" disabled={disabled || uploadBusy || videos.length >= 3} onClick={() => videoInput.current?.click()} className={VIDEO_CONTROL_PILL_CLASS}>上传视频</button>
                             <p className="text-[10px] text-n100">{hint}</p>
                         </VideoControlPopover>}
+                    {mode === 'reference' && value.media_inputs.length > 0 && <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-1.5 overflow-x-hidden overflow-y-auto pb-1" data-testid="seedance-reference-strip" aria-label="已选参考素材">
+                        {value.media_inputs.map((item, index) => <div key={`${item.url}-${index}`} className="relative h-11 w-full shrink-0 overflow-hidden rounded-lg border border-n40 bg-n20/50 text-[9px]">
+                            <button type="button" title={`预览素材 ${index + 1}`} onClick={() => onPreviewMedia?.(item.url, item.kind)} className="relative flex h-full w-full items-center justify-center overflow-hidden">
+                                {item.kind === 'image' ? <img src={item.url} alt={`图片${index + 1}`} className="h-full w-full object-cover" /> : item.kind === 'video' ? <Film size={16} /> : <Volume2 size={16} />}
+                                <span className="absolute inset-x-0 bottom-0 truncate bg-n900/70 px-1 py-0.5 leading-3 text-white">{item.kind === 'image' ? '图片' : item.kind === 'video' ? '视频' : '配音'}{value.media_inputs.slice(0, index + 1).filter(row => row.kind === item.kind).length}</span>
+                            </button>
+                            <button type="button" aria-label={`移除素材 ${index + 1}`} onClick={() => remove(index)} disabled={disabled} className="absolute right-0.5 top-0.5 rounded-full bg-n900/65 p-0.5 text-white hover:bg-danger"><X size={10} /></button>
+                        </div>)}
+                    </div>}
                 </div>
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col">{editor()}</div>
             </div>
-            {mode === 'reference' && value.media_inputs.length > 0 && <div className="flex shrink-0 gap-1.5 overflow-x-auto" data-testid="seedance-reference-strip">
-                {value.media_inputs.map((item, index) => <div key={`${item.url}-${index}`} className="flex shrink-0 items-center gap-1 rounded-lg border border-n40 bg-n20/50 px-1 py-0.5 text-[9px]">
-                    <button type="button" title={`预览素材 ${index + 1}`} onClick={() => onPreviewMedia?.(item.url, item.kind)} className="flex items-center gap-1">
-                        {item.kind === 'image' ? <img src={item.url} alt={`图片${index + 1}`} className="h-7 w-9 rounded object-cover" /> : item.kind === 'video' ? <Film size={13} /> : <Volume2 size={13} />}
-                        {item.kind === 'image' ? '图片' : item.kind === 'video' ? '视频' : '配音'}{value.media_inputs.slice(0, index + 1).filter(row => row.kind === item.kind).length}
-                    </button><button type="button" aria-label={`移除素材 ${index + 1}`} onClick={() => remove(index)} disabled={disabled} className="text-n100 hover:text-danger"><X size={10} /></button>
-                </div>)}
-            </div>}
         </div>
         <div className={VIDEO_CONTROL_BAR_CLASS} data-testid={isAgentPlan ? 'seedance15-control-row' : 'seedance-control-row'}>
             <label className={VIDEO_CONTROL_PILL_CLASS}><Film size={12} />

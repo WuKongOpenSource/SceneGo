@@ -165,6 +165,14 @@ describe('Seedance 2.0 Jimeng-style controls', () => {
     expect(screen.getByTestId('seedance-jimeng-composer')).toHaveClass('h-full');
     expect(screen.queryByTestId('seedance-output-selectors')).not.toBeInTheDocument();
     expect(screen.getByTestId('seedance-control-row')).toHaveClass('flex-wrap');
+    const body = screen.getByTestId('seedance-composer-body');
+    const rail = screen.getByTestId('seedance-media-rail');
+    const referenceStrip = screen.getByTestId('seedance-reference-strip');
+    expect(rail.parentElement).toBe(body);
+    expect(referenceStrip.parentElement).toBe(rail);
+    expect(rail).toHaveClass('min-h-0', 'w-[64px]', 'overflow-hidden');
+    expect(referenceStrip).toHaveClass('min-h-0', 'flex-1', 'flex-col', 'overflow-x-hidden', 'overflow-y-auto');
+    expect(screen.getByRole('img', { name: '图片1' }).parentElement?.parentElement).toHaveClass('w-full', 'overflow-hidden');
 
     expect(screen.queryByLabelText('选择比例')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '画面规格' }));

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildVideoModelOptions,
+  DEFAULT_VIDEO_MODEL,
   SELECTABLE_MODELS,
   getModelDisplayName,
   getVideoCreditFallbackCost,
@@ -20,6 +21,10 @@ import {
 } from '../../services/videoModelService';
 
 describe('public video model labels', () => {
+  it('uses Seedance 1.5 Pro as the shared default for every new video entry point', () => {
+    expect(DEFAULT_VIDEO_MODEL).toBe('Seedance15');
+  });
+
   it('exposes runtime model versions with their capability suffixes', () => {
     expect(getModelDisplayName('MiniMaxH3')).toBe('MiniMax H3 · 本地节点模型');
     expect(getModelDisplayName('MiniMaxH3Fast')).toBe('MiniMax H3 Fast · 本地节点模型');

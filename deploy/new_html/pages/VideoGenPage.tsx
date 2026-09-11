@@ -3,7 +3,12 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useEpisode } from '../contexts/EpisodeContext';
 import { useProject } from '../contexts/ProjectContext';
 import { ArrowRight, Film, Loader, Image as ImageIcon, Upload, RefreshCw } from 'lucide-react';
-import type { SeedanceParams, ShotType, VideoModel } from '../services/videoModelService';
+import {
+  DEFAULT_VIDEO_MODEL,
+  seedanceSubModelForVideoModel,
+  type SeedanceParams,
+  type ShotType,
+} from '../services/videoModelService';
 import type { TaskGroup, UploadedImage } from '../services/videoTaskTypes';
 import {
   generateUUID,
@@ -362,7 +367,7 @@ export const VideoGenPage: React.FC = () => {
         const group: TaskGroup = {
           uuid: groupUuid,
           ids: [itemId],
-          model: 'Seedance15' as VideoModel,
+          model: DEFAULT_VIDEO_MODEL,
           shotType: 'single' as ShotType,
           duration: initialDuration,
           durationUserOverride: false,
@@ -372,7 +377,7 @@ export const VideoGenPage: React.FC = () => {
 
 
         const sp: SeedanceParams = {
-          sub_model: 'agent_plan',
+          sub_model: seedanceSubModelForVideoModel(DEFAULT_VIDEO_MODEL),
           prompt: prompt || (isPlaceholder ? '@' : ''),
 
           // The panel owns reference-mode switching.

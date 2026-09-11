@@ -5,6 +5,12 @@ import { describe, expect, it } from 'vitest';
 const source = readFileSync(resolve(__dirname, '../../components/VideoPage.tsx'), 'utf-8');
 
 describe('VideoPage per-card credit estimates', () => {
+  it('starts a new page preference generation from the shared 1.5 default', () => {
+    expect(source).toContain('const VIDEO_MODEL_DEFAULT_PREFERENCE_VERSION = 4');
+    expect(source).toMatch(/page: 'VideoPage:globalModel',[\s\S]*?version: VIDEO_MODEL_DEFAULT_PREFERENCE_VERSION,[\s\S]*?defaultValue: DEFAULT_VIDEO_MODEL/);
+    expect(source).toContain('if (globalModel === DEFAULT_VIDEO_MODEL) return;');
+  });
+
   it('renders estimates from each card settings in both card and list views', () => {
     expect(source).toContain('const getGroupVideoCreditEstimateParams');
     expect(source).toContain('data-testid="video-card-credit-estimate"');
