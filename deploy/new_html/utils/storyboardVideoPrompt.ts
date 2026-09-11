@@ -6,6 +6,8 @@ export interface StoryboardVideoPromptSource {
   videoPrompt?: unknown;
   image_prompt?: unknown;
   imagePrompt?: unknown;
+  source_video_shot_no?: unknown;
+  sourceVideoShotNo?: unknown;
 }
 
 function text(value: unknown): string {
@@ -50,6 +52,38 @@ function normalized(value: string): string {
   return value.replace(/\r\n/g, '\n').trim();
 }
 
+/** Only identical, explicitly labelled video blocks are shared. Never dedupe
+ * action/dialogue lines: repeating an action in a later shot can be intentional. */
+export function mergeStoryboardVideoPrompts(prompts: string[]): string {
+  const output: string[] = [];
+  let shared: string[] = [];
+  let segment = '';
+  const flush = () => { output.push(...shared); shared = []; };
+  for (const prompt of prompts.filter(Boolean)) {
+    const value = normalized(prompt);
+    const shots = value.split(/(?=^(?:【?镜头\s*\d[^\n]*】?\s*$|动作说明\s*[:：]))/m);
+    // A heading and its action belong together; do not flush scene constraints between them.
+    const entries: string[] = [];
+    for (const shot of shots.filter(Boolean)) {
+      if (entries.length && /^(?:【?镜头\s*\d[^\n]*】?)\s*$/.test(entries[entries.length - 1])) entries[entries.length - 1] += shot;
+      else entries.push(shot);
+    }
+    for (const entry of entries) {
+      const nextSegment = entry.match(/^【?镜头\s*(\d+)\s*[-－—]/)?.[1];
+      if (nextSegment && segment && nextSegment !== segment) flush();
+      if (nextSegment) segment = nextSegment;
+      const parts = entry.split(/(?=^\s*(?:视频提示词|动作说明|对白)\s*[:：])/m).map(part => part.trim()).filter(Boolean);
+      const video = [...new Set(parts.filter(part => /^视频提示词\s*[:：]/.test(part)))];
+      const body = parts.filter(part => !/^视频提示词\s*[:：]/.test(part));
+      if (video.length && shared.length && video.join('\n') !== shared.join('\n')) flush();
+      output.push(...body);
+      if (video.length) shared = video;
+    }
+  }
+  flush();
+  return output.join('\n');
+}
+
 /**
  * Upgrade only untouched legacy defaults. A prompt that differs from the old
  * storyboard-derived value is treated as a user edit and is preserved.
@@ -67,10 +101,14 @@ export function upgradeLegacyStoryboardVideoPrompt(
     .filter(Boolean)
     .join('\n');
 
-  if (!legacyPrompt || !enrichedPrompt || normalized(enrichedPrompt) === normalized(legacyPrompt)) {
+  if (!legacyPrompt || !enrichedPrompt) {
     return currentPrompt;
   }
-  return normalized(currentPrompt) === normalized(legacyPrompt)
-    ? enrichedPrompt
-    : currentPrompt;
+  if ([legacyPrompt, enrichedPrompt].some(prompt => normalized(currentPrompt) === normalized(prompt))) {
+    return mergeStoryboardVideoPrompts(sources.map(source => {
+      const label = firstText(source.source_video_shot_no, source.sourceVideoShotNo).replace(/^分镜/, '镜头');
+      return `${sources.length > 1 && label ? label + '\n' : ''}${buildStoryboardVideoPrompt(source)}`;
+    }));
+  }
+  return sources.length > 1 ? mergeStoryboardVideoPrompts([currentPrompt]) : currentPrompt;
 }

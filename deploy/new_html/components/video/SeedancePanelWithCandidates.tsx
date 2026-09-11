@@ -2,6 +2,8 @@ import React from 'react';
 import type { SeedanceMediaInput, SeedanceParams } from '../../services/videoModelService';
 import { useSeedanceCandidates } from '../../hooks/useSeedanceCandidates';
 import { SeedanceMultimodalPanel } from '../SeedanceMultimodalPanel';
+import type { UploadedImage } from '../../services/videoTaskTypes';
+import { withVideoCardCandidates } from '../../utils/videoProjectMaterial';
 
 export interface SeedancePanelWithCandidatesProps {
     value: SeedanceParams;
@@ -15,6 +17,7 @@ export interface SeedancePanelWithCandidatesProps {
     audioReferenceNotice?: string;
     supportsMultimodal?: boolean;
     durationControl?: React.ReactNode;
+    cardImages?: UploadedImage[];
 }
 
 export const SeedancePanelWithCandidates: React.FC<SeedancePanelWithCandidatesProps> = ({
@@ -29,6 +32,7 @@ export const SeedancePanelWithCandidates: React.FC<SeedancePanelWithCandidatesPr
     audioReferenceNotice,
     supportsMultimodal,
     durationControl,
+    cardImages = [],
 }) => {
     const { candidates } = useSeedanceCandidates({
         currentParams: value,
@@ -40,7 +44,7 @@ export const SeedancePanelWithCandidates: React.FC<SeedancePanelWithCandidatesPr
             value={value}
             onChange={onChange}
             disabled={disabled}
-            candidates={candidates}
+            candidates={withVideoCardCandidates(cardImages, candidates)}
             autoOpenMentionOnMount={autoOpenMentionOnMount}
             onPreviewMedia={onPreviewMedia}
             onUsePreviousVideoAudio={onUsePreviousVideoAudio}

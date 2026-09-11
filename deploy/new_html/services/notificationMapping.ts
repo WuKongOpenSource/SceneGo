@@ -61,11 +61,16 @@ function inferKindFromCategoryAndTitle(
         metadata?.task_type,
         metadata?.provider,
         metadata?.model,
+        metadata?.modelName,
+        metadata?.sub_model,
     ].filter(value => typeof value === 'string').join(' ').toLowerCase();
     const t = context;
     if (/image[_ -]?upscale|图片高清放大/.test(t)) return 'image-upscale';
     if (category === 'video' || /upscale|放大|i2v|视频|seedance|wan2|kling|vidu|happyhorse|sora|veo/.test(t)) {
         if (/upscale|放大/.test(t)) return 'video-upscale';
+        if (/seedance[\s_-]*1[.\s_-]?5|agent_plan/.test(t)) return 'seedance-1.5';
+        if (/seedance.*fast/.test(t)) return 'seedance-fast';
+        if (/seedance.*mini/.test(t)) return 'seedance-mini';
         if (/seedance/.test(t)) return 'seedance';
         if (/wan2/.test(t)) return 'wan2';
         if (/kling/.test(t)) return 'kling';

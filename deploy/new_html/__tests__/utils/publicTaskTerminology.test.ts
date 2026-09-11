@@ -5,6 +5,11 @@ import { DESIGN_IMAGE_MODEL_OPTIONS } from '../../utils/designImageModels';
 import { getModelDisplayName } from '../../services/videoModelService';
 
 describe('publicTaskTerminology', () => {
+  it.each(['Seedance15', 'Seedance 1.5 Pro', 'doubao-seedance-1-5-pro'])('does not relabel %s as Seedance 2.0', name => {
+    expect(formatPublicTaskText(`视频 · ${name} · 推门`, 'seedance-1.5')).toBe(`视频 · ${getModelDisplayName('Seedance15')} · 推门`);
+    const formatted = formatPublicTaskText(`视频 · ${name} · 推门`, 'seedance-1.5');
+    expect(formatPublicTaskText(formatted, 'seedance-1.5')).toBe(formatted);
+  });
   it('uses the public script model labels shown by the selector', () => {
     expect(formatPublicTaskText('DeepSeek 文本生成', 'script-segment'))
       .toBe(DEFAULT_SCRIPT_MODEL_OPTIONS[1].label);

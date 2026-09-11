@@ -35,8 +35,9 @@ export function formatPublicTaskText(value: unknown, kind?: TaskKind): string {
     text = text.replace(pattern, () => protect(label));
   };
 
-  const imageContext = String(kind || '').includes('image')
-    || /图像|图片|生图|image|seedream|doubao|豆包/i.test(text);
+  const videoContext = String(kind || '').startsWith('seedance') || /seedance/i.test(text);
+  const imageContext = !videoContext && (String(kind || '').includes('image')
+    || /图像|图片|生图|image|seedream|doubao|豆包/i.test(text));
 
   if (imageContext) {
     replace(/三阶\s*·\s*参考图生图模型/g, PUBLIC_IMAGE_LABELS.tier3);
@@ -76,6 +77,7 @@ export function formatPublicTaskText(value: unknown, kind?: TaskKind): string {
   replace(/minimax[\s_-]*h3[\s_-]*(?:fl2va)?(?:[\s_-]*fast|\s*\+\s*sageattention)/gi, getModelDisplayName('MiniMaxH3Fast'));
   replace(/minimax[\s_-]*h3[\s_-]*(?:fl2va)?(?:[\s_-]*(?:mini|1b)|\s*\+\s*qwen3[\s_-]*vl[\s_-]*4b[\s_-]*clipproj)/gi, getModelDisplayName('MiniMaxH3Mini'));
   replace(/minimax[\s_-]*h3(?:[\s_-]*fl2va)?/gi, getModelDisplayName('MiniMaxH3'));
+  replace(/(?:doubao[\s_-]*)?seedance[\s_-]*1[.\s_-]?5(?:[\s_-]*pro)?(?:\s*·\s*首尾帧视频模型)?/gi, getModelDisplayName('Seedance15'));
   replace(/(?:doubao[\s_-]*)?seedance[\s_-]*2(?:[.\s_-]*0)?[\s_-]*fast(?:[\s_-]*\d+)?/gi, getModelDisplayName('Seedance2Fast'));
   replace(/(?:doubao[\s_-]*)?seedance[\s_-]*2(?:[.\s_-]*0)?[\s_-]*mini(?:[\s_-]*\d+)?/gi, getModelDisplayName('Seedance2Mini'));
   replace(/(?:doubao[\s_-]*)?seedance(?:[\s_-]*2(?:[.\s_-]*0)?(?:[\s_-]*\d+)?)?/gi, getModelDisplayName('Seedance2'));

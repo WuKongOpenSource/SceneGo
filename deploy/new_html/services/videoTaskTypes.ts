@@ -37,6 +37,8 @@ export interface TaskGroup {
   uuid: string;
   videoSegmentId?: string;
   ids: string[];
+  /** Available card images, separate from storyboard membership and submitted provider inputs. */
+  candidateImages?: UploadedImage[];
   model: VideoModel;
   createdAt?: number;
   shotType?: ShotType;
@@ -57,6 +59,7 @@ export interface TaskGroup {
 export interface MergedCardSnapshot {
   uuid: string;
   ids: string[];
+  candidateImages?: UploadedImage[];
   model: VideoModel;
   prompt: string;
   shotType?: ShotType;

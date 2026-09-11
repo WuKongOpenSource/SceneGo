@@ -36,6 +36,7 @@ export const SeedanceMultimodalPanel: React.FC<Props> = ({
     const [uploadBusy, setUploadBusy] = useState(false);
     const [error, setError] = useState('');
     const [pickerOpen, setPickerOpen] = useState(false);
+    const [targetFrame, setTargetFrame] = useState<'first_frame' | 'last_frame' | undefined>();
     const [promptModalOpen, setPromptModalOpen] = useState(false);
     const firstInput = useRef<HTMLInputElement>(null);
     const lastInput = useRef<HTMLInputElement>(null);
@@ -147,9 +148,9 @@ export const SeedanceMultimodalPanel: React.FC<Props> = ({
         <div className="relative h-[80px] w-[64px] shrink-0 overflow-hidden rounded-xl border border-n40 bg-n20/60">
             {media ? <>
                 <button type="button" title={`预览${label}`} onClick={() => onPreviewMedia?.(media.url, 'image')} className="h-full w-full"><img src={media.url} alt={label} className="h-full w-full object-cover" /></button>
-                <button type="button" disabled={disabled || uploadBusy} onClick={() => ref.current?.click()} className="absolute inset-x-0 bottom-0 bg-n0/95 py-1 text-[9px] text-n700">{label} · 替换</button>
+                <button type="button" disabled={disabled || uploadBusy} onClick={() => { setTargetFrame(label === '首帧' ? 'first_frame' : 'last_frame'); setPickerOpen(true); }} className="absolute inset-x-0 bottom-0 bg-n0/95 py-1 text-[9px] text-n700">{label} · 替换</button>
                 <button type="button" aria-label={`删除${label}`} disabled={disabled} onClick={() => remove(value.media_inputs.indexOf(media))} className="absolute right-1 top-1 rounded-full bg-n900/65 text-white"><X size={12} /></button>
-            </> : <button type="button" title={`添加${label}`} disabled={disabled || uploadBusy} onClick={() => ref.current?.click()} className="flex h-full w-full flex-col items-center justify-center gap-1 text-n100 hover:text-primary"><ImagePlus size={18} /><span className="text-[10px]">+ {label}</span></button>}
+            </> : <button type="button" title={`添加${label}`} disabled={disabled || uploadBusy} onClick={() => { setTargetFrame(label === '首帧' ? 'first_frame' : 'last_frame'); setPickerOpen(true); }} className="flex h-full w-full flex-col items-center justify-center gap-1 text-n100 hover:text-primary"><ImagePlus size={18} /><span className="text-[10px]">+ {label}</span></button>}
         </div>;
     const referenceList = <div className="space-y-2">
         {value.media_inputs.length === 0 && <p className="text-n100">还没有参考素材，可从素材库或本机添加。</p>}
@@ -254,7 +255,7 @@ export const SeedanceMultimodalPanel: React.FC<Props> = ({
         {(error || validation) && <div role="alert" className="flex shrink-0 items-start gap-1 border-t border-r100 bg-r50 px-3 py-1.5 text-[10px] text-danger"><AlertCircle size={12} className="shrink-0" />{error || validation}</div>}
         {fileInput(firstInput, 'image', 'first_frame')}{fileInput(lastInput, 'image', 'last_frame')}
         {fileInput(imageInput, 'image')}{fileInput(videoInput, 'video')}{fileInput(audioInput, 'audio')}
-        {pickerOpen && createPortal(<div className="relative z-[9700]"><SeedanceAssetPickerModal open onClose={() => setPickerOpen(false)} value={value} onChange={acceptReferences} candidates={mode === 'first_last' ? candidates.filter(item => item.kind === 'image') : candidates} imageLimit={imageLimit} firstLast={mode === 'first_last'} /></div>, document.body)}
+        {pickerOpen && createPortal(<div className="relative z-[9700]"><SeedanceAssetPickerModal open onClose={() => { setPickerOpen(false); setTargetFrame(undefined); }} value={value} onChange={acceptReferences} candidates={mode === 'first_last' ? candidates.filter(item => item.kind === 'image') : candidates} imageLimit={imageLimit} firstLast={mode === 'first_last'} targetFrame={targetFrame} onUploadImage={targetFrame ? () => { (targetFrame === 'first_frame' ? firstInput : lastInput).current?.click(); setPickerOpen(false); setTargetFrame(undefined); } : undefined} /></div>, document.body)}
         {promptModalOpen && createPortal(<div className="fixed inset-0 z-[9500] flex items-center justify-center bg-n900/50 p-4 backdrop-blur-sm" onMouseDown={event => { if (event.target === event.currentTarget) setPromptModalOpen(false); }}>
             <div role="dialog" aria-modal="true" aria-label="放大编辑提示词" className="flex h-[min(720px,90vh)] w-full max-w-5xl flex-col gap-3 rounded-2xl bg-n0 p-4 shadow-bottom">
                 <div className="flex items-center justify-between"><div className="text-sm font-semibold">提示词 · 放大编辑</div><button type="button" aria-label="关闭" onClick={() => setPromptModalOpen(false)}><X size={16} /></button></div>

@@ -48,6 +48,78 @@ async function uploadToPage() {
 }
 
 describe('VideoPage external video persistence', () => {
+  it('keeps live action edits when an already merged card is merged again instead of replaying old snapshots', async () => {
+    const shared = '视频提示词：分镜2-1至分镜2-3，共同风格约束';
+    const live = `镜头2-1\n动作说明：修改后推门动作。\n镜头2-2\n动作说明：修改后抬眼动作。\n对白：保留对白。\n${shared}`;
+    const sources = [1, 2, 3].map(index => ({ item_id: `sb_${index}`, source_video_shot_no: `分镜2-${index}`, sort_order: index,
+      action_text: `原始动作${index}。`, video_prompt: '分镜2-1至分镜2-3，共同风格约束' }));
+    const params = (prompt: string, duration: number) => ({ sub_model: 'standard' as const, prompt, resolution: '720p' as const, duration, media_inputs: [] });
+    vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: {
+      ...emptySession, task_groups: [
+        { uuid: 'merged', ids: ['sb_1', 'sb_2'], model: 'Seedance2', duration: 6, durationUserOverride: true,
+          mergedFrom: sources.slice(0, 2).map(source => ({ uuid: source.item_id, ids: [source.item_id], model: 'Seedance2', duration: 3, prompt: `动作说明：旧快照动作。\n${shared}` })) },
+        { uuid: 'third', ids: ['sb_3'], model: 'Seedance2', duration: 3, durationUserOverride: true },
+      ],
+      uploaded_images: sources.map(source => ({ id: source.item_id, storyboardItemId: source.item_id, url: `/${source.item_id}.png`, filename: '', uploadTime: 0 })),
+      image_prompts: { sb_1: live, sb_3: `动作说明：新加入第三镜头动作。\n${shared}` },
+      seedance_params: { merged: params(live, 6), third: params(`动作说明：新加入第三镜头动作。\n${shared}`, 3) },
+    } });
+    render(<VideoPage sessionScope="ep-1" episodeId="ep-1" storyboardItems={sources} />);
+    fireEvent.click((await screen.findAllByTitle('选择连续向下合并的镜头'))[0]);
+    fireEvent.click(await screen.findByRole('button', { name: '确认合并' }));
+    const expected = `镜头2-1\n动作说明：修改后推门动作。\n镜头2-2\n动作说明：修改后抬眼动作。\n对白：保留对白。\n镜头2-3\n动作说明：新加入第三镜头动作。\n${shared}`;
+    await waitFor(() => expect(vi.mocked(saveWorkspaceSession).mock.calls.at(-1)?.[0].seedance_params?.merged.prompt).toBe(expected));
+    const saved = vi.mocked(saveWorkspaceSession).mock.calls.at(-1)![0];
+    expect(saved.task_groups).toHaveLength(1);
+    expect(saved.image_prompts.sb_1).toBe(expected);
+    expect(saved.task_groups[0].mergedFrom).toHaveLength(3);
+  });
+
+  it('restores a legacy merged prompt with every action and saves the displayed segmented structure', async () => {
+    const sources = [1, 2].map(index => ({ item_id: `sb_${index}`, source_video_shot_no: `分镜2-${index}`, sort_order: index,
+      action_text: `动作${index}的完整描述。`, dialogue: `台词${index}`, video_prompt: '分镜2-1至分镜2-2，共同风格约束' }));
+    const prompt = sources.map(source => source.video_prompt).join('\n');
+    const params = { sub_model: 'agent_plan' as const, prompt, resolution: '720p' as const, duration: 6, media_inputs: [] };
+    vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: {
+      ...emptySession, task_groups: [{ uuid: 'merged', ids: ['sb_1', 'sb_2'], model: 'Seedance15', duration: 6, durationUserOverride: true,
+        mergedFrom: sources.map(source => ({ uuid: source.item_id, ids: [source.item_id], model: 'Seedance15', prompt: source.video_prompt })) }],
+      uploaded_images: sources.map(source => ({ id: source.item_id, storyboardItemId: source.item_id, url: `/${source.item_id}.png`, filename: '', uploadTime: 0 })),
+      image_prompts: { sb_1: prompt }, seedance_params: { merged: params },
+    } });
+    render(<VideoPage sessionScope="ep-1" episodeId="ep-1" storyboardItems={sources} />);
+    const expected = '镜头2-1\n动作说明：动作1的完整描述。\n对白：台词1\n镜头2-2\n动作说明：动作2的完整描述。\n对白：台词2\n视频提示词：分镜2-1至分镜2-2，共同风格约束';
+    const editor = await screen.findByPlaceholderText('描述首帧到尾帧的变化、动作与运镜……');
+    expect(editor).toHaveValue(expected);
+    await waitFor(() => expect(vi.mocked(saveWorkspaceSession).mock.calls.at(-1)?.[0].seedance_params?.merged.prompt).toBe(expected));
+  });
+
+  it('persists an independent card image pool, then selects its original as tail and restores both after reload', async () => {
+    vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: {
+      ...emptySession, task_groups: [{ uuid: 'pool-card', ids: ['first'], model: 'Seedance15' }],
+      uploaded_images: [{ id: 'first', url: '/first.png', filename: '', uploadTime: 0 }], image_prompts: { first: '推门动作不变' },
+    } });
+    const props = { sessionScope: 'ep-1', materialLibrary: { 第二画面: [{ id: 'material-tail', type: 'image' as const, source: 'asset', timestamp: 0,
+      url: '/tail-original.png', thumbnail: '/tiny.jpg', name: '第二画面' }] } };
+    const view = render(<VideoPage {...props} />);
+    fireEvent.click((await screen.findAllByRole('button', { name: '添加画面' }))[0]);
+    fireEvent.click(await screen.findByTitle('添加 第二画面'));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: '项目素材' })).not.toBeInTheDocument());
+    const poolSaved = vi.mocked(saveWorkspaceSession).mock.calls.at(-1)![0];
+    expect(poolSaved.task_groups[0].ids).toEqual(['first']);
+    expect(poolSaved.task_groups[0].candidateImages?.[0].url).toBe('/tail-original.png');
+    expect(poolSaved.seedance_params?.['pool-card']?.media_inputs?.length || 0).toBeLessThan(2);
+    fireEvent.click(await screen.findByTitle('添加尾帧'));
+    fireEvent.click(await screen.findByRole('button', { name: /画面2 · 第二画面/ }));
+    fireEvent.click(screen.getByRole('button', { name: '设为尾帧' }));
+    await waitFor(() => expect(vi.mocked(saveWorkspaceSession).mock.calls.at(-1)?.[0].seedance_params?.['pool-card'].media_inputs).toContainEqual({ kind: 'image', url: '/tail-original.png', role: 'last_frame' }));
+    const saved = vi.mocked(saveWorkspaceSession).mock.calls.at(-1)![0];
+    expect(saved.seedance_params?.['pool-card'].prompt).toBe('推门动作不变');
+    view.unmount();
+    vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: saved });
+    render(<VideoPage {...props} />);
+    expect(await screen.findByRole('img', { name: '尾帧' })).toHaveAttribute('src', '/tail-original.png');
+    expect(screen.getByTestId('video-source-grid').querySelectorAll('img')).toHaveLength(2);
+  });
   it('does not overwrite an unreadable workspace with an empty snapshot', async () => {
     vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: false, session: null, error: true });
     render(<VideoPage sessionScope="ep-1" />);

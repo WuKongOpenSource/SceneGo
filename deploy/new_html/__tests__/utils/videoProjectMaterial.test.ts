@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyVideoProjectMaterial } from '../../utils/videoProjectMaterial';
+import { applyVideoProjectMaterial, getVideoCardImages, withVideoCardCandidates } from '../../utils/videoProjectMaterial';
 import { resolveVideoImageIdentifier } from '../../utils/videoImageIdentifier';
 import type { Material } from '../../types';
 import type { UploadedImage } from '../../services/videoTaskTypes';
@@ -10,6 +10,15 @@ const image: UploadedImage = { id: 'blank', url: '', filename: '空卡片', uplo
   linkedGroupUuids: ['card'], sortOrder: 3, comfyuiFilename: 'old.png' };
 
 describe('video project material import', () => {
+  it('keeps pool originals independent from shot membership and dedupes picker copies', () => {
+    const base = { ...image, url: '/first.png', isPlaceholder: false };
+    const extra = { ...image, id: 'candidate', url: '/second.png', isPlaceholder: false };
+    const group = { uuid: 'card', ids: ['blank'], model: 'Seedance15' as const, candidateImages: [base, extra, extra] };
+    const images = getVideoCardImages(group, [base]);
+    expect(images.map(image => image.url)).toEqual(['/first.png', '/second.png']);
+    expect(group.ids).toEqual(['blank']);
+    expect(withVideoCardCandidates(images, [{ id: 'dup', kind: 'image', group: 'assets', label: 'same', url: '/second.png', thumbnailUrl: '/small.png' }])).toHaveLength(2);
+  });
   it('keeps the target id and original bytes reference without mutating either source', () => {
     const result = applyVideoProjectMaterial(image, material);
     expect(result).toMatchObject({ id: 'blank', url: material.url, storageUrl: material.url,

@@ -27,6 +27,20 @@ const agentPlanValue: SeedanceParams = {
 };
 
 describe('Seedance 1.5 Pro controls', () => {
+  it.each(['首帧', '尾帧'])('selects %s directly from the card pool without changing the other frame, prompt or audio', label => {
+    const onChange = vi.fn();
+    render(<SeedanceMultimodalPanel value={agentPlanValue} onChange={onChange} supportsMultimodal={false} candidates={[
+      { id: 'pool', label: '画面2', kind: 'image', group: 'current_card', url: '/pool-original.png', thumbnailUrl: '/thumbnail.png' },
+    ]} />);
+    fireEvent.click(label === '首帧' ? screen.getByRole('button', { name: '首帧 · 替换' }) : screen.getByTitle('添加尾帧'));
+    fireEvent.click(screen.getByRole('button', { name: /画面2/ }));
+    fireEvent.click(screen.getByRole('button', { name: `设为${label}` }));
+    const next = onChange.mock.calls[0][0];
+    expect(next.prompt).toBe(agentPlanValue.prompt);
+    expect(next.media_inputs).toContainEqual(agentPlanValue.media_inputs[1]);
+    expect(next.media_inputs).toContainEqual({ kind: 'image', url: '/pool-original.png', role: label === '首帧' ? 'first_frame' : 'last_frame' });
+    if (label === '尾帧') expect(next.media_inputs).toContainEqual(agentPlanValue.media_inputs[0]);
+  });
   it('adds a project-library tail in first/last mode without replacing the first frame or prompt', () => {
     const onChange = vi.fn();
     render(<SeedanceMultimodalPanel value={agentPlanValue} onChange={onChange} supportsMultimodal={false} candidates={[

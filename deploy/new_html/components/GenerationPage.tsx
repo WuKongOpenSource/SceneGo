@@ -52,6 +52,7 @@ import {
 } from '@runtime/clusterNodeService';
 import { formatProcessingNodeName } from '../utils/processingTerminology';
 import { fitAngleOutputDimensions } from '../utils/angleOutputSize';
+import { StoryboardResultImage } from './StoryboardResultImage';
 import {
   applyComputerOperationOrientationConstraint,
   buildIdentityAnchoredPrompt,
@@ -3536,19 +3537,7 @@ export const GenerationPage: React.FC<GenerationPageProps> = ({
                                             }
                                         }}
                                     >
-                                        <img
-                                            src={getImageThumbnailUrl(img.thumbnail || img.url, 360, 220)}
-                                            loading="lazy"
-                                            decoding="async"
-                                            alt=""
-                                            className="w-full h-full object-contain transition-opacity duration-300"
-                                            style={{ imageRendering: 'auto', opacity: 1 }}
-                                            onError={(e) => {
-                                                const target = e.target as HTMLImageElement;
-                                                target.style.opacity = '0.3';
-                                                target.alt = '图片加载失败';
-                                            }}
-                                        />
+                                        <StoryboardResultImage url={img.url} thumbnail={img.thumbnail} />
                                         {img.thumbnail && (
                                             <div className="absolute inset-0 bg-n900/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                 <span className="text-xs text-white bg-n900/50 px-2 py-1 rounded">点击查看高清原图</span>

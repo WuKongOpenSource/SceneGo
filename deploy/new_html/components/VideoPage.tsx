@@ -77,7 +77,7 @@ import {
 import { AppView, TaskNotification } from '../types';
 import type { VideoVoiceReference, MaterialLibrary } from '../types';
 import { ProjectMaterialPicker, useProjectMaterialPicker, type ProjectMaterialPickerItem } from './ProjectMaterialPicker';
-import { applyVideoProjectMaterial } from '../utils/videoProjectMaterial';
+import { applyVideoProjectMaterial, getVideoCardImages, withVideoCardCandidates } from '../utils/videoProjectMaterial';
 import {
     getCardHeightClass,
     CARD_MEDIA_HEIGHT_CLASS,
@@ -133,6 +133,7 @@ import { InlineCreditEstimate } from './InlineCreditEstimate';
 import { extractSpokenDialogue } from '../utils/scriptPipelineParsers';
 import { clampSec, DURATION_MAX_SEC, SEEDANCE_AGENT_PLAN_MAX_DURATION_SEC } from '../utils/durationMapping';
 import {
+    mergeStoryboardVideoPrompts,
     upgradeLegacyStoryboardVideoPrompt,
     type StoryboardVideoPromptSource,
 } from '../utils/storyboardVideoPrompt';
@@ -335,6 +336,8 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
     const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
     const [taskGroups, setTaskGroups] = useState<TaskGroup[]>([]);
+    const taskGroupsRef = useRef(taskGroups);
+    taskGroupsRef.current = taskGroups;
     const {
         candidates: videoLibraryCandidates,
         isLoading: videoLibraryLoading,
@@ -342,7 +345,14 @@ export const VideoPage: React.FC<VideoPageProps> = ({
     const [imagePrompts, setImagePrompts] = useState<Record<string, string>>({});
     const [tasksStatus, setTasksStatus] = useState<Record<string, TaskStatus>>({});
     const projectMaterialPicker = useProjectMaterialPicker(materialLibrary, undefined, undefined, undefined, 'all');
-    const [projectMaterialTarget, setProjectMaterialTarget] = useState<{ groupUuid: string; imageId: string } | null>(null);
+    const [projectMaterialTarget, setProjectMaterialTarget] = useState<{ groupUuid: string; imageId?: string } | null>(null);
+    const [candidateUploadBusy, setCandidateUploadBusy] = useState(false);
+    const candidateOwner = useRef({ active: true });
+    useEffect(() => {
+        const owner = { active: true };
+        candidateOwner.current = owner;
+        return () => { owner.active = false; };
+    }, [sessionScope]);
     const [projectMaterialLoading, setProjectMaterialLoading] = useState(false);
     const [projectMaterialBusy, setProjectMaterialBusy] = useState(false);
     const [projectMaterialError, setProjectMaterialError] = useState<string | null>(null);
@@ -354,7 +364,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         catch { setProjectMaterialError('项目素材加载失败，请点击“刷新素材”重试。'); }
         finally { setProjectMaterialLoading(false); }
     };
-    const openProjectMaterials = (groupUuid: string, imageId: string) => {
+    const openProjectMaterials = (groupUuid: string, imageId?: string) => {
         projectMaterialPicker.setMaterialPickerFilter('all');
         projectMaterialPicker.setMaterialPickerSearch('');
         setProjectMaterialTarget({ groupUuid, imageId });
@@ -666,12 +676,20 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
     const getEffectiveGroupPrompt = useCallback((group: TaskGroup | undefined): string => {
         if (!group?.ids?.[0]) return '';
-        const current = imagePrompts[group.ids[0]] || '';
+        let current = imagePrompts[group.ids[0]] || '';
+        const firstSnapshot = group.mergedFrom?.[0];
+        if (firstSnapshot && current === firstSnapshot.prompt) {
+            current = mergeStoryboardVideoPrompts(group.mergedFrom!.map(snapshot => {
+                const prompt = snapshot.seedanceParams?.prompt || snapshot.dashScopeParams?.prompt || snapshot.prompt || '';
+                const shot = getImageShotInfo(snapshot.ids[0]);
+                return `${shot ? shot.label + '\n' : ''}${upgradeLegacyStoryboardVideoPrompt(prompt, getStoryboardPromptSourcesForGroup({ ...group, ids: snapshot.ids }))}`;
+            }));
+        }
         return upgradeLegacyStoryboardVideoPrompt(
             current,
             getStoryboardPromptSourcesForGroup(group),
         );
-    }, [getStoryboardPromptSourcesForGroup, imagePrompts]);
+    }, [getStoryboardPromptSourcesForGroup, imagePrompts, getImageShotInfo]);
 
     const getCharacterNameForGroup = useCallback((group: TaskGroup): string => {
         const itemId = group.ids?.[0];
@@ -1510,10 +1528,11 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
     const selectProjectMaterial = async (item: ProjectMaterialPickerItem) => {
         if (!projectMaterialTarget || projectMaterialLock.current) return;
-        const { groupUuid, imageId } = projectMaterialTarget;
-        const group = taskGroups.find(candidate => candidate.uuid === groupUuid && candidate.ids.includes(imageId));
+        const { groupUuid } = projectMaterialTarget;
+        const group = taskGroupsRef.current.find(candidate => candidate.uuid === groupUuid);
+        const imageId = projectMaterialTarget.imageId || group?.ids.find(id => uploadedImages.some(image => image.id === id && (image.isPlaceholder || !image.url)));
         const currentImage = uploadedImages.find(candidate => candidate.id === imageId);
-        if (!group || !currentImage) {
+        if (!group || (imageId && (!currentImage || !group.ids.includes(imageId)))) {
             setProjectMaterialError('目标卡片已不存在，请关闭弹窗后重新选择。');
             return;
         }
@@ -1526,7 +1545,15 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         setProjectMaterialError(null);
         let applied = false;
         try {
-            const image = applyVideoProjectMaterial(currentImage, item.material);
+            const image = applyVideoProjectMaterial(currentImage || { id: generateUUID(), url: '', filename: '', uploadTime: Date.now(), isPlaceholder: true }, item.material);
+            if (!imageId) {
+                const next = appendCandidateImages(groupUuid, [image]);
+                applied = true;
+                if (!(await saveSessionRef.current({ task_groups: next })).success) throw new Error('工作区保存失败');
+                setProjectMaterialTarget(null);
+                showToast('画面已保存，请在下方选择首尾帧或参考图');
+                return;
+            }
             const images = uploadedImages.map(candidate => candidate.id === imageId ? image : candidate);
             const seedanceParams = { ...seedanceParamsForSession };
             const dashscopeParams = { ...dashScopeParamsByUuid };
@@ -1565,6 +1592,45 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         } finally {
             projectMaterialLock.current = false;
             setProjectMaterialBusy(false);
+        }
+    };
+
+    const appendCandidateImages = (uuid: string, images: UploadedImage[]) => {
+        const next = taskGroupsRef.current.map(group => {
+            if (group.uuid !== uuid) return group;
+            const seen = new Set(getVideoCardImages(group, uploadedImages).map(image => image.storageUrl || image.url));
+            const added = images.filter(image => {
+                const key = image.storageUrl || image.url;
+                if (!key || seen.has(key)) return false;
+                seen.add(key); return true;
+            });
+            return { ...group, candidateImages: [...(group.candidateImages || []), ...added] };
+        });
+        taskGroupsRef.current = next;
+        setTaskGroups(next);
+        return next;
+    };
+
+    const uploadCandidateImages = async (uuid: string, files: FileList | null) => {
+        if (!files?.length || candidateUploadBusy || projectMaterialLock.current) return;
+        setCandidateUploadBusy(true);
+        const owner = candidateOwner.current;
+        const added: UploadedImage[] = [];
+        try {
+            for (const file of Array.from(files)) {
+                if (!file.type.startsWith('image/')) throw new Error('请选择图片文件');
+                const result = await uploadImage(file);
+                added.push(applyVideoProjectMaterial({ id: generateUUID(), url: '', filename: '', uploadTime: Date.now(), isPlaceholder: true }, {
+                    id: generateUUID(), type: 'image', name: file.name, url: result.storage_url || result.url, source: 'upload', timestamp: Date.now(),
+                }));
+            }
+        } catch { showToast('部分画面上传失败，已上传的会保留，请重试失败的文件'); }
+        finally {
+            if (added.length && owner.active) {
+                const next = appendCandidateImages(uuid, added);
+                if (!(await saveSessionRef.current({ task_groups: next })).success) showToast('画面保存失败，请重试保存后再刷新');
+            }
+            if (owner.active) setCandidateUploadBusy(false);
         }
     };
 
@@ -1907,6 +1973,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             durationUserOverride: groupA.durationUserOverride,
             shotType: groupA.shotType,
             h3SageAttention: groupA.h3SageAttention,
+            candidateImages: [...(groupA.candidateImages || []), ...(groupB.candidateImages || [])],
         };
 
         setTaskGroups(prev => {
@@ -1928,8 +1995,8 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         const group = taskGroups[index];
         if (group.ids.length !== 2) return;
 
-        const newA: TaskGroup = { uuid: generateUUID(), ids: [group.ids[0]], model: group.model, h3SageAttention: group.h3SageAttention };
-        const newB: TaskGroup = { uuid: generateUUID(), ids: [group.ids[1]], model: group.model, h3SageAttention: group.h3SageAttention };
+        const newA: TaskGroup = { uuid: generateUUID(), ids: [group.ids[0]], model: group.model, h3SageAttention: group.h3SageAttention, candidateImages: group.candidateImages };
+        const newB: TaskGroup = { uuid: generateUUID(), ids: [group.ids[1]], model: group.model, h3SageAttention: group.h3SageAttention, candidateImages: group.candidateImages };
 
         setTaskGroups(prev => {
             const next = [...prev];
@@ -2115,6 +2182,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 duration: getGroupMergeDuration(g),
                 durationUserOverride: g.durationUserOverride,
                 h3SageAttention: g.h3SageAttention,
+                candidateImages: g.candidateImages,
                 prompt: dash?.prompt || seed?.prompt || getEffectiveGroupPrompt(g),
                 mediaInputs,
                 seedanceParams: seed,
@@ -2143,11 +2211,18 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         };
         const mergedFrom = groupsToMerge.flatMap(childrenOf);
         const mergedIds = groupsToMerge.flatMap(g => g.ids || []);
-        const mergedPrompt = mergedFrom
-            .map(snapshot => snapshot.seedanceParams?.prompt || snapshot.dashScopeParams?.prompt || snapshot.prompt)
-            .filter(Boolean)
-            .join('\n');
-        const mergedMedia = mergedFrom.flatMap(snapshot => (
+        // Snapshots are for splitting, not the source of the current edited prompt.
+        // A second merge must retain edits made after the first merge.
+        const mergedPrompt = mergeStoryboardVideoPrompts(groupsToMerge.map(g => {
+            const prompt = isDashScopeVideoModel(g.model)
+                ? getDashScopeParams(g.uuid, g.model as DashScopeVideoModel).prompt
+                : isSeedanceModel(g.model) ? getSeedanceParams(g.uuid, g.model).prompt
+                    : getEffectiveGroupPrompt(g);
+            return g.mergedFrom?.length ? prompt
+                : `${getGroupShotRange(g, taskGroups.indexOf(g)).label.replace(/^#/, '镜头')}\n${prompt}`;
+        }));
+        setImagePrompts(prev => ({ ...prev, [A.ids[0]]: mergedPrompt }));
+        const mergedMedia = groupsToMerge.map(snap).flatMap(snapshot => (
             snapshot.mediaInputs
             || snapshot.seedanceParams?.media_inputs
             || snapshot.dashScopeParams?.media_inputs
@@ -2199,6 +2274,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 duration: plan.totalDuration,
                 durationUserOverride: true,
                 mergedFrom,
+                candidateImages: groupsToMerge.flatMap(group => group.candidateImages || []),
                 h3LongVideo: mergedFrom.length <= 8 ? current.h3LongVideo : false,
                 h3Upscale720p: current.h3Upscale720p,
             });
@@ -2220,6 +2296,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         getMetaDurationSecondsForImageId,
         getGroupMergeDuration,
         getEffectiveGroupPrompt,
+        getGroupShotRange,
         getSeedanceParams,
         getDashScopeParams,
         isSeedanceModel,
@@ -2252,7 +2329,9 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             duration: c.duration,
             durationUserOverride: c.durationUserOverride,
             h3SageAttention: c.h3SageAttention,
+            candidateImages: [...(c.candidateImages || []), ...(g.candidateImages || [])],
         }));
+        setImagePrompts(prev => ({ ...prev, ...Object.fromEntries(children.map(c => [c.ids[0], c.prompt || ''])) }));
 
         setSeedanceParamsByUuid(prev => {
             const next = { ...prev };
@@ -2328,6 +2407,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 durationUserOverride: range.length > 1 ? true : first.durationUserOverride,
                 h3SageAttention: first.h3SageAttention,
                 mergedFrom: range.length > 1 ? range.map(snapshot => ({ ...snapshot })) : undefined,
+                candidateImages: [...range.flatMap(snapshot => snapshot.candidateImages || []), ...(current.candidateImages || [])],
             };
             return {
                 group,
@@ -2336,6 +2416,9 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 taskStatus: mergeTaskStatusHistories(range.map(snapshot => snapshot.taskStatus)),
             };
         });
+        setImagePrompts(prev => ({ ...prev, ...Object.fromEntries(rebuilt.map(({ group, range }) => [
+            group.ids[0], mergeStoryboardVideoPrompts(range.map(snapshot => snapshot.prompt || '')),
+        ])) }));
 
         setSeedanceParamsByUuid(prev => {
             const next = { ...prev };
@@ -2350,7 +2433,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 if (!base) return;
                 next[group.uuid] = {
                     ...base,
-                    prompt: range.map(snapshot => snapshot.seedanceParams?.prompt || snapshot.prompt).filter(Boolean).join('\n'),
+                    prompt: mergeStoryboardVideoPrompts(range.map(snapshot => snapshot.seedanceParams?.prompt || snapshot.prompt || '')),
                     media_inputs: range.flatMap(snapshot => snapshot.seedanceParams?.media_inputs || []),
                     duration,
                 };
@@ -2370,7 +2453,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 if (!base) return;
                 next[group.uuid] = {
                     ...base,
-                    prompt: range.map(snapshot => snapshot.dashScopeParams?.prompt || snapshot.prompt).filter(Boolean).join('\n'),
+                    prompt: mergeStoryboardVideoPrompts(range.map(snapshot => snapshot.dashScopeParams?.prompt || snapshot.prompt || '')),
                     media_inputs: range.flatMap(snapshot => snapshot.dashScopeParams?.media_inputs || []),
                     duration,
                     hh_duration: duration,
@@ -4065,7 +4148,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                     title={title}
                     value={value}
                     onChange={onChange}
-                    candidates={candidates}
+                    candidates={withVideoCardCandidates(group ? getVideoCardImages(group, uploadedImages) : [], candidates)}
                     onClose={onClose}
                     onUsePreviousVideoAudio={() => void usePreviousVideoAudioAsReference(groupUuid)}
                     previousVideoAudioBusy={referenceAudioExtractingUuid === groupUuid}
@@ -4394,9 +4477,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
         if (!img1) return null;
 
-        const sourceImages = group.ids
-            .map(id => uploadedImages.find(image => image.id === id))
-            .filter((image): image is UploadedImage => Boolean(image));
+        const sourceImages = getVideoCardImages(group, uploadedImages);
         const sourcePlaceholderCount = getVideoResultPlaceholderCount(sourceImages.length);
 
 
@@ -4532,10 +4613,15 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 </div>
 
 
+                <div className="mb-1 flex items-center gap-3 text-[10px] text-n100">
+                    <span>画面素材 · {sourceImages.filter(image => image.url && !image.isPlaceholder).length}（下方选择首尾帧或参考图）</span>
+                    <button type="button" onClick={() => openProjectMaterials(group.uuid)} disabled={candidateUploadBusy || projectMaterialBusy} className="ml-auto text-primary">添加画面</button>
+                    {!isPlaceholderCard && <label className="cursor-pointer text-primary">上传画面<input aria-label="上传卡片画面" type="file" multiple accept="image/*" hidden disabled={candidateUploadBusy} onChange={event => { void uploadCandidateImages(group.uuid, event.target.files); event.target.value = ''; }} /></label>}
+                </div>
                 <div className={`mb-1 grid w-full grid-cols-4 gap-2 overflow-y-auto ${CARD_MEDIA_HEIGHT_CLASS}`} data-testid="video-source-grid">
                     {sourceImages.map((image, sourceIndex) => {
                         const isEmptySource = image.isPlaceholder || !image.url;
-                        const sourceLabel = isPair
+                        const sourceLabel = isPair && sourceIndex < 2
                             ? (sourceIndex === 0 ? 'Start' : 'End')
                             : (sourceImages.length > 1 ? `#${sourceIndex + 1}` : '');
 
@@ -4581,6 +4667,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                                 {sourceLabel && (
                                     <div className="absolute bottom-0 left-0 rounded-tr bg-n900/60 px-1 text-[9px] text-white">{sourceLabel}</div>
                                 )}
+                                {!group.ids.includes(image.id) && <button type="button" title="移除备选画面（保留已选首尾帧）" onClick={event => { event.stopPropagation(); patchTaskGroup(group.uuid, { candidateImages: (group.candidateImages || []).filter(candidate => candidate.id !== image.id) }); }} className="absolute right-1 top-1 rounded bg-n900/70 p-1 text-white"><X className="h-3 w-3" /></button>}
                                 {sourceIndex === 0 && !isPair && !group.mergedFrom?.length && !image.isUploading && (
                                     <button
                                         type="button"
@@ -4608,13 +4695,13 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                         );
                     })}
                     {Array.from({ length: sourcePlaceholderCount }, (_, slotIndex) => (
-                        <div
+                        <button type="button" title="从项目素材添加画面" onClick={() => openProjectMaterials(group.uuid)}
                             key={`empty-source-${slotIndex}`}
                             data-testid="video-source-placeholder"
                             className="flex h-full min-h-[72px] items-center justify-center rounded border border-dashed border-n40 bg-n20/60 text-n100"
                         >
-                            <ImageIcon className="h-4 w-4 opacity-40" />
-                        </div>
+                            <Plus className="h-4 w-4 opacity-40" /><span className="text-[10px]">添加画面</span>
+                        </button>
                     ))}
                 </div>
 
@@ -4642,6 +4729,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                     ) : isSeedanceModel(group.model) ? (
                         <React.Suspense fallback={<VideoProviderPanelFallback label="加载 Seedance 面板..." />}>
                             <SeedancePanelWithCandidates
+                                cardImages={sourceImages}
                                 value={getSeedanceParams(group.uuid, group.model)}
                                 onChange={(next) => setSeedanceParams(group.uuid, next)}
                                 autoOpenMentionOnMount={!!img1.isPlaceholder && (getSeedanceParams(group.uuid, group.model).prompt || '').trim() === '@'}

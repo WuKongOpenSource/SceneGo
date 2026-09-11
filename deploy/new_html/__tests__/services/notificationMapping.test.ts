@@ -30,6 +30,12 @@ function row(overrides: Partial<ServerNotificationRow> = {}): ServerNotification
 }
 
 describe('notificationMapping', () => {
+    it('keeps the concrete 1.5 model when the server notification is reloaded', () => {
+        const task = mapNotificationToTask(row({ title: '视频 · Seedance15 · 推门', metadata: { sub_model: 'agent_plan', model: 'seedance' } }));
+        expect(task?.kind).toBe('seedance-1.5');
+        expect(task?.title).toContain('Seedance 1.5 Pro');
+        expect(task?.title).not.toContain('Seedance 2.0');
+    });
     describe('mapNotificationToTask', () => {
         it('maps a completed notification to RegisteredTask with status=completed', () => {
             const t = mapNotificationToTask(row());

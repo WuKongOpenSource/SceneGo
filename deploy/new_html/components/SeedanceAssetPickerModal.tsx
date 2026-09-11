@@ -13,10 +13,12 @@ export interface SeedanceAssetPickerModalProps {
     candidates: SeedanceAssetCandidate[];
     imageLimit?: number;
     firstLast?: boolean;
+    targetFrame?: 'first_frame' | 'last_frame';
+    onUploadImage?: () => void;
 }
 
 const GROUP_LABELS: Record<string, string> = {
-    current_card: '当前卡',
+    current_card: '当前卡画面',
     storyboard_data: '分镜',
     storyboard_library: '分镜生成资源',
     assets: '素材库',
@@ -42,7 +44,16 @@ export const SeedanceAssetPickerModal: React.FC<SeedanceAssetPickerModalProps> =
         let next = p.value;
         for (const cand of p.candidates) {
             if (selected.has(cand.id)) {
-                if (cand.group === 'ark_asset_id') {
+                if (p.targetFrame && cand.kind === 'image' && cand.url) {
+                    const images = next.media_inputs.filter(item => item.kind === 'image');
+                    const first = images.find(item => item.role === 'first_frame') || images.find(item => item.role !== 'last_frame');
+                    const target = p.targetFrame === 'first_frame' ? first
+                        : images.find(item => item.role === 'last_frame') || images.find(item => item !== first);
+                    const replacement = { kind: 'image' as const, url: cand.url, role: p.targetFrame };
+                    next = { ...next, reference_mode: 'first_last', media_inputs: target
+                        ? next.media_inputs.map(item => item === target ? replacement : item)
+                        : [...next.media_inputs, replacement] };
+                } else if (cand.group === 'ark_asset_id') {
                     const valid = parseArkAssetId(arkRaw);
                     if (!valid) continue;
                     next = insertMention(next, { ...cand, arkAssetId: valid });
@@ -72,7 +83,7 @@ export const SeedanceAssetPickerModal: React.FC<SeedanceAssetPickerModalProps> =
         <div className="app-modal-backdrop fixed inset-0 z-50 bg-n900/50 flex items-center justify-center" onClick={p.onClose}>
             <div role="dialog" aria-modal="true" aria-label="从素材库添加" className="app-modal-surface w-[600px] max-h-[80vh] bg-n0 border border-n40 rounded-md shadow-bottom overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between px-3 py-2 border-b border-n40">
-                    <div className="text-sm text-n700">从库里添加（多选）</div>
+                    <div className="text-sm text-n700">{p.targetFrame ? `选择${p.targetFrame === 'first_frame' ? '首帧' : '尾帧'}（单选）` : '从库里添加（多选）'}</div>
                     {episodeId && (
                         <div className="ml-auto mr-2 flex items-center gap-1 p-0.5 rounded-md border border-n40 bg-n20" title="素材引用范围">
                             <button
@@ -138,6 +149,7 @@ export const SeedanceAssetPickerModal: React.FC<SeedanceAssetPickerModalProps> =
                                             key={c.id}
                                             type="button"
                                             onClick={() => setSelected(s => {
+                                                if (p.targetFrame) return new Set([c.id]);
                                                 const ns = new Set(s); ns.has(c.id) ? ns.delete(c.id) : ns.add(c.id); return ns;
                                             })}
                                             className={`relative p-2 rounded border text-left ${selected.has(c.id) ? 'border-primary bg-primary-light' : 'border-n40 hover:bg-n20'}`}
@@ -160,9 +172,10 @@ export const SeedanceAssetPickerModal: React.FC<SeedanceAssetPickerModalProps> =
                     ))}
                 </div>
                 <div className="flex items-center justify-end gap-2 px-3 py-2 border-t border-n40">
+                    {p.onUploadImage && <button type="button" onClick={p.onUploadImage} className="mr-auto px-3 py-1 text-xs text-primary">上传图片</button>}
                     <button onClick={p.onClose} className="px-3 py-1 text-xs text-n700">取消</button>
                     <button onClick={apply} disabled={selected.size === 0} className="px-3 py-1 text-xs bg-primary hover:bg-primary-hover disabled:opacity-40 rounded text-white">
-                        添加 {selected.size} 项
+                        {p.targetFrame ? `设为${p.targetFrame === 'first_frame' ? '首帧' : '尾帧'}` : `添加 ${selected.size} 项`}
                     </button>
                 </div>
             </div>
