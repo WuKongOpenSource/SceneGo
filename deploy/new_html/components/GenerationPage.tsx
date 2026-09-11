@@ -53,6 +53,7 @@ import {
 } from '@runtime/clusterNodeService';
 import { formatProcessingNodeName } from '../utils/processingTerminology';
 import { fitAngleOutputDimensions } from '../utils/angleOutputSize';
+import { buildHorizontalCameraOrbitInstruction, CAMERA_ORBIT_HELP } from '../utils/cameraAnglePrompt';
 import { StoryboardResultImage } from './StoryboardResultImage';
 import { StoryboardTaskCards } from './StoryboardTaskCards';
 import { useTaskManager } from '../contexts/TaskContext';
@@ -2047,15 +2048,8 @@ export const GenerationPage: React.FC<GenerationPageProps> = ({
             const prompts: string[] = [];
 
 
-            if (params.rotate === -90) {
-                prompts.push("将镜头向左旋转90度 Rotate the camera 90 degrees to the left.");
-            } else if (params.rotate === -45) {
-                prompts.push("将镜头向左旋转45度 Rotate the camera 45 degrees to the left.");
-            } else if (params.rotate === 45) {
-                prompts.push("将镜头向右旋转45度 Rotate the camera 45 degrees to the right.");
-            } else if (params.rotate === 90) {
-                prompts.push("将镜头向右旋转90度 Rotate the camera 90 degrees to the right.");
-            }
+            const orbit = buildHorizontalCameraOrbitInstruction(params.rotate);
+            if (orbit) prompts.push(orbit);
 
 
             if (params.move === 5) {
@@ -4105,17 +4099,18 @@ const CameraAngleModal: React.FC<CameraAngleModalProps> = ({
 
                     <div className="space-y-5">
                         <div className="rounded-md border border-primary/20 bg-primary/5 p-3 text-xs leading-5 text-n700">
-                            <strong className="block text-primary">单视角精确调整</strong>
+                            <strong className="block text-primary">单视角机位调整</strong>
                             仅生成 1 张指定镜头角度；需要一次获得 14 个身份一致视角时，请使用“多角度人物生成”。
                         </div>
                         <div className="space-y-3 bg-n20 border border-n40 rounded-md p-4">
                             <h4 className="text-xs font-bold text-n300 uppercase">镜头控制</h4>
                             <DiscreteSlider
-                                label="水平旋转 (°)"
+                                label="水平环绕机位 (°)"
                                 values={[-90, -45, 0, 45, 90]}
                                 value={rotate}
                                 onChange={setRotate}
                             />
+                            <p className="text-[11px] leading-5 text-n300">{CAMERA_ORBIT_HELP}</p>
                             <DiscreteSlider
                                 label="推进距离"
                                 values={[0, 5, 10]}
@@ -4182,6 +4177,7 @@ const CameraAngleModal: React.FC<CameraAngleModalProps> = ({
                     <button
                         type="button"
                         onClick={() => onMirror(imageUrl)}
+                        title="仅左右翻转画面，不改变拍摄机位"
                         disabled={isProcessing || isMirroring}
                         className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary-light px-4 py-2 text-xs font-semibold text-primary hover:border-primary disabled:cursor-not-allowed disabled:opacity-50"
                     >

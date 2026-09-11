@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { buildHorizontalCameraOrbitInstruction, CAMERA_ORBIT_HELP } from '../utils/cameraAnglePrompt';
 import {
   User, Mountain, Sword, Plus, Trash2, Loader, Palette, ArrowRight, Check,
   Upload, ZoomIn, X, Sparkles, Camera, Maximize, Grid3X3,
@@ -706,12 +707,13 @@ export const DesignPage: React.FC = () => {
     setBusyAssetId(payload.assetId); setBusyLabel('角度调整中...');
     try {
       const prompts: string[] = [];
-      if (payload.rotate !== 0) prompts.push(payload.rotate > 0 ? `Rotate camera ${payload.rotate}° to the right.` : `Rotate camera ${Math.abs(payload.rotate)}° to the left.`);
+      const orbit = buildHorizontalCameraOrbitInstruction(payload.rotate);
+      if (orbit) prompts.push(orbit);
       if (payload.move > 0) prompts.push(`Move camera forward by ${payload.move} steps.`);
       if (payload.vertical === 1) prompts.push("Turn the camera to a worm's-eye view.");
       else if (payload.vertical === -1) prompts.push("Turn the camera to a bird's-eye view.");
       if (payload.wideAngle) prompts.push("Switch to a wide-angle lens.");
-      const finalPrompt = payload.customPrompt?.trim() || prompts.join(' ') || 'Adjust the camera angle slightly.';
+      const finalPrompt = payload.customPrompt?.trim() || prompts.join(' ') || '保持当前画面构图和内容。';
       const result = await runOnlineImageOperation({
         operation: 'angle_adjustment',
         sourceImage: payload.imageUrl,
@@ -2353,17 +2355,18 @@ const CameraModal: React.FC<{
           <div className="space-y-4">
             <div className="bg-n30 border border-n40 rounded-lg p-4 space-y-4">
               <DiscreteChoiceControl
-                label="水平旋转"
+                label="水平环绕机位 (°)"
                 value={rotate}
                 onChange={setRotate}
                 options={[
-                  { value: -90, label: '左转 90°' },
-                  { value: -45, label: '左转 45°' },
-                  { value: 0, label: '正面' },
-                  { value: 45, label: '右转 45°' },
-                  { value: 90, label: '右转 90°' },
+                  { value: -90, label: '左绕 90°' },
+                  { value: -45, label: '左绕 45°' },
+                  { value: 0, label: '原机位' },
+                  { value: 45, label: '右绕 45°' },
+                  { value: 90, label: '右绕 90°' },
                 ]}
               />
+              <p className="text-[11px] leading-5 text-n300">{CAMERA_ORBIT_HELP}</p>
               <DiscreteChoiceControl
                 label="推进距离"
                 value={move}

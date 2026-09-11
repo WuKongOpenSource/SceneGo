@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { generateDoubaoImages } from '../../services/doubaoService';
+import { buildHorizontalCameraOrbitInstruction, CAMERA_VIEWPOINT_GUARD } from '../../utils/cameraAnglePrompt';
 import {
   buildOnlineImageOperationPrompt,
   ONLINE_IMAGE_OPERATION_MODEL,
@@ -23,6 +24,32 @@ describe('onlineImageOperationService', () => {
     expect(prompt).toContain('Rotate camera 45 degrees to the right.');
     expect(prompt).toContain('Preserve the subject identity');
     expect(prompt).toContain('Do not add or remove people, objects');
+    expect(prompt).toContain(CAMERA_VIEWPOINT_GUARD);
+  });
+
+  it.each([-90, -45, 0, 45, 90])('submits the original reference and guarded %s degree instruction', async angle => {
+    generateMock.mockResolvedValue([{ url: '/files/new-angle.png', fileId: 'new-angle' }]);
+    const instruction = buildHorizontalCameraOrbitInstruction(angle);
+    await runOnlineImageOperation({
+      operation: 'angle_adjustment', sourceImage: '/files/original.png', instruction,
+      entityType: 'asset', entityId: 'asset-1', fileRole: 'reference_image',
+      projectId: 'project-1', episodeId: 'episode-1',
+    });
+    expect(generateMock).toHaveBeenCalledTimes(1);
+    expect(generateMock).toHaveBeenCalledWith(expect.objectContaining({
+      model: ONLINE_IMAGE_OPERATION_MODEL, references: ['/files/original.png'],
+      entityType: 'asset', entityId: 'asset-1', fileRole: 'reference_image',
+      projectId: 'project-1', episodeId: 'episode-1', count: 1, size: '2K', sequential: 'disabled',
+    }));
+    const prompt = generateMock.mock.calls[0][0].prompt;
+    expect(prompt).toContain(CAMERA_VIEWPOINT_GUARD);
+    if (angle) expect(prompt).toContain(instruction);
+  });
+
+  it('does not impose camera-motion instructions on upscale or watermark removal', () => {
+    for (const operation of ['upscale_hd', 'remove_watermark'] as const) {
+      expect(buildOnlineImageOperationPrompt(operation)).not.toContain(CAMERA_VIEWPOINT_GUARD);
+    }
   });
 
   it('uses the public reference-image model and persists a 4K upscale result', async () => {

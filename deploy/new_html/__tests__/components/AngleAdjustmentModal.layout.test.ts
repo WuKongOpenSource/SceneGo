@@ -23,7 +23,7 @@ describe('angle adjustment modal responsive layout', () => {
     expect(modal.indexOf('处理集群节点')).toBeGreaterThan(modal.indexOf('alt="预览"'));
     expect(modal.indexOf('处理集群节点')).toBeLessThan(modal.indexOf('<div className="space-y-5">'));
     expect(modal.indexOf('处理集群节点')).toBeLessThan(modal.lastIndexOf('生成新角度'));
-    expect(modal).toContain('单视角精确调整');
+    expect(modal).toContain('单视角机位调整');
     expect(modal).toContain('仅生成 1 张指定镜头角度');
     expect(modal).toContain('formatClusterNodeQueue(node)');
     expect(modal).toContain('水平镜像');

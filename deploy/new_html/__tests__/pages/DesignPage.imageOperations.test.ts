@@ -7,7 +7,7 @@ const source = readFileSync(resolve(__dirname, '../../pages/DesignPage.tsx'), 'u
 describe('DesignPage image operation modals', () => {
   it('uses discrete angle choices instead of fixed-step sliders', () => {
     expect(source).toContain('const DiscreteChoiceControl');
-    expect(source).toContain("label=\"水平旋转\"");
+    expect(source).toContain("label=\"水平环绕机位 (°)\"");
     expect(source).toContain("label=\"推进距离\"");
     expect(source).toContain("label=\"垂直视角\"");
     expect(source).not.toContain('type="range"');

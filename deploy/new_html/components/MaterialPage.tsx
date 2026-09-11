@@ -14,6 +14,7 @@ import {
   runOnlineImageOperation,
 } from '../services/onlineImageOperationService';
 import { generateThumbnail } from '../utils/imageOptimization';
+import { buildHorizontalCameraOrbitInstruction, CAMERA_ORBIT_HELP } from '../utils/cameraAnglePrompt';
 import { apiBlob, secureApiUrl } from '../services/httpClient';
 import {
   standardTurnaroundAspectRatio,
@@ -237,15 +238,8 @@ function buildCameraPrompt(payload: CameraGenerationPayload, shot: StoryboardIte
   const prompts: string[] = [];
 
 
-  if (payload.rotate === -90) {
-      prompts.push("将镜头向左旋转90度 Rotate the camera 90 degrees to the left.");
-  } else if (payload.rotate === -45) {
-      prompts.push("将镜头向左旋转45度 Rotate the camera 45 degrees to the left.");
-  } else if (payload.rotate === 45) {
-      prompts.push("将镜头向右旋转45度 Rotate the camera 45 degrees to the right.");
-  } else if (payload.rotate === 90) {
-      prompts.push("将镜头向右旋转90度 Rotate the camera 90 degrees to the right.");
-  }
+  const orbit = buildHorizontalCameraOrbitInstruction(payload.rotate);
+  if (orbit) prompts.push(orbit);
 
 
   if (payload.move === 5) {
@@ -2919,11 +2913,12 @@ const CameraModal: React.FC<{
                         <div className="space-y-3 bg-n20 border border-n40 rounded-md p-4">
                             <h4 className="text-xs font-bold text-n300 uppercase">镜头控制</h4>
                             <DiscreteSlider
-                                label="水平旋转 (°)"
+                                label="水平环绕机位 (°)"
                                 values={[-90, -45, 0, 45, 90]}
                                 value={rotate}
                                 onChange={setRotate}
                             />
+                            <p className="text-[11px] leading-5 text-n300">{CAMERA_ORBIT_HELP}</p>
                             <DiscreteSlider
                                 label="推进距离"
                                 values={[0, 5, 10]}

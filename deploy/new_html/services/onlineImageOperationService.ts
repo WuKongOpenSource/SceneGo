@@ -1,4 +1,5 @@
 import { generateDoubaoImages, type GeneratedFileResult } from './doubaoService';
+import { CAMERA_VIEWPOINT_GUARD } from '../utils/cameraAnglePrompt';
 
 export type OnlineImageOperation = 'angle_adjustment' | 'upscale_hd' | 'remove_watermark';
 
@@ -35,6 +36,7 @@ export function buildOnlineImageOperationPrompt(
     return [
       'Reconstruct the same scene from the requested camera angle and framing.',
       instruction?.trim() || 'Adjust the camera angle slightly while keeping the original composition recognizable.',
+      CAMERA_VIEWPOINT_GUARD,
       ...shared,
       'Do not add or remove people, objects, or environmental elements.',
     ].join(' ');
