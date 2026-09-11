@@ -124,8 +124,8 @@ describe('Seedance model scope submission', () => {
             prompt: 'make a multimodal shot',
             duration: 15,
             media_inputs: [
-                { kind: 'image', url: '/ref-a.png', role: 'reference_image' },
-                { kind: 'image', url: '/ref-b.png', role: 'reference_image' },
+                { kind: 'image', url: '/ref-a.png', file_id: 'sb_storyboard_only', role: 'reference_image' },
+                { kind: 'image', url: '/ref-b.png', file_id: 'file_real_reference', role: 'reference_image' },
                 { kind: 'video', url: '/ref.mp4', role: 'reference_video' },
                 { kind: 'audio', url: '/ref.mp3', role: 'reference_audio' },
             ],
@@ -139,7 +139,7 @@ describe('Seedance model scope submission', () => {
             duration: 15,
             media_inputs: [
                 { kind: 'image', url: '/ref-a.png', role: 'reference_image' },
-                { kind: 'image', url: '/ref-b.png', role: 'reference_image' },
+                { kind: 'image', url: '/ref-b.png', file_id: 'file_real_reference', role: 'reference_image' },
                 { kind: 'video', url: '/ref.mp4', role: 'reference_video' },
                 { kind: 'audio', url: '/ref.mp3', role: 'reference_audio' },
             ],

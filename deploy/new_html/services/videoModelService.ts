@@ -167,24 +167,40 @@ export function normalizeSeedanceMediaForSubmission(
   media: SeedanceMediaInput[] = [],
   agentPlanCompat: boolean = false,
 ): SeedanceMediaInput[] {
-  if (!agentPlanCompat || !media.length) return media;
-  if (media.some((m) => m.kind !== 'image')) return media;
+  // Workspace image ids (for example `sb_*`) identify storyboard records, not
+  // rows in the files table. Older merged cards could persist those ids as
+  // `file_id`; submitting both that id and an otherwise valid URL makes the
+  // server correctly reject the request. Keep the URL and discard only known
+  // UI-only ids so existing saved cards repair themselves on their next run.
+  const normalized = media.map((item) => {
+    const fileId = String(item.file_id || '').trim();
+    if (!fileId || fileId.startsWith('sb_') || fileId.startsWith('ref_')) {
+      if (!Object.prototype.hasOwnProperty.call(item, 'file_id')) return item;
+      const withoutUiId = { ...item };
+      delete withoutUiId.file_id;
+      return withoutUiId;
+    }
+    return item;
+  });
 
-  const images = media.filter((m) => m.kind === 'image');
+  if (!agentPlanCompat || !normalized.length) return normalized;
+  if (normalized.some((m) => m.kind !== 'image')) return normalized;
+
+  const images = normalized.filter((m) => m.kind === 'image');
   if (images.length === 1) {
-    return media.map((m) => (
+    return normalized.map((m) => (
       m.kind === 'image' ? { ...m, role: 'first_frame' } : m
     ));
   }
   if (images.length === 2) {
     let imageIndex = 0;
-    return media.map((m) => {
+    return normalized.map((m) => {
       if (m.kind !== 'image') return m;
       imageIndex += 1;
       return { ...m, role: imageIndex === 1 ? 'first_frame' : 'last_frame' };
     });
   }
-  return media;
+  return normalized;
 }
 
 

@@ -2244,7 +2244,10 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                     kind: 'image' as const,
                     role: 'reference_image' as const,
                     url,
-                    file_id: imageId,
+                    // A storyboard image id (`sb_*`) is not a files-table id.
+                    // Prefer the explicit upload id and only reuse the UI id
+                    // when it is already a canonical file reference.
+                    file_id: image?.fileId || (imageId.startsWith('file_') ? imageId : undefined),
                 }] : [];
             });
             const mediaInputs = seed?.media_inputs?.length

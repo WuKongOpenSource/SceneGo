@@ -176,6 +176,11 @@ describe('VideoPage external video persistence', () => {
     expect(saved.task_groups).toHaveLength(1);
     expect(saved.image_prompts.sb_1).toBe(expected);
     expect(saved.task_groups[0].mergedFrom).toHaveLength(3);
+    expect(saved.seedance_params?.merged.media_inputs).toEqual([
+      { kind: 'image', role: 'reference_image', url: '/sb_1.png' },
+      { kind: 'image', role: 'reference_image', url: '/sb_2.png' },
+      { kind: 'image', role: 'reference_image', url: '/sb_3.png' },
+    ]);
   });
 
   it('restores a legacy merged prompt with every action and saves the displayed segmented structure', async () => {
