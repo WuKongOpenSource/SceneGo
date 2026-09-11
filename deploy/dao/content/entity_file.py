@@ -438,6 +438,40 @@ class EntityFileDAO:
         return dict(row) if row else None
 
     @staticmethod
+    async def get_episode_enhance_files(episode_id: str) -> list:
+        """Read current video and actor audio in one episode-scoped query."""
+        db = get_db_manager()
+        if not db:
+            return []
+        rows = await db.fetch(
+            """
+            WITH ranked AS (
+                SELECT f.file_id, f.file_url, f.file_type, f.file_role,
+                       f.is_selected, f.created_at, f.entity_id,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY f.entity_id, f.file_role
+                           ORDER BY CASE WHEN f.file_role = 'video' AND f.is_selected
+                                         THEN 0 ELSE 1 END,
+                                    f.created_at DESC, f.file_id DESC
+                       ) AS position
+                FROM files f
+                JOIN video_segments s ON s.segment_id = f.entity_id
+                WHERE s.episode_id = $1 AND f.entity_type = 'video_segment'
+                  AND f.is_deleted = FALSE
+                  AND f.file_role IN ('video', 'actor_dubbing')
+                  AND COALESCE(f.file_url, '') <> ''
+            )
+            SELECT file_id, file_url, file_type, file_role, is_selected,
+                   created_at, entity_id
+            FROM ranked
+            WHERE position <= CASE WHEN file_role = 'video' THEN 1 ELSE 50 END
+            ORDER BY entity_id, file_role, position
+            """,
+            episode_id,
+        )
+        return [dict(row) for row in rows]
+
+    @staticmethod
     async def get_files_for_entities(
         entity_type: str,
         entity_ids: list,

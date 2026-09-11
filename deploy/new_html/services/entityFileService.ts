@@ -50,6 +50,15 @@ export async function fetchEntityFiles(
   };
 }
 
+export async function fetchEpisodeEnhanceFiles(episodeId: string): Promise<EntityFile[]> {
+  const data = await apiJson<{ items?: any[] }>(
+    `/api/episodes/${encodeURIComponent(episodeId)}/enhance-files`,
+    { method: 'GET' },
+    'fetchEpisodeEnhanceFiles',
+  );
+  return (data.items || []).map(normalize);
+}
+
 export async function fetchUserFiles(
   fileType?: string,
   limit: number = 100,

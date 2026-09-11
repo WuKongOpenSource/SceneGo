@@ -187,6 +187,15 @@ def create_entity_files_router(
         except (EntityFileNotFound, ThumbnailFileNotFound) as exc:
             raise HTTPException(404, "回收站缩略图不存在") from exc
 
+    @router.get("/api/episodes/{episode_id}/enhance-files")
+    async def get_episode_enhance_files(
+        episode_id: str,
+        user_id: str = Depends(get_current_user),
+    ):
+        await guard_entity("episode", episode_id, user_id, "readonly")
+        items = await EntityFileDAO.get_episode_enhance_files(episode_id)
+        return {"success": True, "items": items}
+
     @router.get("/api/entity-files")
     async def get_entity_files(
         entity_type: str,

@@ -17,7 +17,7 @@ const state = vi.hoisted(() => ({
   episode: {
     assets: [], characterVoices: [], audioTracks: [], projectId: 'project-1',
     episodeId: 'episode-1', selectedScriptId: 'script-1', script: null,
-    isLoading: false, error: null, reload: vi.fn(), forceReloadSlices: vi.fn(),
+    isLoading: false, error: null, reload: vi.fn(), loadSlices: vi.fn(), forceReloadSlicesQuiet: vi.fn(),
   } as any,
 }));
 vi.mock('../../contexts/EpisodeContext', () => ({ useEpisode: () => state.episode }));

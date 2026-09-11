@@ -26,6 +26,8 @@ import {
   parseStringArray,
 } from '../utils/episodeAdapters';
 
+import { SliceRequests } from '../utils/sliceRequests';
+
 const EPISODE_CONTEXT_INITIAL_STORYBOARD_COUNT = 10;
 
 
@@ -201,6 +203,10 @@ export const EpisodeProvider: React.FC<EpisodeProviderProps> = ({ children, proj
   const [assetScopeMode, setAssetScopeModeState] = useState<AssetScopeMode>('episode');
 
   const loadedSlicesRef = useRef<Set<DataSlice>>(new Set());
+  const sliceRequests = useRef(new SliceRequests());
+  const episodeScopeRef = useRef('');
+  const loadingCountRef = useRef(0);
+  episodeScopeRef.current = `${projectId}:${episodeId}`;
   const selectedScriptIdRef = useRef<string | null>(null);
   const prevScriptIdRef = useRef<string | null>(null);
   const assetScopeModeRef = useRef<AssetScopeMode>('episode');
@@ -262,62 +268,81 @@ export const EpisodeProvider: React.FC<EpisodeProviderProps> = ({ children, proj
     }
   }, [episodeId]);
 
-  const fetchSlices = useCallback(async (optionsOrFirst?: DataSlice | { quiet?: boolean }, ...rest: DataSlice[]) => {
-    const quiet = typeof optionsOrFirst === 'object';
-    const slices = (quiet ? rest : [optionsOrFirst as DataSlice, ...rest]).filter(Boolean) as DataSlice[];
+  const fetchSlices = useCallback(async (optionsOrFirst?: DataSlice | { quiet?: boolean; cached?: boolean }, ...rest: DataSlice[]) => {
+    const options = typeof optionsOrFirst === 'object' ? optionsOrFirst : {};
+    const quiet = !!options.quiet;
+    const slices = [...new Set((typeof optionsOrFirst === 'object' ? rest : [optionsOrFirst as DataSlice, ...rest]).filter(Boolean))] as DataSlice[];
     if (!episodeId || slices.length === 0) return;
-    if (!quiet) setIsLoading(true);
+    if (!quiet) {
+      loadingCountRef.current += 1;
+      setIsLoading(true);
+    }
     setError(null);
-
+    const scope = `${projectId}:${episodeId}`;
+    const scriptId = selectedScriptIdRef.current;
+    const assetScope = assetScopeModeRef.current;
+    const isCurrent = (slice: DataSlice) => episodeScopeRef.current === scope
+      && (!['script', 'storyboardItems'].includes(slice) || selectedScriptIdRef.current === scriptId)
+      && (slice !== 'assets' || assetScopeModeRef.current === assetScope);
+    const checkResult = (result: { success?: boolean }) => {
+      if (!result.success) throw new Error('加载集数据失败，请重试');
+    };
     slices.forEach(s => loadedSlicesRef.current.add(s));
 
     const loaders: Record<DataSlice, () => Promise<void>> = {
       script: async () => {
-        const sid = selectedScriptIdRef.current;
+        const sid = scriptId;
         const res: any = sid
           ? await listEpisodeScripts(episodeId).catch(() => ({ success: false, scripts: [] }))
           : await getEpisodeScript(episodeId).catch(() => ({ success: false, script: null }));
-        if (selectedScriptIdRef.current !== sid || !res.success) return;
+        checkResult(res);
+        if (!isCurrent('script') || selectedScriptIdRef.current !== sid) return;
         const selectedScript = sid
           ? (res.scripts || []).find((item: any) => (item.script_id ?? item.scriptId) === sid)
           : res.script;
         setScript(selectedScript ? normalizeEpisodeScript(selectedScript) : null);
       },
       storyboardItems: async () => {
-        const sid = selectedScriptIdRef.current || undefined;
+        const sid = scriptId || undefined;
         const res = await getStoryboardItems(episodeId, sid, {
           limit: EPISODE_CONTEXT_INITIAL_STORYBOARD_COUNT,
           includeTotal: true,
         }).catch(() => ({ success: false, items: [], total: 0 }));
-        if (res.success) {
+        checkResult(res);
+        if (isCurrent('storyboardItems')) {
           const items = (res.items || []).map(normalizeStoryboardRecord);
           setStoryboardItems(items);
           setStoryboardTotalCount(typeof (res as any).total === 'number' ? (res as any).total : items.length);
         }
       },
       assets: async () => {
-        const scopeMode = assetScopeModeRef.current;
+        const scopeMode = assetScope;
         const queryEpisodeId = scopeMode === 'project' ? undefined : episodeId;
         const res = await getAssets(projectId, queryEpisodeId).catch(() => ({ success: false, assets: [] }));
-        if (res.success) {
+        checkResult(res);
+        if (isCurrent('assets')) {
           const normalized = (res.assets || []).map(normalizeAsset);
           setAssets(filterAssetsForEpisodeScope(normalized, episodeId, scopeMode));
         }
       },
       audioTracks: async () => {
         const res = await getAudioTracks(episodeId).catch(() => ({ success: false, tracks: [] }));
-        if (res.success) setAudioTracks((res.tracks || []).map(normalizeAudioTrack));
+        checkResult(res);
+        if (isCurrent('audioTracks')) setAudioTracks((res.tracks || []).map(normalizeAudioTrack));
       },
       videoSegments: async () => {
         const res = await getVideoSegments(episodeId).catch(() => ({ success: false, segments: [] }));
-        if (res.success) setVideoSegments((res.segments || []).map(normalizeVideoSegment));
+        checkResult(res);
+        if (isCurrent('videoSegments')) setVideoSegments((res.segments || []).map(normalizeVideoSegment));
       },
       characterVoices: async () => {
         const res = await getCharacterVoices(projectId).catch((e) => {
           console.warn('character_voices 加载失败:', e);
           return { success: false, voices: [] };
         });
-        if (res.success && Array.isArray(res.voices)) {
+        checkResult(res);
+        if (!isCurrent('characterVoices')) return;
+        if (Array.isArray(res.voices)) {
           setCharacterVoices(res.voices.map(normalizeCharacterVoice));
         } else {
           setCharacterVoices([]);
@@ -326,11 +351,17 @@ export const EpisodeProvider: React.FC<EpisodeProviderProps> = ({ children, proj
     };
 
     try {
-      await Promise.all(slices.map(s => loaders[s]()));
+      await Promise.all(slices.map(s => {
+        const key = `${scope}:${s}:${['script', 'storyboardItems'].includes(s) ? scriptId : ''}:${s === 'assets' ? assetScope : ''}`;
+        return sliceRequests.current.load(key, loaders[s], !options.cached);
+      }));
     } catch (e: any) {
-      setError(e.message || '加载集数据失败');
+      if (episodeScopeRef.current === scope) setError(e.message || '加载集数据失败');
     } finally {
-      if (!quiet) setIsLoading(false);
+      if (!quiet && episodeScopeRef.current === scope) {
+        loadingCountRef.current = Math.max(0, loadingCountRef.current - 1);
+        if (!loadingCountRef.current) setIsLoading(false);
+      }
     }
   }, [episodeId, projectId]);
 
@@ -342,6 +373,8 @@ export const EpisodeProvider: React.FC<EpisodeProviderProps> = ({ children, proj
 
   useEffect(() => {
     if (!episodeId || typeof window === 'undefined') return;
+    const pending = new Set<DataSlice>();
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const onEpisodeDataChanged = (event: Event) => {
       const detail = (event as CustomEvent<{
         episodeId?: string;
@@ -364,24 +397,28 @@ export const EpisodeProvider: React.FC<EpisodeProviderProps> = ({ children, proj
 
       const loaded = Array.from(slices).filter(slice => loadedSlicesRef.current.has(slice));
       if (loaded.length > 0) {
-        void fetchSlices({ quiet: true }, ...loaded);
+        loaded.forEach(slice => pending.add(slice));
+        if (!timer) timer = setTimeout(() => {
+          timer = undefined;
+          void fetchSlices({ quiet: true }, ...pending);
+          pending.clear();
+        }, 80);
       }
     };
 
     window.addEventListener('ostory:episode-data-changed', onEpisodeDataChanged);
-    return () => window.removeEventListener('ostory:episode-data-changed', onEpisodeDataChanged);
+    return () => {
+      window.removeEventListener('ostory:episode-data-changed', onEpisodeDataChanged);
+      clearTimeout(timer);
+    };
   }, [episodeId, fetchSlices]);
 
   const loadSlices = useCallback(async (...slices: DataSlice[]) => {
-    const newSlices = slices.filter(s => !loadedSlicesRef.current.has(s));
-    if (newSlices.length === 0) return;
-    await fetchSlices(...newSlices);
+    await fetchSlices({ cached: true, quiet: slices.every(slice => loadedSlicesRef.current.has(slice)) }, ...slices);
   }, [fetchSlices]);
 
   const loadSlicesQuiet = useCallback(async (...slices: DataSlice[]) => {
-    const newSlices = slices.filter(s => !loadedSlicesRef.current.has(s));
-    if (newSlices.length === 0) return;
-    await fetchSlices({ quiet: true }, ...newSlices);
+    await fetchSlices({ quiet: true, cached: true }, ...slices);
   }, [fetchSlices]);
 
   // Refresh already loaded data without replacing the active page with the
@@ -422,8 +459,13 @@ export const EpisodeProvider: React.FC<EpisodeProviderProps> = ({ children, proj
     }
   }, [fetchSlices]);
 
+  const previousEpisodeScope = useRef(`${projectId}:${episodeId}`);
   useEffect(() => {
+    if (previousEpisodeScope.current === `${projectId}:${episodeId}`) return;
+    previousEpisodeScope.current = `${projectId}:${episodeId}`;
     loadedSlicesRef.current.clear();
+    sliceRequests.current.clear();
+    loadingCountRef.current = 0;
     prevScriptIdRef.current = null;
     setSelectedScriptIdState(null);
     setScript(null);
@@ -434,7 +476,7 @@ export const EpisodeProvider: React.FC<EpisodeProviderProps> = ({ children, proj
     setVideoSegments([]);
     setCharacterVoices([]);
     setIsLoading(false);
-  }, [episodeId]);
+  }, [episodeId, projectId]);
 
   useEffect(() => {
     const previousScriptId = prevScriptIdRef.current;
@@ -509,8 +551,7 @@ export const EpisodeProvider: React.FC<EpisodeProviderProps> = ({ children, proj
     }
   }, [episodeId, reload]);
 
-  return (
-    <EpisodeContext.Provider value={{
+  const value = useMemo(() => ({
       episodeId,
       projectId,
       selectedScriptId,
@@ -537,7 +578,14 @@ export const EpisodeProvider: React.FC<EpisodeProviderProps> = ({ children, proj
       saveStoryboardItem,
       createStoryboardItems,
       extractToAssets: extractToAssetsFn,
-    }}>
+  }), [episodeId, projectId, selectedScriptId, setSelectedScriptId, isLoading, error,
+    script, storyboardItems, storyboardTotalCount, assets, audioTracks, videoSegments,
+    characterVoices, assetScopeMode, setAssetScopeMode, loadSlices, loadSlicesQuiet,
+    fetchSlices, forceReloadSlicesQuiet, loadStoryboardItemsPage, reload,
+    updateStoryboardDuration, saveScript, saveStoryboardItem, createStoryboardItems, extractToAssetsFn]);
+
+  return (
+    <EpisodeContext.Provider value={value}>
       {children}
     </EpisodeContext.Provider>
   );

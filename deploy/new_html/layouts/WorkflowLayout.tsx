@@ -8,6 +8,7 @@ import { NotificationPanel } from '../components/NotificationPanel';
 import { getCreditBalance } from '../services/creditService';
 import { apiJson } from '../services/httpClient';
 import AppSidebar, { type AppSidebarItem } from '../components/AppSidebar';
+import { preloadWorkflowPage } from '../utils/workflowPageImports';
 
 // The four-stage shell is the stable beginner-facing navigation contract.
 // Feature pages may evolve independently, but their stage ownership must remain
@@ -112,7 +113,7 @@ export const WorkflowLayout: React.FC = () => {
   ];
 
   return (
-    <EpisodeProvider>
+    <EpisodeProvider key={`${projectId}:${episodeId}`}>
       <div className="workflow-shell layout-safe flex h-screen min-w-0 overflow-hidden bg-n20 text-n800">
         <AppSidebar exportTo="final" tools={sidebarTools} credits={availableCredits} />
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -141,6 +142,8 @@ export const WorkflowLayout: React.FC = () => {
                       )}
                       <button
                         type="button"
+                        onPointerEnter={() => preloadWorkflowPage(stage.primary)}
+                        onFocus={() => preloadWorkflowPage(stage.primary)}
                         onClick={() => navigate(stage.primary)}
                         className="flex shrink-0 items-center gap-2 rounded px-1.5 py-1 transition-opacity hover:opacity-85"
                       >
@@ -188,6 +191,8 @@ export const WorkflowLayout: React.FC = () => {
               <button
                 type="button"
                 onClick={() => navigate('final')}
+                onPointerEnter={() => preloadWorkflowPage('final')}
+                onFocus={() => preloadWorkflowPage('final')}
                 className="inline-flex h-8 items-center gap-1.5 rounded-[9px] bg-primary px-3.5 text-xs font-semibold text-n0 shadow-glow transition-colors hover:bg-primary-hover"
               >
                 <Download size={13} />
@@ -214,6 +219,8 @@ export const WorkflowLayout: React.FC = () => {
                       )}
                       <NavLink
                         to={sub.path}
+                        onPointerEnter={() => preloadWorkflowPage(sub.path)}
+                        onFocus={() => preloadWorkflowPage(sub.path)}
                         aria-current={active ? 'step' : undefined}
                         aria-label={`${sub.label}，第 ${subStepNumber} 步`}
                         className={`group flex h-10 min-w-[132px] shrink-0 items-center gap-2.5 rounded-lg border px-2.5 transition-all ${

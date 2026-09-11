@@ -84,7 +84,8 @@ export const AudioStagePage: React.FC = () => {
   const {
     assets, characterVoices, audioTracks,
     projectId, episodeId, selectedScriptId, script, isLoading, error, reload,
-    forceReloadSlices,
+    loadSlices,
+    forceReloadSlicesQuiet,
   } = useEpisode();
   const [storyboardItems, setStoryboardItems] = useState<StoryboardItemDB[]>([]);
   const [storyboardLoading, setStoryboardLoading] = useState(false);
@@ -95,8 +96,8 @@ export const AudioStagePage: React.FC = () => {
   const storyboardItemsRef = useRef<StoryboardItemDB[]>([]);
 
   const reloadAudioTracks = useCallback(async () => {
-    await forceReloadSlices('audioTracks');
-  }, [forceReloadSlices]);
+    await forceReloadSlicesQuiet('audioTracks');
+  }, [forceReloadSlicesQuiet]);
 
   useEffect(() => {
     storyboardItemsRef.current = storyboardItems;
@@ -175,8 +176,8 @@ export const AudioStagePage: React.FC = () => {
 
 
   useEffect(() => {
-    forceReloadSlices('assets', 'characterVoices', 'script', 'audioTracks');
-  }, [forceReloadSlices]);
+    void loadSlices('assets', 'characterVoices', 'script', 'audioTracks');
+  }, [loadSlices]);
 
   useEffect(() => {
     let active = true;

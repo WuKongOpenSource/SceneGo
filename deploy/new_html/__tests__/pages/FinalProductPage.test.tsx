@@ -6,6 +6,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
 import FinalProductPage from '../../pages/FinalProductPage';
 import { listMediaItems } from '../../services/mediaLibraryService';
+import { getComposeStatus } from '../../services/videoWorkflowService';
 import { getFinalShare, listFinalFeedback } from '../../services/finalProductShareService';
 
 vi.mock('../../services/mediaLibraryService', () => ({ listMediaItems: vi.fn() }));
@@ -41,6 +42,37 @@ describe('FinalProductPage', () => {
     });
     (getFinalShare as any).mockResolvedValue({ success: true, share: null });
     (listFinalFeedback as any).mockResolvedValue({ success: true, feedback: [{ feedback_id: 'f1', author_name: '审片人', content: '节奏再慢一点', timestamp_seconds: 8, created_at: '2026-08-15T04:00:00Z' }] });
+  });
+
+  it('requests a bounded page and appends older versions only on demand', async () => {
+    const rows = Array.from({ length: 24 }, (_, index) => ({ library_item_id: `final${index}`,
+      title: `成片 ${index}`, file_url: `/final${index}.mp4`, created_at: '2026-09-12T00:00:00Z' }));
+    vi.mocked(listMediaItems).mockResolvedValueOnce({ success: true, items: rows, total: 26 } as any)
+      .mockResolvedValueOnce({ success: true, items: [rows[23], { ...rows[0], library_item_id: 'older', title: '更早成片' }], total: 26 } as any);
+    render(<MemoryRouter initialEntries={['/projects/p/ep/ep/workflow/final']}>
+      <Routes><Route path="/projects/:projectId/ep/:episodeId/workflow/final" element={<FinalProductPage />} /></Routes>
+    </MemoryRouter>);
+    const more = await screen.findByRole('button', { name: /加载更多成品/ });
+    expect(listMediaItems).toHaveBeenNthCalledWith(1, expect.objectContaining({ limit: 24 }));
+    fireEvent.click(more);
+    fireEvent.click(more);
+    expect(await screen.findByText('更早成片')).toBeInTheDocument();
+    expect(listMediaItems).toHaveBeenCalledTimes(2);
+    expect(listMediaItems).toHaveBeenNthCalledWith(2, expect.objectContaining({ limit: 24, offset: 24 }));
+    expect(screen.getAllByText('成片 23')).toHaveLength(1);
+    expect(screen.getByText('成片 0')).toBeInTheDocument();
+  });
+
+  it('does not restart compose polling after leaving the page', async () => {
+    let resolveStatus!: (value: any) => void;
+    vi.mocked(getComposeStatus).mockReturnValueOnce(new Promise(resolve => { resolveStatus = resolve; }));
+    const timer = vi.spyOn(window, 'setTimeout');
+    const view = render(<MemoryRouter><FinalProductPage /></MemoryRouter>);
+    view.unmount();
+    resolveStatus({ status: 'running', total: 9, done: 1 });
+    await Promise.resolve();
+    expect(timer.mock.calls.some(call => call[1] === 3000 || call[1] === 4000)).toBe(false);
+    timer.mockRestore();
   });
 
   it('shows every composed version and opens its review feedback', async () => {

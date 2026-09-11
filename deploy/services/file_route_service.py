@@ -1,10 +1,12 @@
 """Business logic for generic upload and thumbnail routes."""
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import os
 import time
 import uuid
+import weakref
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -26,6 +28,37 @@ DEPLOY_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_THUMBNAIL_CACHE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60
 DEFAULT_THUMBNAIL_CACHE_MAX_BYTES = 2 * 1024 * 1024 * 1024
 DEFAULT_THUMBNAIL_TMP_MAX_AGE_SECONDS = 60 * 60
+
+
+class _ThumbnailWork:
+    def __init__(self):
+        self.slots = asyncio.Semaphore(2)
+        self.pending: dict[str, asyncio.Task] = {}
+
+
+_thumbnail_work: weakref.WeakKeyDictionary = weakref.WeakKeyDictionary()
+
+
+def _thumbnail_scheduler() -> _ThumbnailWork:
+    loop = asyncio.get_running_loop()
+    if loop not in _thumbnail_work:
+        _thumbnail_work[loop] = _ThumbnailWork()
+    return _thumbnail_work[loop]
+
+
+def _render_image_thumbnail(file_path: str, output: Path, width: int, height: int):
+    from PIL import Image
+
+    try:
+        with open_image_path_safely(file_path) as img:
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+            img.thumbnail((width, height), Image.Resampling.LANCZOS)
+            img.save(output, format="JPEG", quality=75, optimize=True)
+    except UnsafeImageError as exc:
+        raise ThumbnailImageUnsafe("unsafe_image_dimensions") from exc
+
+
 MIME_EXTENSION_MAP = {
     "image/png": ".png",
     "image/jpeg": ".jpg",
@@ -290,8 +323,6 @@ async def build_thumbnail_file(
     deploy_root: Path = DEPLOY_ROOT,
     media_roots: Optional[list[Path]] = None,
 ) -> ThumbnailFile:
-    from PIL import Image
-
     file_path = await resolve_thumbnail_source(
         url,
         file_dao=file_dao,
@@ -309,35 +340,48 @@ async def build_thumbnail_file(
     if cache_path.exists():
         return ThumbnailFile(path=cache_path, media_type="image/jpeg", headers=thumbnail_headers())
 
-    cache_path.parent.mkdir(parents=True, exist_ok=True)
-    tmp_cache_path = cache_path.with_name(f"{cache_path.name}.{uuid_hex_provider()}.tmp")
+    work = _thumbnail_scheduler()
+    key = str(cache_path.resolve())
 
-    try:
-        if Path(file_path).suffix.lower() in FILE_TYPE_EXTENSIONS["video"]:
-            from file_optimization import FileOptimizationService
-
-            result = await FileOptimizationService.create_video_thumbnail(
-                file_path,
-                str(tmp_cache_path),
-                max_size=(thumb_width, thumb_height),
-            )
-            if not result.get("success"):
-                raise ThumbnailFileNotFound("video_thumbnail_failed")
-            os.replace(tmp_cache_path, cache_path)
-        else:
+    async def generate():
+        async with work.slots:
+            if cache_path.exists():
+                return
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
+            tmp_cache_path = cache_path.with_name(f"{cache_path.name}.{uuid_hex_provider()}.tmp")
             try:
-                with open_image_path_safely(file_path) as img:
-                    if img.mode in ("RGBA", "P"):
-                        img = img.convert("RGB")
+                if Path(file_path).suffix.lower() in FILE_TYPE_EXTENSIONS["video"]:
+                    from file_optimization import FileOptimizationService
 
-                    img.thumbnail((thumb_width, thumb_height), Image.Resampling.LANCZOS)
-                    img.save(tmp_cache_path, format="JPEG", quality=75, optimize=True)
-            except UnsafeImageError as exc:
-                raise ThumbnailImageUnsafe("unsafe_image_dimensions") from exc
-            os.replace(tmp_cache_path, cache_path)
-    finally:
-        if tmp_cache_path.exists():
-            tmp_cache_path.unlink(missing_ok=True)
+                    result = await FileOptimizationService.create_video_thumbnail(
+                        file_path, str(tmp_cache_path), max_size=(thumb_width, thumb_height),
+                    )
+                    if not result.get("success"):
+                        raise ThumbnailFileNotFound("video_thumbnail_failed")
+                else:
+                    await asyncio.to_thread(
+                        _render_image_thumbnail, file_path, tmp_cache_path, thumb_width, thumb_height,
+                    )
+                os.replace(tmp_cache_path, cache_path)
+            finally:
+                tmp_cache_path.unlink(missing_ok=True)
+
+    task = work.pending.get(key)
+    if task is None:
+        task = asyncio.create_task(generate())
+        work.pending[key] = task
+
+        def finished(completed):
+            work.pending.pop(key, None)
+            if not work.pending:
+                _thumbnail_work.pop(asyncio.get_running_loop(), None)
+            if not completed.cancelled():
+                completed.exception()
+
+        task.add_done_callback(finished)
+    # A disconnected viewer must not cancel work shared by other viewers.
+    # Access checks and source resolution still run separately for every request.
+    await asyncio.shield(task)
 
     return ThumbnailFile(path=cache_path, media_type="image/jpeg", headers=thumbnail_headers())
 

@@ -20,7 +20,7 @@ import { MusicModal } from './MusicModal';
 import { SfxModal } from './SfxModal';
 import { AudioClipReferenceModal } from './AudioClipReferenceModal';
 import type { AudioClipInfo, AudioTrack, StoryboardItemDB } from '../../types';
-import { resolveShotDurationMs } from '../../utils/audioTimeline';
+import { indexAudioClipsByItem, resolveShotDurationMs } from '../../utils/audioTimeline';
 import {
   moveAudioTrackTimeline,
   patchAudioTrackTimeline,
@@ -32,6 +32,7 @@ import {
 import { updateAudioTrack } from '@runtime/audioGenerationService';
 import { dbItemToStoryboardItem } from '../../utils/episodeAdapters';
 import { buildStoryboardSegmentGroups } from '../../utils/storyboardSegments';
+import { overlapsTimelineWindow, useTimelineViewport } from '../../hooks/useTimelineViewport';
 
 export interface TimelineSegment {
   itemId: string;
@@ -92,6 +93,8 @@ export const MultiTrackTimeline: React.FC<MultiTrackTimelineProps> = ({
   const [showSfxModal, setShowSfxModal] = useState(false);
   const [referenceTarget, setReferenceTarget] = useState<'bgm' | 'sfx_global' | null>(null);
   const [pixelsPerSecond, setPixelsPerSecond] = useState(40);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const viewport = useTimelineViewport(scrollRef, pixelsPerSecond, !collapsed);
   const [selectedTrackId, setSelectedTrackId] = useState<string | null>(null);
   const [draftEdits, setDraftEdits] = useState<Record<string, AudioTrackTimelineEdit>>({});
   const activePointerEdit = useRef<{
@@ -124,11 +127,12 @@ export const MultiTrackTimeline: React.FC<MultiTrackTimelineProps> = ({
     return displayByItemId;
   }, [sortedItems]);
 
+  const clipsByItem = useMemo(() => indexAudioClipsByItem(clips), [clips]);
+
   const segments: TimelineSegment[] = useMemo(() => (
     sortedItems.map(item => {
       const segmentDisplay = segmentDisplayByItemId.get(item.itemId);
-      const itemClips = clips
-        .filter(clip => clip.itemId === item.itemId)
+      const itemClips = [...(clipsByItem.get(item.itemId) || [])]
         .sort((a, b) => a.sequenceIndex - b.sequenceIndex);
       const clip = itemClips[0] || null;
       const hasAudio = itemClips.some(itemClip => {
@@ -156,12 +160,23 @@ export const MultiTrackTimeline: React.FC<MultiTrackTimelineProps> = ({
           : `${segmentDisplay?.segmentLabel || '未分段'} · ${segmentDisplay?.localShotLabel || `镜头 ${item.sortOrder}`}`,
       };
     })
-  ), [sortedItems, segmentDisplayByItemId, clips, localAudio, clipKeyFn]);
+  ), [sortedItems, segmentDisplayByItemId, clipsByItem, localAudio, clipKeyFn]);
 
   const totalMs = Math.max(
     100,
     segments.reduce((sum, segment) => sum + segment.durationMs, 0),
   );
+  const positionedSegments = useMemo(() => {
+    let startTime = 0;
+    return segments.map(segment => {
+      const result = { ...segment, startTime, duration: segment.durationMs / 1000 };
+      startTime += result.duration;
+      return result;
+    });
+  }, [segments]);
+  const visibleSegments = useMemo(() => positionedSegments.filter(segment => (
+    overlapsTimelineWindow(segment, viewport)
+  )), [positionedSegments, viewport]);
   const bgmTracks = useMemo(
     () => audioTracks.filter(track => track.trackType === 'bgm'),
     [audioTracks],
@@ -309,6 +324,7 @@ export const MultiTrackTimeline: React.FC<MultiTrackTimelineProps> = ({
   ) => {
     const edit = editFor(track);
     if (!edit) return null;
+    if (!overlapsTimelineWindow({ startTime: edit.startMs / 1000, duration: edit.durationMs / 1000 }, viewport)) return null;
     const selected = selectedTrackId === track.trackId;
     const fadeInWidth = edit.durationMs > 0
       ? `${(edit.fadeInMs / edit.durationMs) * 100}%`
@@ -496,17 +512,17 @@ export const MultiTrackTimeline: React.FC<MultiTrackTimelineProps> = ({
             </div>
           )}
 
-          <div className="flex-1 overflow-auto" onWheel={handleWheel}>
+          <div className="flex-1 overflow-auto" ref={scrollRef} onWheel={handleWheel}>
             <div style={{ minWidth: `${trackWidth + 256}px` }}>
           <div className="flex h-7 items-center border-b border-n40">
             {renderTrackLabel('镜头')}
-            <div className="flex h-full" style={{ width: `${trackWidth}px` }}>
-              {segments.map(segment => (
+            <div className="relative h-full" style={{ width: `${trackWidth}px` }}>
+              {visibleSegments.map(segment => (
                 <button
                   key={`mark-${segment.itemId}`}
                   type="button"
-                  style={{ width: msToWidth(segment.durationMs) }}
-                  className="flex items-center justify-center border-r border-n40 text-[10px] text-n100 transition-colors hover:bg-n30"
+                  style={{ left: segment.startTime * pixelsPerSecond, width: msToWidth(segment.durationMs) }}
+                  className="absolute inset-y-0 flex items-center justify-center border-r border-n40 text-[10px] text-n100 transition-colors hover:bg-n30"
                   onClick={() => onClickItem(segment.itemId)}
                   title={segment.label}
                 >
@@ -518,13 +534,13 @@ export const MultiTrackTimeline: React.FC<MultiTrackTimelineProps> = ({
 
           <div className="flex h-8 items-center border-b border-n40">
             {renderTrackLabel('台词')}
-            <div className="flex h-full gap-px py-0.5" style={{ width: `${trackWidth}px` }}>
-              {segments.map(segment => (
+            <div className="relative h-full py-0.5" style={{ width: `${trackWidth}px` }}>
+              {visibleSegments.map(segment => (
                 <button
                   key={`audio-${segment.itemId}`}
                   type="button"
-                  style={{ width: msToWidth(segment.durationMs) }}
-                  className={`truncate rounded-sm px-1 text-[9px] transition-colors ${
+                  style={{ left: segment.startTime * pixelsPerSecond, width: msToWidth(segment.durationMs) }}
+                  className={`absolute inset-y-0.5 truncate rounded-sm px-1 text-[9px] transition-colors ${
                     segment.hasAudio
                       ? 'bg-b50 text-b400 hover:bg-b75'
                       : segment.hasDialogue

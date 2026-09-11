@@ -29,6 +29,7 @@ import { WorkspaceProvider } from './contexts/WorkspaceContext';
 import { runWhenIdle } from './utils/idleScheduler';
 import { ADMIN_BASE_PATH } from './admin/adminRoute';
 import { PlatformShell } from './components/PlatformShell';
+import { workflowPageImports } from './utils/workflowPageImports';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -50,14 +51,14 @@ const GlobalToolsLayout = React.lazy(() => import('./layouts/GlobalToolsLayout')
 const EpisodeHubPage = React.lazy(() => import('./pages/EpisodeHubPage').then(m => ({ default: m.EpisodeHubPage })));
 const ScriptPage = React.lazy(() => import('./pages/ScriptPage').then(m => ({ default: m.ScriptPage })));
 const MaterialsPage = React.lazy(() => import('./pages/MaterialsPage').then(m => ({ default: m.MaterialsPage })));
-const AudioStagePage = React.lazy(() => import('./pages/AudioStagePage').then(m => ({ default: m.AudioStagePage })));
+const AudioStagePage = React.lazy(workflowPageImports.audio);
 const DesignPage = React.lazy(() => import('./pages/DesignPage').then(m => ({ default: m.DesignPage })));
 const GenerationPage = React.lazy(() => import('./pages/GenerationPage').then(m => ({ default: m.GenerationPage })));
-const EnhancePage = React.lazy(() => import('./pages/EnhancePage').then(m => ({ default: m.EnhancePage })));
-const FinalProductPage = React.lazy(() => import('./pages/FinalProductPage'));
+const EnhancePage = React.lazy(workflowPageImports.enhance);
+const FinalProductPage = React.lazy(workflowPageImports.final);
 const FinalProductSharePage = React.lazy(() => import('./pages/FinalProductSharePage'));
-const StoryboardGenPage = React.lazy(() => import('./pages/StoryboardGenPage').then(m => ({ default: m.StoryboardGenPage })));
-const VideoGenPage = React.lazy(() => import('./pages/VideoGenPage').then(m => ({ default: m.VideoGenPage })));
+const StoryboardGenPage = React.lazy(workflowPageImports.storyboard);
+const VideoGenPage = React.lazy(workflowPageImports.video);
 const HistoryPage = React.lazy(() => import('./pages/HistoryPage').then(m => ({ default: m.HistoryPage })));
 const RecycleBinPage = React.lazy(() => import('./pages/RecycleBinPage').then(m => ({ default: m.RecycleBinPage })));
 const StudioRedirectPage = React.lazy(() => import('./pages/StudioRedirectPage').then(m => ({ default: m.StudioRedirectPage })));

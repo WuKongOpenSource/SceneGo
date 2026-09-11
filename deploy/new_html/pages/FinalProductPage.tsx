@@ -5,7 +5,7 @@
 
 
 
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { Clapperboard, Download, Film, AlertCircle, Loader2, Wand2, Check, X, Layers, Share2, MessageSquare, Copy, ExternalLink, Ban, Clock3 } from 'lucide-react';
 import { listMediaItems } from '../services/mediaLibraryService';
@@ -53,20 +53,44 @@ export const FinalProductPage: React.FC = () => {
   const [loadingShots, setLoadingShots] = useState(false);
   const [compose, setCompose] = useState<ComposeStatus | null>(null);
   const composeTimerRef = useRef<number | null>(null);
+  const composeScopeRef = useRef<string | null>(episodeId);
+  useEffect(() => {
+    composeScopeRef.current = episodeId;
+    return () => {
+      composeScopeRef.current = null;
+      if (composeTimerRef.current) clearTimeout(composeTimerRef.current);
+    };
+  }, [episodeId]);
+  const [totalFinals, setTotalFinals] = useState(0);
+  const [hasMoreFinals, setHasMoreFinals] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState('');
+  const loadingMoreRef = useRef(false);
+  const finalOffsetRef = useRef(0);
+  const finalScopeRef = useRef('');
+  const finalScope = `${projectId}:${episodeId}:${assetScopeMode}:${reloadKey}`;
+  finalScopeRef.current = finalScope;
 
   useEffect(() => {
     if (!projectId) return;
     let alive = true;
     (async () => {
-      setLoading(true); setErr(null);
+      setLoading(true); setErr(null); setLoadingMore(false); setLoadMoreError('');
+      loadingMoreRef.current = false;
       try {
-        const params: any = { project_id: projectId, item_type: 'video', source: 'composed_final', limit: 200 };
+        const params: any = { project_id: projectId, item_type: 'video', source: 'composed_final', limit: 24 };
         if (episodeId && assetScopeMode === 'episode') {
           params.episode_id = episodeId;
           params.include_shared = true;
         }
         const resp = await listMediaItems(params);
-        if (alive) setVideos((resp as any).items || []);
+        if (alive) {
+          const items = resp.items || [];
+          setVideos(items);
+          finalOffsetRef.current = items.length;
+          setTotalFinals(resp.total ?? items.length);
+          setHasMoreFinals(items.length > 0 && items.length < (resp.total ?? items.length));
+        }
       } catch (e: any) {
         if (alive) setErr(e?.message || '加载成品失败');
       } finally {
@@ -75,6 +99,33 @@ export const FinalProductPage: React.FC = () => {
     })();
     return () => { alive = false; };
   }, [projectId, episodeId, assetScopeMode, reloadKey]);
+
+  const loadMoreFinals = async () => {
+    if (loadingMoreRef.current || !hasMoreFinals) return;
+    loadingMoreRef.current = true;
+    setLoadingMore(true);
+    setLoadMoreError('');
+    try {
+      const resp = await listMediaItems({
+        project_id: projectId, item_type: 'video', source: 'composed_final',
+        limit: 24, offset: finalOffsetRef.current,
+        ...(episodeId && assetScopeMode === 'episode' ? { episode_id: episodeId, include_shared: true } : {}),
+      });
+      if (finalScopeRef.current !== finalScope || composeScopeRef.current !== episodeId) return;
+      const items = resp.items || [];
+      finalOffsetRef.current += items.length;
+      setVideos(previous => Array.from(new Map([...previous, ...items].map(item => [item.library_item_id, item])).values()));
+      setTotalFinals(resp.total ?? finalOffsetRef.current);
+      setHasMoreFinals(items.length > 0 && finalOffsetRef.current < (resp.total ?? finalOffsetRef.current));
+    } catch (error: any) {
+      if (finalScopeRef.current === finalScope) setLoadMoreError(error?.message || '加载更多成品失败');
+    } finally {
+      if (finalScopeRef.current === finalScope) {
+        loadingMoreRef.current = false;
+        setLoadingMore(false);
+      }
+    }
+  };
 
 
   const openPicker = useCallback(async () => {
@@ -104,6 +155,7 @@ export const FinalProductPage: React.FC = () => {
   const pollCompose = useCallback(() => {
     if (!episodeId) return;
     getComposeStatus(episodeId).then(s => {
+      if (composeScopeRef.current !== episodeId) return;
       setCompose(s);
       if (s.status === 'running') composeTimerRef.current = window.setTimeout(pollCompose, 4000);
       else if (s.status === 'done') setReloadKey(k => k + 1);
@@ -115,6 +167,7 @@ export const FinalProductPage: React.FC = () => {
     setPickerOpen(false);
     try {
       const s = await startCompose(episodeId, picks);
+      if (composeScopeRef.current !== episodeId) return;
       setCompose({ ...s, status: (s.status as any) || 'running' });
       if (composeTimerRef.current) clearTimeout(composeTimerRef.current);
       composeTimerRef.current = window.setTimeout(pollCompose, 3000);
@@ -127,6 +180,7 @@ export const FinalProductPage: React.FC = () => {
   useEffect(() => {
     if (!episodeId) return;
     getComposeStatus(episodeId).then(s => {
+      if (composeScopeRef.current !== episodeId) return;
       if (s.status && s.status !== 'idle') {
         setCompose(s);
         if (s.status === 'running') composeTimerRef.current = window.setTimeout(pollCompose, 3000);
@@ -189,12 +243,12 @@ export const FinalProductPage: React.FC = () => {
     window.setTimeout(() => setCopied(false), 1800);
   }, [share]);
 
-  const finals = videos
+  const finals = useMemo(() => videos
     .map(item => ({
       ...item,
       file_url: secureApiUrl(String(item?.file_url || ''), { absolute: true }),
     }))
-    .filter(item => Boolean(item.file_url));
+    .filter(item => Boolean(item.file_url)), [videos]);
   const featured = finals[0] || null;
   const additionalFinals = finals.slice(1);
 
@@ -274,7 +328,7 @@ export const FinalProductPage: React.FC = () => {
           <div className="flex items-end justify-between gap-3">
             <div>
               <h2 className="text-sm font-semibold text-n800">合成历史</h2>
-              <p className="text-xs text-n100 mt-1">共 {finals.length} 个成品，最新版本置顶，历史版本不会覆盖。</p>
+              <p className="text-xs text-n100 mt-1">共 {totalFinals} 个成品，最新版本置顶，历史版本不会覆盖。</p>
             </div>
           </div>
 
@@ -322,7 +376,7 @@ export const FinalProductPage: React.FC = () => {
                     />
                     <div className="px-3 py-2.5">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-[10px] rounded bg-n20 text-n300 px-1.5 py-0.5 shrink-0">版本 {String(finals.length - index - 1).padStart(2, '0')}</span>
+                        <span className="text-[10px] rounded bg-n20 text-n300 px-1.5 py-0.5 shrink-0">版本 {String(totalFinals - index - 1).padStart(2, '0')}</span>
                         <span className="text-[11px] text-n700 truncate" title={v.title || ''}>{v.title || '未命名'}</span>
                       </div>
                       <div className="text-[10px] text-n100 mt-1">{formatDate(v.created_at)}{v.duration_seconds != null ? ` · ${formatTime(v.duration_seconds)}` : ''}</div>
@@ -339,6 +393,14 @@ export const FinalProductPage: React.FC = () => {
           )}
         </div>
       )}
+
+      {loadMoreError && <p role="alert" className="text-center text-sm text-danger">{loadMoreError}</p>}
+      {hasMoreFinals && !loading && <div className="flex justify-center py-4">
+        <button type="button" onClick={() => void loadMoreFinals()} disabled={loadingMore}
+          className="rounded-lg border border-n40 bg-n0 px-5 py-2 text-sm text-primary hover:bg-primary-light disabled:opacity-50">
+          {loadingMore ? '加载中…' : `加载更多成品（${finals.length}/${totalFinals}）`}
+        </button>
+      </div>}
 
       {reviewItem && (
         <div className="fixed inset-0 z-[60] bg-black/45 flex items-center justify-center p-4" onClick={() => setReviewItem(null)}>

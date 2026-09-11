@@ -8,9 +8,9 @@ const source = readFileSync(resolve(__dirname, '../../pages/FinalProductPage.tsx
 describe('FinalProductPage', () => {
   it('renders only final composed films and keeps generated segments out of the gallery', () => {
     expect(source).toContain("source: 'composed_final'");
-    expect(source).toContain('const finals = videos\n    .map(item => ({');
+    expect(source).toContain('const finals = useMemo(() => videos\n    .map(item => ({');
     expect(source).toContain("file_url: secureApiUrl(String(item?.file_url || ''), { absolute: true })");
-    expect(source).toContain('.filter(item => Boolean(item.file_url));');
+    expect(source).toContain('.filter(item => Boolean(item.file_url)), [videos]);');
     expect(source).toContain('const additionalFinals = finals.slice(1);');
     expect(source).toContain(') : !finals.length ? (');
     expect(source).toContain('{additionalFinals.map((v, index) => (');

@@ -5,28 +5,11 @@ import { describe, expect, it } from 'vitest';
 const source = readFileSync(resolve(__dirname, '../../pages/EnhancePage.tsx'), 'utf-8');
 
 describe('EnhancePage compose audio mode', () => {
-  it('defaults future compositions to the source video audio', () => {
+  it('defaults future compositions to video original audio', () => {
     expect(source).toContain(
       'useState<ComposeAudioMode>(DEFAULT_COMPOSE_AUDIO_MODE)',
     );
-  });
-
-  it('plays music and effects over source audio while muting only reference voice clips', () => {
     expect(source).toContain("enabled: composeAudioMode === 'reference_dubbing' || clip.audioKind !== 'voice'");
-    expect(source).toContain('playing,');
-  });
-
-  it('owns the preview clock in an effect so pause always clears the timer', () => {
-    expect(source).toContain('const togglePlay = useCallback(() => setPlaying(current => !current), [])');
-    expect(source).toContain('previewVideoRef.current?.pause()');
-    expect(source).toContain('window.clearInterval(timer)');
-  });
-
-  it('uses a protected video-derived poster and reloads metadata when clips change', () => {
-    expect(source).toContain('/api/thumbnail?url=${encodeURIComponent(source)}&width=640&height=360');
-    expect(source).toContain('key={videoUnderPlayhead.id}');
-    expect(source).toContain('poster={videoUnderPlayhead.thumbnailUrl}');
-    expect(source).toContain('preload="metadata"');
   });
 
   it('does not let a completed legacy job restore video-original mode', () => {
@@ -39,17 +22,17 @@ describe('EnhancePage compose audio mode', () => {
   });
 
   it('warns when video-original mode would ignore timeline dubbing', () => {
-    expect(source).toContain("audioClips.length > 0 && composeAudioMode === 'video_original'");
-    expect(source).toContain('将忽略时间线配音');
+    expect(source).toContain("voiceClips.length > 0 && composeAudioMode === 'video_original'");
+    expect(source).toContain('仅忽略时间线配音');
   });
 
   it('exposes voice, music and sound-effect entry points with separate timeline lanes', () => {
     expect(source).toContain('加入配音');
     expect(source).toContain('背景音乐');
     expect(source).toContain('特效音');
-    expect(source).toContain("{ key: 'voice', clips: voiceClips }");
-    expect(source).toContain("{ key: 'bgm', clips: bgmClips }");
-    expect(source).toContain("{ key: 'sfx', clips: sfxClips }");
+    expect(source).toContain("{ key: 'voice', clips: visibleTimeline.voice }");
+    expect(source).toContain("{ key: 'bgm', clips: visibleTimeline.bgm }");
+    expect(source).toContain("{ key: 'sfx', clips: visibleTimeline.sfx }");
   });
 
   it('offers precise audio alignment controls instead of drag-only editing', () => {

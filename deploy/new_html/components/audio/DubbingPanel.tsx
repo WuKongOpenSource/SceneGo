@@ -6,7 +6,8 @@ import type {
   StoryboardItemDB,
 } from '../../types';
 import {
-  resolveAudioTimelineTotalMs,
+  buildShotDurationIndex,
+  indexAudioClipsByItem,
   resolveShotDurationMs,
   resolveStoryboardPlannedDurationMs,
 } from '../../utils/audioTimeline';
@@ -79,6 +80,11 @@ export const DubbingPanel = forwardRef<DubbingPanelHandle, DubbingPanelProps>((p
     [storyboardItems],
   );
 
+  const durationByItem = useMemo(
+    () => buildShotDurationIndex(sortedItems, clips, localAudio, clipKeyFn),
+    [sortedItems, clips, localAudio, clipKeyFn],
+  );
+
   const segmentDisplayByItemId = useMemo(() => {
     const displayByItemId = new Map<string, {
       segmentLabel: string;
@@ -90,24 +96,24 @@ export const DubbingPanel = forwardRef<DubbingPanelHandle, DubbingPanelProps>((p
     buildStoryboardSegmentGroups(
       sortedItems.map(item => dbItemToStoryboardItem(item)),
     ).forEach(group => {
+      const estimatedDurationSec = group.entries.reduce(
+        (total, entry) => total + (durationByItem.get(entry.item.id) || 0) / 1000, 0,
+      );
       group.entries.forEach((entry, entryIndex) => {
         displayByItemId.set(entry.item.id, {
           segmentLabel: group.segmentLabel,
           localShotLabel: entry.localShotLabel,
           shotCount: group.entries.length,
-          estimatedDurationSec: group.entries.reduce((total, entry) => {
-            const item = sortedItems.find(candidate => candidate.itemId === entry.item.id);
-            return total + (item ? resolveShotDurationMs({ item, clips, localAudio, clipKeyFn }) / 1000 : 0);
-          }, 0),
+          estimatedDurationSec,
           isFirstInSegment: entryIndex === 0,
         });
       });
     });
     return displayByItemId;
-  }, [sortedItems, clips, localAudio, clipKeyFn]);
+  }, [sortedItems, durationByItem]);
 
   const itemIdSignature = useMemo(
-    () => sortedItems.map(item => item.itemId).join('|'),
+    () => sortedItems[0]?.itemId || '',
     [sortedItems],
   );
 
@@ -138,15 +144,7 @@ export const DubbingPanel = forwardRef<DubbingPanelHandle, DubbingPanelProps>((p
     scrollToItem: revealAndScrollToItem,
   }), [revealAndScrollToItem]);
 
-  const clipsByItem = useMemo(() => {
-    const m = new Map<string, AudioClipInfo[]>();
-    for (const c of clips) {
-      const list = m.get(c.itemId) || [];
-      list.push(c);
-      m.set(c.itemId, list);
-    }
-    return m;
-  }, [clips]);
+  const clipsByItem = useMemo(() => indexAudioClipsByItem(clips), [clips]);
 
   const handleOverrideChange = useCallback((key: string, patch: Partial<ClipOverride>) => {
     setLocalOverrides(prev => ({
@@ -156,8 +154,8 @@ export const DubbingPanel = forwardRef<DubbingPanelHandle, DubbingPanelProps>((p
   }, [setLocalOverrides]);
 
   const totalDurationMs = useMemo(() => {
-    return resolveAudioTimelineTotalMs(sortedItems, clips, localAudio, clipKeyFn);
-  }, [sortedItems, clips, localAudio, clipKeyFn]);
+    return Array.from(durationByItem.values()).reduce((sum, duration) => sum + duration, 0);
+  }, [durationByItem]);
 
   const generatedCount = clips.filter(c => localAudio[clipKeyFn(c)]?.url || c.audioUrl).length;
 

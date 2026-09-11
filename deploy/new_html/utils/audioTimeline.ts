@@ -3,6 +3,28 @@ import { estimateDurationMs, resolveShotTargetDurationMs } from './durationMappi
 
 export type LocalAudioMap = Record<string, { url: string; durationMs?: number }>;
 
+export function indexAudioClipsByItem(clips: AudioClipInfo[]): Map<string, AudioClipInfo[]> {
+  const byItem = new Map<string, AudioClipInfo[]>();
+  for (const clip of clips) {
+    const group = byItem.get(clip.itemId);
+    if (group) group.push(clip);
+    else byItem.set(clip.itemId, [clip]);
+  }
+  return byItem;
+}
+
+export function buildShotDurationIndex(
+  storyboardItems: StoryboardItemDB[],
+  clips: AudioClipInfo[],
+  localAudio: LocalAudioMap,
+  clipKeyFn: (clip: AudioClipInfo) => string,
+): Map<string, number> {
+  const byItem = indexAudioClipsByItem(clips);
+  return new Map(storyboardItems.map(item => [item.itemId, resolveShotDurationMs({
+    item, clips: byItem.get(item.itemId) || [], localAudio, clipKeyFn,
+  })]));
+}
+
 function positiveDurationMs(value: unknown): number | null {
   const durationMs = Number(value);
   return Number.isFinite(durationMs) && durationMs > 0 ? durationMs : null;
@@ -72,8 +94,6 @@ export function resolveAudioTimelineTotalMs(
   localAudio: LocalAudioMap,
   clipKeyFn: (clip: AudioClipInfo) => string,
 ): number {
-  return storyboardItems.reduce(
-    (total, item) => total + resolveShotDurationMs({ item, clips, localAudio, clipKeyFn }),
-    0,
-  );
+  return Array.from(buildShotDurationIndex(storyboardItems, clips, localAudio, clipKeyFn).values())
+    .reduce((total, duration) => total + duration, 0);
 }
