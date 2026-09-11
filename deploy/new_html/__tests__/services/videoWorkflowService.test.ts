@@ -172,7 +172,7 @@ describe('video workflow service', () => {
     expect(opts.method).toBe('POST');
     expect(JSON.parse(opts.body)).toEqual({
       selections: { sb_1: 'seg_1' },
-      audio_mode: 'reference_dubbing',
+      audio_mode: 'video_original',
     });
   });
 

@@ -197,14 +197,14 @@ async def test_start_episode_compose_uses_project_id_and_selections():
         "status": "running",
         "total": 3,
         "done": 1,
-        "audio_mode": "reference_dubbing",
+        "audio_mode": "video_original",
     }
     assert FakeComposeService.started == {
         "episode_id": "ep_1",
         "user_id": "user_1",
         "project_id": "proj_1",
         "selections": {"shot_1": "seg_1"},
-        "audio_mode": "reference_dubbing",
+        "audio_mode": "video_original",
     }
 
 

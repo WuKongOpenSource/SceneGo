@@ -15,6 +15,29 @@ async def test_create_bgm_track(test_db):
     assert result["track_type"] == "bgm"
 
 
+async def test_create_track_is_idempotent_for_the_same_source_task(test_db):
+    from dao_audio_track import AudioTrackDAO
+
+    first = await AudioTrackDAO.create(
+        episode_id="ep_task_idempotent",
+        track_type="bgm",
+        name="第一次完成",
+        audio_url="/storage/audio/generated.mp3",
+        generation_params={"task_id": "music-task-1"},
+    )
+    second = await AudioTrackDAO.create(
+        episode_id="ep_task_idempotent",
+        track_type="bgm",
+        name="重复回调",
+        audio_url="/storage/audio/generated.mp3",
+        generation_params={"task_id": "music-task-1"},
+    )
+
+    assert second["track_id"] == first["track_id"]
+    tracks = await AudioTrackDAO.get_by_episode("ep_task_idempotent")
+    assert [track["track_id"] for track in tracks].count(first["track_id"]) == 1
+
+
 async def test_get_tracks_by_episode(test_db):
     from dao_audio_track import AudioTrackDAO
     await AudioTrackDAO.create(episode_id="ep_1", track_type="bgm", name="BGM1")

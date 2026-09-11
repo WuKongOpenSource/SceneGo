@@ -126,6 +126,7 @@ def create_online_provider_task_router(
             )
             raise HTTPException(status_code=500, detail="任务提交失败") from exc
 
+        deadline = task_data.get("cancel_deadline")
         return {
             "success": True,
             "task_id": task_id,
@@ -138,6 +139,7 @@ def create_online_provider_task_router(
             "requires_confirmation": False,
             "can_cancel_before_submit": True,
             "accepting_submissions": True,
+            **({"cancel_deadline": deadline, "can_cancel": True} if deadline else {}),
         }
 
     @router.get("/api/task/{task_id}")

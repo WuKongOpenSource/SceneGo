@@ -111,8 +111,8 @@ interface ProjectMaterialPickerProps extends ProjectMaterialPickerState {
   footer?: string;
   isLoadingOtherShotImages?: boolean;
   handleMaterialPickerFilterChange: (filter: ProjectMaterialPickerState['materialPickerFilter']) => void;
-  handleAddProjectMaterial: (item: ProjectMaterialPickerItem) => void;
-  handleAddOtherStoryboardImage?: (item: ProjectMaterialPickerState['otherStoryboardImageItems'][number]) => void;
+  handleAddProjectMaterial: (item: ProjectMaterialPickerItem) => boolean | void | Promise<boolean | void>;
+  handleAddOtherStoryboardImage?: (item: ProjectMaterialPickerState['otherStoryboardImageItems'][number]) => boolean | void | Promise<boolean | void>;
   onClose: () => void;
   onRefresh?: () => void;
 }
@@ -125,6 +125,35 @@ export const ProjectMaterialPicker: React.FC<ProjectMaterialPickerProps> = ({
   footer, isLoadingOtherShotImages = false, handleMaterialPickerFilterChange,
   handleAddProjectMaterial, handleAddOtherStoryboardImage = () => {}, onClose, onRefresh,
 }) => {
+  type PendingSelection =
+    | { kind: 'material'; url: string; item: ProjectMaterialPickerItem }
+    | { kind: 'storyboard'; url: string; item: ProjectMaterialPickerState['otherStoryboardImageItems'][number] };
+  const [pendingSelections, setPendingSelections] = useState<PendingSelection[]>([]);
+  const pendingUrls = useMemo(
+    () => new Set(pendingSelections.map(selection => selection.url)),
+    [pendingSelections],
+  );
+  const selectedCount = references.length + pendingSelections.length;
+  const togglePendingSelection = (selection: PendingSelection) => {
+    if (references.some(reference => reference.url === selection.url) || busy) return;
+    setPendingSelections(current => {
+      const exists = current.some(candidate => candidate.url === selection.url);
+      if (exists) return current.filter(candidate => candidate.url !== selection.url);
+      if (references.length + current.length >= maxSelected) return current;
+      return [...current, selection];
+    });
+  };
+  const handleConfirm = async () => {
+    if (busy) return;
+    for (const selection of pendingSelections) {
+      const applied = selection.kind === 'material'
+        ? await handleAddProjectMaterial(selection.item)
+        : await handleAddOtherStoryboardImage(selection.item);
+      if (applied === false) return;
+    }
+    onClose();
+  };
+
   return (
           <div className="fixed inset-0 z-[140] bg-n900/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
             <div className="w-[min(1024px,calc(100vw-32px))] h-[min(760px,calc(100vh-2rem))] bg-n0 border border-n40 rounded-lg shadow-bottom flex flex-col overflow-hidden" role="dialog" aria-modal="true" aria-label="项目素材" data-testid="material-picker-dialog" onClick={event => event.stopPropagation()}>
@@ -193,14 +222,15 @@ export const ProjectMaterialPicker: React.FC<ProjectMaterialPickerProps> = ({
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                             {visibleOtherStoryboardImageItems.map(item => {
                               const alreadyAdded = references.some(reference => reference.url === item.url);
-                              const disabled = alreadyAdded || references.length >= maxSelected || busy;
+                              const pending = pendingUrls.has(item.url);
+                              const disabled = alreadyAdded || (!pending && selectedCount >= maxSelected) || busy;
                               return (
                                 <button
                                   key={item.key}
-                                  onClick={() => !disabled && handleAddOtherStoryboardImage(item)}
+                                  onClick={() => !disabled && togglePendingSelection({ kind: 'storyboard', url: item.url, item })}
                                   disabled={disabled}
-                                  className={`relative overflow-hidden rounded-md border text-left transition-colors ${alreadyAdded ? 'border-success bg-success/5' : 'border-n40 bg-n0 hover:border-primary'} disabled:cursor-not-allowed`}
-                                  title={alreadyAdded ? '已在当前参考图中' : `添加 ${item.shotLabel} 的${item.imageLabel}`}
+                                  className={`relative overflow-hidden rounded-md border text-left transition-colors ${alreadyAdded ? 'border-success bg-success/5' : pending ? 'border-primary bg-primary/5' : 'border-n40 bg-n0 hover:border-primary'} disabled:cursor-not-allowed`}
+                                  title={alreadyAdded ? '已在当前参考图中' : pending ? `取消选择 ${item.shotLabel} 的${item.imageLabel}` : `选择 ${item.shotLabel} 的${item.imageLabel}`}
                                 >
                                   <div className="aspect-video bg-n30 flex items-center justify-center">
                                     <img
@@ -213,7 +243,7 @@ export const ProjectMaterialPicker: React.FC<ProjectMaterialPickerProps> = ({
                                   <div className="p-2 min-w-0">
                                     <div className="flex items-center justify-between gap-1">
                                       <span className="truncate text-xs font-semibold text-n700">{item.shotLabel}</span>
-                                      {alreadyAdded && <Check className="w-3.5 h-3.5 shrink-0 text-success" />}
+                                      {(alreadyAdded || pending) && <Check className={`w-3.5 h-3.5 shrink-0 ${alreadyAdded ? 'text-success' : 'text-primary'}`} />}
                                     </div>
                                     <div className="mt-1 flex items-center gap-1 text-[9px] text-n100">
                                       <span className={`rounded px-1 py-0.5 ${item.isSelected ? 'bg-success/10 text-success' : 'bg-n30 text-n300'}`}>
@@ -247,14 +277,15 @@ export const ProjectMaterialPicker: React.FC<ProjectMaterialPickerProps> = ({
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                             {visibleMaterialPickerItems.map(item => {
                               const alreadyAdded = references.some(reference => reference.url === item.material.url);
-                              const disabled = alreadyAdded || references.length >= maxSelected || busy;
+                              const pending = pendingUrls.has(item.material.url);
+                              const disabled = alreadyAdded || (!pending && selectedCount >= maxSelected) || busy;
                               return (
                                 <button
                                   key={item.key}
-                                  onClick={() => !disabled && handleAddProjectMaterial(item)}
+                                  onClick={() => !disabled && togglePendingSelection({ kind: 'material', url: item.material.url, item })}
                                   disabled={disabled}
-                                  className={`relative overflow-hidden rounded-md border text-left transition-colors ${alreadyAdded ? 'border-success bg-success/5' : 'border-n40 bg-n0 hover:border-primary'} disabled:cursor-not-allowed`}
-                                  title={alreadyAdded ? '已在当前参考图中' : `添加 ${item.tagName}`}
+                                  className={`relative overflow-hidden rounded-md border text-left transition-colors ${alreadyAdded ? 'border-success bg-success/5' : pending ? 'border-primary bg-primary/5' : 'border-n40 bg-n0 hover:border-primary'} disabled:cursor-not-allowed`}
+                                  title={alreadyAdded ? '已在当前参考图中' : pending ? `取消选择 ${item.tagName}` : `选择 ${item.tagName}`}
                                 >
                                   <div className="aspect-square bg-n30">
                                     <img src={item.material.thumbnail || item.material.url} alt={item.tagName} loading="lazy" className="w-full h-full object-cover" />
@@ -262,7 +293,7 @@ export const ProjectMaterialPicker: React.FC<ProjectMaterialPickerProps> = ({
                                   <div className="p-2 min-w-0">
                                     <div className="flex items-center justify-between gap-1">
                                       <span className="truncate text-xs font-semibold text-n700">{item.tagName || item.material.name || '未命名素材'}</span>
-                                      {alreadyAdded && <Check className="w-3.5 h-3.5 shrink-0 text-success" />}
+                                      {(alreadyAdded || pending) && <Check className={`w-3.5 h-3.5 shrink-0 ${alreadyAdded ? 'text-success' : 'text-primary'}`} />}
                                     </div>
                                     <div className="mt-1 flex items-center gap-1 text-[9px] text-n100">
                                       <span>{item.type === 'character' ? '人物' : item.type === 'scene' ? '场景' : '道具'}</span>
@@ -294,8 +325,8 @@ export const ProjectMaterialPicker: React.FC<ProjectMaterialPickerProps> = ({
                 )}
               </div>
               <div className="shrink-0 px-5 py-3 border-t border-n40 flex items-center justify-between gap-4 text-[11px] text-n300">
-                <span>{footer ?? <>参考图 {references.length}/{maxSelected}；其他分镜图片只建立当前镜头引用，不会修改来源镜头。</>}</span>
-                <button onClick={onClose} className="h-8 px-4 rounded bg-primary text-white hover:bg-primary-hover">完成</button>
+                <span>{footer ?? <>参考图 {selectedCount}/{maxSelected}；选择完成前不会写入当前镜头；其他分镜图片只建立当前镜头引用，不会修改来源镜头。</>}</span>
+                <button type="button" onClick={() => void handleConfirm()} disabled={busy} className="h-8 px-4 rounded bg-primary text-white hover:bg-primary-hover disabled:opacity-50">完成</button>
               </div>
             </div>
           </div>  );

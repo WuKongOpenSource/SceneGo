@@ -4,6 +4,7 @@ export interface TimelineAudioClip {
   duration: number;
   sourceOffset?: number;
   volume?: number;
+  enabled?: boolean;
 }
 
 export interface TimelineAudioElement {
@@ -35,6 +36,10 @@ export async function syncTimelineAudioPlayback({
   await Promise.all(clips.map(async clip => {
     const el = audioElements.get(clip.id);
     if (!el) return;
+    if (clip.enabled === false) {
+      el.pause();
+      return;
+    }
     const inRange = currentTime >= clip.startTime && currentTime < clip.startTime + clip.duration;
     if (!inRange) {
       el.pause();

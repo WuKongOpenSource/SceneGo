@@ -10,6 +10,12 @@ describe('VideoPage queued task state', () => {
     expect(source).toContain("if (status.state === 'pending')");
     expect(source).toContain('排队中...');
   });
+
+  it('shows the cancellation window from the create response before the first poll', () => {
+    expect(source).toContain('cancelDeadline: result.cancel_deadline');
+    expect(source).toContain('canCancel: result.can_cancel');
+    expect(source).toContain("state: undo?.cancelDeadline ? 'pending' : 'running'");
+  });
 });
 
 describe('VideoPage result header layout', () => {

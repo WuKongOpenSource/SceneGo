@@ -9,6 +9,7 @@ import {
 import { uploadMediaItem } from '../../services/mediaLibraryService';
 import { safeBrowserResourceUrl } from '../../services/httpClient';
 import { updateEpisodeScriptById } from '../../services/scriptTimelineService';
+import { AudioHistoryPicker } from './AudioHistoryPicker';
 import {
   clampUnicode,
   generateLyricsFromSummary,
@@ -28,6 +29,11 @@ function resolveUrl(path: string) {
 function fmtSec(ms: number): string {
   if (!Number.isFinite(ms) || ms <= 0) return '--';
   return `${(ms / 1000).toFixed(1)}s`;
+}
+
+export function normalizeMusicDurationInput(value: string): number {
+  const parsed = Number(value);
+  return Math.max(10, Math.min(300, Number.isFinite(parsed) && value.trim() ? Math.round(parsed) : 30));
 }
 
 function readAudioDurationMs(file: File): Promise<number> {
@@ -97,7 +103,7 @@ export const MusicModal: React.FC<MusicModalProps> = ({
   const [musicLyrics, setMusicLyrics] = useState('');
   const [musicMode, setMusicMode] = useState<'instrumental' | 'theme'>('instrumental');
   const [musicDescription, setMusicDescription] = useState('电影感漫剧背景音乐，旋律连贯，开场克制，逐步推进，结尾留有余韵');
-  const [musicDuration, setMusicDuration] = useState(30);
+  const [musicDurationInput, setMusicDurationInput] = useState('30');
   const [musicLoading, setMusicLoading] = useState(false);
   const [musicTaskId, setMusicTaskId] = useState('');
   const [musicProgress, setMusicProgress] = useState(0);
@@ -107,6 +113,12 @@ export const MusicModal: React.FC<MusicModalProps> = ({
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
+
+  const normalizeMusicDuration = useCallback(() => {
+    const normalized = normalizeMusicDurationInput(musicDurationInput);
+    setMusicDurationInput(String(normalized));
+    return normalized;
+  }, [musicDurationInput]);
 
   useEffect(() => {
     const scriptChanged = activeScriptIdRef.current !== scriptId;
@@ -240,6 +252,7 @@ export const MusicModal: React.FC<MusicModalProps> = ({
 
   const handleGenerateMusic = useCallback(async () => {
     if (!musicDescription.trim() || (musicMode === 'theme' && !musicLyrics.trim())) return;
+    const musicDuration = normalizeMusicDuration();
     setMusicLoading(true);
     setMusicProgress(0);
     setMusicError('');
@@ -285,7 +298,7 @@ export const MusicModal: React.FC<MusicModalProps> = ({
       setMusicLoading(false);
       setMusicTaskId('');
     }
-  }, [episodeId, musicDescription, musicDuration, musicLyrics, musicMode, onCreated, projectId]);
+  }, [episodeId, musicDescription, musicLyrics, musicMode, normalizeMusicDuration, onCreated, projectId]);
 
   const handleCancelMusic = useCallback(async () => {
     if (!musicTaskId) return;
@@ -326,12 +339,13 @@ export const MusicModal: React.FC<MusicModalProps> = ({
             <Upload size={14} className="text-success" /> 添加本地 BGM
           </h4>
           <div className="flex items-center gap-3">
-            <input
-              type="file"
-              accept="audio/*"
-              onChange={e => setUploadFile(e.target.files?.[0] || null)}
-              className="flex-1 rounded-lg border border-n40 bg-n0 px-3 py-2 text-sm text-n700"
-            />
+            <input id="music-local-file" type="file" accept="audio/*" onChange={e => setUploadFile(e.target.files?.[0] || null)} className="sr-only" />
+            <label htmlFor="music-local-file" className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-lg border border-success/30 bg-n0 px-3 py-2 text-sm font-semibold text-success hover:bg-success/5">
+              <Upload size={14} /> 选择文件
+            </label>
+            <span className="min-w-0 flex-1 truncate rounded-lg border border-n40 bg-n0 px-3 py-2 text-sm text-n300" title={uploadFile?.name || '未选择文件'}>
+              {uploadFile?.name || '未选择文件'}
+            </span>
             <button
               onClick={handleUpload}
               disabled={!uploadFile || uploading}
@@ -347,6 +361,8 @@ export const MusicModal: React.FC<MusicModalProps> = ({
             </p>
           )}
         </div>
+
+        <AudioHistoryPicker episodeId={episodeId} projectId={projectId} kind="bgm" onCreated={onCreated} />
 
         <div className="mb-4 rounded-md border border-n40 bg-n30 p-4">
           <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-n700">
@@ -447,8 +463,10 @@ export const MusicModal: React.FC<MusicModalProps> = ({
                 min={10}
                 max={300}
                 step={5}
-                value={musicDuration}
-                onChange={e => setMusicDuration(Math.max(10, Math.min(300, Number(e.target.value) || 30)))}
+                value={musicDurationInput}
+                onFocus={event => event.currentTarget.select()}
+                onChange={e => setMusicDurationInput(e.target.value)}
+                onBlur={normalizeMusicDuration}
                 className="w-24 rounded-lg border border-n40 bg-n0 px-3 py-2 text-sm text-n700"
               />
               <span className="text-xs text-n100">秒（10–300）</span>

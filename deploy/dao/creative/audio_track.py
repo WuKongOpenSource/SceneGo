@@ -24,6 +24,24 @@ class AudioTrackDAO:
         db = get_db_manager()
         if not db:
             return None
+        params = generation_params or {}
+        source_task_id = str(params.get("task_id") or params.get("source_task_id") or "").strip()
+        if source_task_id:
+            existing = await db.fetchrow(
+                """
+                SELECT * FROM audio_tracks
+                WHERE episode_id = $1
+                  AND track_type = $2
+                  AND COALESCE(generation_params->>'task_id', generation_params->>'source_task_id') = $3
+                ORDER BY created_at ASC
+                LIMIT 1
+                """,
+                episode_id,
+                track_type,
+                source_task_id,
+            )
+            if existing:
+                return existing
         track_id = f"atrk_{uuid.uuid4().hex[:12]}"
         query = """
             INSERT INTO audio_tracks
@@ -35,7 +53,7 @@ class AudioTrackDAO:
         return await db.fetchrow(
             query, track_id, episode_id, track_type, name,
             audio_url, duration_ms, start_item_id, end_item_id,
-            json.dumps(generation_params or {}, ensure_ascii=False)
+            json.dumps(params, ensure_ascii=False)
         )
 
     @staticmethod

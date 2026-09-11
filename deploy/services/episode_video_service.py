@@ -106,7 +106,7 @@ async def start_episode_compose(
     episode_id: str,
     user_id: str,
     selections: Optional[Any],
-    audio_mode: str = "reference_dubbing",
+    audio_mode: str = "video_original",
     timeline: Optional[Any] = None,
     subtitles: Optional[Any] = None,
     subtitle_style: Optional[Any] = None,
@@ -141,7 +141,7 @@ async def start_episode_compose(
         "status": job["status"],
         "total": job["total"],
         "done": job["done"],
-        "audio_mode": job.get("audio_mode", "reference_dubbing"),
+        "audio_mode": job.get("audio_mode", "video_original"),
     }
 
 

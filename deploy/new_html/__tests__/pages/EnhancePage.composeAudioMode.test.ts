@@ -5,10 +5,28 @@ import { describe, expect, it } from 'vitest';
 const source = readFileSync(resolve(__dirname, '../../pages/EnhancePage.tsx'), 'utf-8');
 
 describe('EnhancePage compose audio mode', () => {
-  it('defaults future compositions to reference dubbing', () => {
+  it('defaults future compositions to the source video audio', () => {
     expect(source).toContain(
       'useState<ComposeAudioMode>(DEFAULT_COMPOSE_AUDIO_MODE)',
     );
+  });
+
+  it('plays music and effects over source audio while muting only reference voice clips', () => {
+    expect(source).toContain("enabled: composeAudioMode === 'reference_dubbing' || clip.audioKind !== 'voice'");
+    expect(source).toContain('playing,');
+  });
+
+  it('owns the preview clock in an effect so pause always clears the timer', () => {
+    expect(source).toContain('const togglePlay = useCallback(() => setPlaying(current => !current), [])');
+    expect(source).toContain('previewVideoRef.current?.pause()');
+    expect(source).toContain('window.clearInterval(timer)');
+  });
+
+  it('uses a protected video-derived poster and reloads metadata when clips change', () => {
+    expect(source).toContain('/api/thumbnail?url=${encodeURIComponent(source)}&width=640&height=360');
+    expect(source).toContain('key={videoUnderPlayhead.id}');
+    expect(source).toContain('poster={videoUnderPlayhead.thumbnailUrl}');
+    expect(source).toContain('preload="metadata"');
   });
 
   it('does not let a completed legacy job restore video-original mode', () => {

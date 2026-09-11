@@ -1049,7 +1049,7 @@ async def test_compose_uses_portrait_canvas_for_vertical_clips(monkeypatch, tmp_
         assert kwargs["metadata"]["output_width"] == 1080
         assert kwargs["metadata"]["output_height"] == 1920
         assert kwargs["metadata"]["output_aspect"] == "9:16"
-        assert kwargs["metadata"]["audio_mode"] == "reference_dubbing"
+        assert kwargs["metadata"]["audio_mode"] == "video_original"
         assert kwargs["metadata"]["subtitle_count"] == 1
 
     monkeypatch.setattr(episode_compose_service, "_STORAGE", str(storage))

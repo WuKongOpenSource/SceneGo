@@ -3,6 +3,7 @@ import { X, Sparkles, Loader, Upload } from 'lucide-react';
 import { createAudioTrack, generateSFX } from '@runtime/audioGenerationService';
 import { uploadMediaItem } from '../../services/mediaLibraryService';
 import { safeBrowserResourceUrl } from '../../services/httpClient';
+import { AudioHistoryPicker } from './AudioHistoryPicker';
 
 function resolveUrl(path: string) {
   if (!path) return '';
@@ -126,12 +127,13 @@ export const SfxModal: React.FC<SfxModalProps> = ({
             <Upload size={14} className="text-primary" /> 添加本地音效
           </h4>
           <div className="flex items-center gap-3">
-            <input
-              type="file"
-              accept="audio/*"
-              onChange={e => setUploadFile(e.target.files?.[0] || null)}
-              className="flex-1 rounded-lg border border-n40 bg-n0 px-3 py-2 text-sm text-n700"
-            />
+            <input id="sfx-local-file" type="file" accept="audio/*" onChange={e => setUploadFile(e.target.files?.[0] || null)} className="sr-only" />
+            <label htmlFor="sfx-local-file" className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-lg border border-primary/30 bg-n0 px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/5">
+              <Upload size={14} /> 选择文件
+            </label>
+            <span className="min-w-0 flex-1 truncate rounded-lg border border-n40 bg-n0 px-3 py-2 text-sm text-n300" title={uploadFile?.name || '未选择文件'}>
+              {uploadFile?.name || '未选择文件'}
+            </span>
             <button
               onClick={handleUpload}
               disabled={!uploadFile || uploading}
@@ -142,6 +144,8 @@ export const SfxModal: React.FC<SfxModalProps> = ({
             </button>
           </div>
         </div>
+
+        <AudioHistoryPicker episodeId={episodeId} projectId={projectId} kind="sfx" onCreated={onCreated} />
 
         <div className="rounded-md border border-n40 bg-n30 p-4">
           <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-n700">

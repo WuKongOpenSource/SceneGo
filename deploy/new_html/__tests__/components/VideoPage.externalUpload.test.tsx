@@ -210,7 +210,8 @@ describe('VideoPage external video persistence', () => {
       url: '/tail-original.png', thumbnail: '/tiny.jpg', name: '第二画面' }] } };
     const view = render(<VideoPage {...props} />);
     fireEvent.click((await screen.findAllByRole('button', { name: '添加画面' }))[0]);
-    fireEvent.click(await screen.findByTitle('添加 第二画面'));
+    fireEvent.click(await screen.findByTitle('选择 第二画面'));
+    fireEvent.click(screen.getByRole('button', { name: '完成' }));
     await waitFor(() => expect(screen.queryByRole('dialog', { name: '项目素材' })).not.toBeInTheDocument());
     const poolSaved = vi.mocked(saveWorkspaceSession).mock.calls.at(-1)![0];
     expect(poolSaved.task_groups[0].ids).toEqual(['first']);
@@ -308,9 +309,10 @@ describe('VideoPage external video persistence', () => {
     const refresh = vi.fn(async () => {});
     const view = render(<VideoPage sessionScope="ep-1" episodeId="ep-1" projectId="project-1" materialLibrary={materialLibrary} onRefreshProjectMaterials={refresh} />);
     fireEvent.click(await screen.findByRole('button', { name: '项目素材' }));
-    await screen.findByTitle('添加 角色');
+    await screen.findByTitle('选择 角色');
     expect(refresh).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByTitle('添加 角色'));
+    fireEvent.click(screen.getByTitle('选择 角色'));
+    fireEvent.click(screen.getByRole('button', { name: '完成' }));
     await waitFor(() => expect(screen.queryByRole('dialog', { name: '项目素材' })).not.toBeInTheDocument());
     const [saved, scope] = vi.mocked(saveWorkspaceSession).mock.calls[0];
     expect(scope).toBe('ep-1');
@@ -341,9 +343,10 @@ describe('VideoPage external video persistence', () => {
     vi.mocked(saveWorkspaceSession).mockResolvedValueOnce({ success: false }).mockResolvedValue({ success: true });
     render(<VideoPage sessionScope="ep-1" materialLibrary={{ 角色: [{ id: 'asset', name: '角色', url: '/original.png', type: 'image', source: 'asset', timestamp: 0 }] }} />);
     fireEvent.click(await screen.findByRole('button', { name: '项目素材' }));
-    fireEvent.click(await screen.findByTitle('添加 角色'));
+    fireEvent.click(await screen.findByTitle('选择 角色'));
+    fireEvent.click(screen.getByRole('button', { name: '完成' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('工作区保存失败');
-    fireEvent.click(screen.getByTitle('添加 角色'));
+    fireEvent.click(screen.getByRole('button', { name: '完成' }));
     await waitFor(() => expect(screen.queryByRole('dialog', { name: '项目素材' })).not.toBeInTheDocument());
     const [saved] = vi.mocked(saveWorkspaceSession).mock.calls[1];
     expect(saved.task_groups[0].ids).toEqual(['image']);
@@ -361,7 +364,8 @@ describe('VideoPage external video persistence', () => {
     } });
     render(<VideoPage sessionScope="ep-1" materialLibrary={{ 场景: [{ id: 'asset', name: '场景', url: '/last.png', type: 'image', source: 'asset', timestamp: 0 }] }} />);
     fireEvent.click(await screen.findByRole('button', { name: '项目素材' }));
-    fireEvent.click(await screen.findByTitle('添加 场景'));
+    fireEvent.click(await screen.findByTitle('选择 场景'));
+    fireEvent.click(screen.getByRole('button', { name: '完成' }));
     await waitFor(() => expect(screen.queryByRole('dialog', { name: '项目素材' })).not.toBeInTheDocument());
     const [saved] = vi.mocked(saveWorkspaceSession).mock.calls[0];
     expect(saved.uploaded_images[0].url).toBe('/first.png');

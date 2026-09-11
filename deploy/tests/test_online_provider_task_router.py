@@ -62,6 +62,24 @@ def test_minimax_omitted_duration_is_normalized_to_six_seconds() -> None:
     assert submitted["minimax_resolution"] == "768P"
 
 
+def test_create_task_returns_submission_cancel_deadline_immediately() -> None:
+    app, service, _ = _app()
+
+    async def submit_with_deadline(_task_type, task_data, _user_id, **_kwargs):
+        task_data["cancel_deadline"] = 1_800_000_010.0
+        return "task-1"
+
+    service.submit = AsyncMock(side_effect=submit_with_deadline)
+    response = TestClient(app).post(
+        "/api/generate",
+        json={"task_type": "minimax_i2v", "model": "MiniMax-Hailuo-2.3"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["cancel_deadline"] == 1_800_000_010.0
+    assert response.json()["can_cancel"] is True
+
+
 def test_online_router_source_has_no_private_runtime_imports() -> None:
     from pathlib import Path
 

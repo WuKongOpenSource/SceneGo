@@ -91,7 +91,13 @@ function attachEntity(body: Record<string, any>, entityOptions?: EntityOptions):
   body.workspace_group_id = entityOptions.workspace_group_id;
 }
 
-async function postGenerate(body: Record<string, any>, apiName: string, fallback: string): Promise<{ task_id: string }> {
+export interface VideoTaskSubmission {
+  task_id: string;
+  cancel_deadline?: number;
+  can_cancel?: boolean;
+}
+
+async function postGenerate(body: Record<string, any>, apiName: string, fallback: string): Promise<VideoTaskSubmission> {
   const response = await apiFetch('/api/generate', {
     method: 'POST',
     body: JSON.stringify(body),
@@ -127,7 +133,7 @@ export async function submitTask(
   shotType: ShotType = 'multi',
   entityOptions?: EntityOptions,
   generationOptions?: VideoGenerationOptions,
-): Promise<{ task_id: string }> {
+): Promise<VideoTaskSubmission> {
   if (isComfyUIModel(model)) localConnectorUnavailable();
 
   let body: Record<string, any>;
@@ -296,7 +302,7 @@ export async function submitTaskQueued(
   shotType: ShotType = 'multi',
   entityOptions?: EntityOptions,
   generationOptions?: VideoGenerationOptions,
-): Promise<{ task_id: string }> {
+): Promise<VideoTaskSubmission> {
   if (isComfyUIModel(model)) localConnectorUnavailable();
   return submitTask(imageFilename, imageFilenameEnd, prompt, model, videoFilename, audioFilename, shotType, entityOptions, generationOptions);
 }
@@ -310,7 +316,7 @@ export async function submitSeedanceTask(
   entityOptions?: EntityOptions,
   draftTaskId?: string,
   agentPlanCompat = false,
-): Promise<{ task_id: string }> {
+): Promise<VideoTaskSubmission> {
   const outputError = getSeedanceOutputError(params.sub_model, params.resolution)
     || getSeedanceDurationError(params.sub_model, params.duration);
   if (outputError) throw new Error(outputError);
@@ -342,7 +348,7 @@ export async function submitSeedanceTask(
 export async function submitDashScopeVideoTask(
   params: DashScopeVideoParams,
   entityOptions?: EntityOptions,
-): Promise<{ task_id: string }> {
+): Promise<VideoTaskSubmission> {
   const media = params.media_inputs || [];
   const images = media.filter(item => item.kind === 'image');
   const firstFrame = images.find(item => item.role === 'first_frame');

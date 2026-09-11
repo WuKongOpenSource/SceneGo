@@ -90,6 +90,12 @@ function secureMediaUrl(url: string): string {
   return secureApiUrl(url, { requireAuth: false });
 }
 
+export function buildEnhanceVideoPosterUrl(videoUrl: string): string {
+  const source = String(videoUrl || '').trim();
+  if (!source) return '';
+  return secureMediaUrl(`/api/thumbnail?url=${encodeURIComponent(source)}&width=640&height=360`);
+}
+
 const ENHANCE_OPTIONS: { kind: EnhancementKind; label: string; desc: string; Icon: React.FC<{ size?: number; className?: string }> }[] = [
   { kind: 'upscale', label: '高清放大', desc: '提升至 4K 画质', Icon: Maximize },
   { kind: 'interpolate', label: '智能补帧', desc: '提升至 60 FPS', Icon: Zap },
@@ -178,7 +184,7 @@ export function buildEnhanceSourceClips(
         id: seg.segmentId || `vid_${i}`,
         sourceId: seg.segmentId || `vid_${i}`,
         url: videoUrl,
-        thumbnailUrl: seg.thumbnailUrl ? secureMediaUrl(seg.thumbnailUrl) : undefined,
+        thumbnailUrl: buildEnhanceVideoPosterUrl(String(seg.videoUrl || '')),
         referenceImageUrl: storyboard?.generatedImageUrl
           ? secureMediaUrl(storyboard.generatedImageUrl)
           : undefined,
@@ -737,10 +743,11 @@ export const EnhancePage: React.FC = () => {
         duration: clip.duration,
         sourceOffset: clip.sourceOffset,
         volume: clip.volume,
+        enabled: composeAudioMode === 'reference_dubbing' || clip.audioKind !== 'voice',
       })),
       audioElements: audioElementRefs.current,
       currentTime,
-      playing: playing && composeAudioMode === 'reference_dubbing',
+      playing,
     }).catch(() => {});
   }, [audioClips, currentTime, playing, composeAudioMode]);
 
@@ -989,27 +996,29 @@ export const EnhancePage: React.FC = () => {
       .join('\n'),
   }), [storyboardAudioItems]);
 
-  const togglePlay = useCallback(() => {
-    if (playing) {
-      if (playTimerRef.current) clearInterval(playTimerRef.current);
+  useEffect(() => {
+    if (!playing) {
+      if (playTimerRef.current) window.clearInterval(playTimerRef.current);
       playTimerRef.current = null;
-      setPlaying(false);
-    } else {
-      setPlaying(true);
-      playTimerRef.current = window.setInterval(() => {
-        setCurrentTime(prev => {
-          const next = prev + 0.1;
-          if (next >= totalDuration) {
-            if (playTimerRef.current) clearInterval(playTimerRef.current);
-            playTimerRef.current = null;
-            setPlaying(false);
-            return 0;
-          }
-          return next;
-        });
-      }, 100);
+      previewVideoRef.current?.pause();
+      return;
     }
+    const timer = window.setInterval(() => {
+      setCurrentTime(previous => {
+        const next = previous + 0.1;
+        if (next < totalDuration) return next;
+        setPlaying(false);
+        return 0;
+      });
+    }, 100);
+    playTimerRef.current = timer;
+    return () => {
+      window.clearInterval(timer);
+      if (playTimerRef.current === timer) playTimerRef.current = null;
+    };
   }, [playing, totalDuration]);
+
+  const togglePlay = useCallback(() => setPlaying(current => !current), []);
 
   const handleAudioUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1918,15 +1927,20 @@ export const EnhancePage: React.FC = () => {
             <div className="w-full max-w-3xl aspect-video bg-black rounded-md border border-n40 shadow-2xl overflow-hidden relative">
               {videoUnderPlayhead?.url ? (
                 <video
+                  key={videoUnderPlayhead.id}
                   ref={previewVideoRef}
                   src={videoUnderPlayhead.url}
-                  preload="none"
+                  poster={videoUnderPlayhead.thumbnailUrl}
+                  preload="metadata"
                   controls={false}
                   muted={composeAudioMode === 'reference_dubbing'}
                   aria-label="当前时间线视频预览"
                   onLoadedMetadata={event => {
                     const video = event.currentTarget;
                     setPreviewSourceSize({ width: video.videoWidth, height: video.videoHeight });
+                    const target = Math.max(0, currentTime - videoUnderPlayhead.startTime + videoUnderPlayhead.sourceOffset);
+                    try { video.currentTime = Math.min(target, Math.max(0, video.duration - 0.05)); } catch {}
+                    if (playing) void video.play().catch(() => setPlaying(false));
                   }}
                   className="w-full h-full object-contain"
                   style={{ opacity: videoTransitionOpacity }}

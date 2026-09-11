@@ -150,7 +150,7 @@ export interface ComposeStatus {
 }
 
 export type ComposeAudioMode = 'video_original' | 'reference_dubbing';
-export const DEFAULT_COMPOSE_AUDIO_MODE: ComposeAudioMode = 'reference_dubbing';
+export const DEFAULT_COMPOSE_AUDIO_MODE: ComposeAudioMode = 'video_original';
 
 export interface ComposeTimelineItem {
   clip_id: string;

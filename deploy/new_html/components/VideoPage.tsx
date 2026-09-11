@@ -1545,18 +1545,18 @@ export const VideoPage: React.FC<VideoPageProps> = ({
     }, [onRegisterSessionSave]);
 
     const selectProjectMaterial = async (item: ProjectMaterialPickerItem) => {
-        if (!projectMaterialTarget || projectMaterialLock.current) return;
+        if (!projectMaterialTarget || projectMaterialLock.current) return false;
         const { groupUuid } = projectMaterialTarget;
         const group = taskGroupsRef.current.find(candidate => candidate.uuid === groupUuid);
         const imageId = projectMaterialTarget.imageId || group?.ids.find(id => uploadedImages.some(image => image.id === id && (image.isPlaceholder || !image.url)));
         const currentImage = uploadedImages.find(candidate => candidate.id === imageId);
         if (!group || (imageId && (!currentImage || !group.ids.includes(imageId)))) {
             setProjectMaterialError('目标卡片已不存在，请关闭弹窗后重新选择。');
-            return;
+            return false;
         }
         if (['pending', 'running', 'processing'].includes(tasksStatus[groupUuid]?.state || '')) {
             setProjectMaterialError('当前卡片正在生成，请等待任务结束后再选择素材。');
-            return;
+            return false;
         }
         projectMaterialLock.current = true;
         setProjectMaterialBusy(true);
@@ -1570,7 +1570,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 if (!(await saveSessionRef.current({ task_groups: next })).success) throw new Error('工作区保存失败');
                 setProjectMaterialTarget(null);
                 showToast('画面已保存，请在下方选择首尾帧或参考图');
-                return;
+                return true;
             }
             const images = uploadedImages.map(candidate => candidate.id === imageId ? image : candidate);
             const seedanceParams = { ...seedanceParamsForSession };
@@ -1603,10 +1603,12 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             if (!result.success) throw new Error('工作区保存失败');
             setProjectMaterialTarget(null);
             showToast('项目素材已填入当前卡片并保存');
+            return true;
         } catch (error) {
             setProjectMaterialError(applied
                 ? '素材已填入，但工作区保存失败。请再次点击同一素材重试保存。'
                 : error instanceof Error ? error.message : '添加项目素材失败');
+            return false;
         } finally {
             projectMaterialLock.current = false;
             setProjectMaterialBusy(false);
@@ -3049,7 +3051,10 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 }, undefined, isSeedanceAgentPlanModel(group.model));
                 console.log('Seedance 任务提交成功:', result.task_id);
                 showToast('任务已提交');
-                startPolling(uuid, result.task_id);
+                startPolling(uuid, result.task_id, {
+                    cancelDeadline: result.cancel_deadline,
+                    canCancel: result.can_cancel,
+                });
                 return result.task_id;
             } catch (error: any) {
                 console.error('Seedance 任务提交失败:', error);
@@ -3109,7 +3114,10 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 });
                 console.log('DashScope 任务提交成功:', result.task_id);
                 showToast('任务已提交');
-                startPolling(uuid, result.task_id);
+                startPolling(uuid, result.task_id, {
+                    cancelDeadline: result.cancel_deadline,
+                    canCancel: result.can_cancel,
+                });
                 return result.task_id;
             } catch (error: any) {
                 console.error('DashScope 任务提交失败:', error);
@@ -3258,7 +3266,10 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
             console.log('✅ 任务提交成功:', result.task_id);
             showToast('任务已提交');
-            startPolling(uuid, result.task_id);
+            startPolling(uuid, result.task_id, {
+                cancelDeadline: result.cancel_deadline,
+                canCancel: result.can_cancel,
+            });
             return result.task_id;
 
         } catch (error: any) {
@@ -3436,14 +3447,19 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         }
     }, [buildPollCallbacks]);
 
-    const startPolling = useCallback((uuid: string, taskId: string) => {
+    const startPolling = useCallback((
+        uuid: string,
+        taskId: string,
+        undo?: { cancelDeadline?: number; canCancel?: boolean },
+    ) => {
 
         setTasksStatus(prev => ({
             ...prev,
             [uuid]: {
                 ...prev[uuid],
-                state: 'running',
+                state: undo?.cancelDeadline ? 'pending' : 'running',
                 taskId,
+                ...undo,
             },
         }));
         const projectId = (() => {
@@ -5996,9 +6012,9 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                     busy={projectMaterialBusy}
                     errorMessage={projectMaterialError}
                     description="选择当前项目的人物、场景或道具图片，使用原图填入当前空卡；不会修改来源素材。"
-                    footer={projectMaterialBusy ? '正在保存素材到当前卡片...' : '单击一张图片填入当前空卡；不会新增卡片、覆盖提示词或触发生成。'}
+                    footer={projectMaterialBusy ? '正在保存素材到当前卡片...' : '先选择图片，再点完成写入当前空卡；不会新增卡片、覆盖提示词或触发生成。'}
                     handleMaterialPickerFilterChange={projectMaterialPicker.setMaterialPickerFilter}
-                    handleAddProjectMaterial={item => void selectProjectMaterial(item)}
+                    handleAddProjectMaterial={selectProjectMaterial}
                     onRefresh={() => void refreshProjectMaterials()}
                     onClose={() => { if (!projectMaterialLock.current) setProjectMaterialTarget(null); }}
                 />
