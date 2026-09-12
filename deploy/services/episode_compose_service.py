@@ -3,6 +3,7 @@ from __future__ import annotations
 from utils.reference_audio_anchors import normalize_anchors, reference_layers
 
 import asyncio
+import errno
 import hashlib
 import json
 import logging
@@ -14,6 +15,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from dao.creative.episode_compose import EpisodeComposeDAO
+from services.compose_error_service import public_compose_error
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +40,39 @@ _ASPECT_PRESETS: List[Tuple[str, float, Tuple[int, int]]] = [
 
 # episode_id -> {status: running|done|failed, total, done, url, error}
 _jobs: Dict[str, Dict[str, Any]] = {}
+
+
+def _replace_media_file(source: str, destination: str) -> None:
+    """Atomically publish media even when scratch and storage use different mounts."""
+    try:
+        os.replace(source, destination)
+        return
+    except OSError as exc:
+        if exc.errno != errno.EXDEV:
+            raise
+    # Stage on the destination filesystem; never expose a partially copied file
+    # or truncate an existing result when copying or the final rename fails.
+    staged_path = None
+    try:
+        with tempfile.NamedTemporaryFile(dir=os.path.dirname(destination), prefix='.compose-', suffix='.tmp', delete=False) as staged:
+            staged_path = staged.name
+            with open(source, 'rb') as original:
+                shutil.copyfileobj(original, staged, length=1024 * 1024)
+            staged.flush()
+            os.fsync(staged.fileno())
+        shutil.copymode(source, staged_path)
+        os.replace(staged_path, destination)
+        staged_path = None
+        try:
+            os.unlink(source)
+        except OSError:
+            logger.warning('compose scratch cleanup deferred', exc_info=True)
+    finally:
+        if staged_path is not None:
+            try:
+                os.unlink(staged_path)
+            except FileNotFoundError:
+                pass
 
 
 def _ensure_media_tools() -> None:
@@ -182,6 +217,8 @@ def _normalize_editor_subtitles(value: Any, video_duration_ms: int) -> List[Dict
                 "text": text[:_MAX_SUBTITLE_TEXT],
                 "start_ms": start_ms,
                 "duration_ms": duration_ms,
+                **({"style": _normalize_subtitle_style(raw["style"])}
+                   if isinstance(raw.get("style"), dict) else {}),
             }
         )
     return sorted(normalized, key=lambda cue: (cue["start_ms"], cue["cue_id"]))
@@ -231,14 +268,23 @@ async def _burn_editor_subtitles(
     if not cues:
         return 0
     style = _normalize_subtitle_style(raw_style)
-    alignment = {"top": 8, "center": 5, "bottom": 2}[style["position"]]
     margin_v = max(24, round(output_height * 0.06))
-    background = _ass_color(style["background_color"], style["background_opacity"])
-    outline_size = 6 if style["background_opacity"] > 0 else 2
     font_family = "".join(
         character for character in _SUBTITLE_FONT_FAMILY[:100]
         if character not in {",", "\r", "\n"}
     ).strip() or "Noto Sans CJK SC"
+
+    def ass_style(name: str, cue_style: Dict[str, Any]) -> str:
+        alignment = {"top": 8, "center": 5, "bottom": 2}[cue_style["position"]]
+        background = _ass_color(cue_style["background_color"], cue_style["background_opacity"])
+        outline_size = 6 if cue_style["background_opacity"] > 0 else 2
+        return (
+            f"Style: {name},{font_family},{cue_style['font_size']},"
+            f"{_ass_color(cue_style['text_color'])},{_ass_color(cue_style['text_color'])},"
+            f"{background},{background},0,0,0,0,100,100,0,0,3,{outline_size},0,"
+            f"{alignment},48,48,{margin_v},1"
+        )
+
     ass_path = os.path.join(tmp, "editor_subtitles.ass")
     ass_lines = [
         "[Script Info]",
@@ -250,28 +296,29 @@ async def _burn_editor_subtitles(
         "",
         "[V4+ Styles]",
         "Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,Bold,Italic,Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,MarginV,Encoding",
-        (
-            f"Style: Default,{font_family},{style['font_size']},"
-            f"{_ass_color(style['text_color'])},{_ass_color(style['text_color'])},"
-            f"{background},{background},0,0,0,0,100,100,0,0,3,{outline_size},0,"
-            f"{alignment},48,48,{margin_v},1"
-        ),
+        ass_style("Default", style),
+        *(ass_style(f"Cue{index}", cue["style"]) for index, cue in enumerate(cues) if "style" in cue),
         "",
         "[Events]",
         "Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text",
     ]
-    for cue in cues:
+    for index, cue in enumerate(cues):
+        # Older API clients may still send one global style. Editor cues carry
+        # their own complete style so placement and font size cannot leak.
+        cue_style = cue.get("style", style)
+        style_name = f"Cue{index}" if "style" in cue else "Default"
+        alignment = {"top": 8, "center": 5, "bottom": 2}[cue_style["position"]]
         placement = ""
-        if "position_x" in style or "position_y" in style:
-            x = output_width * style.get("position_x", 50) / 100
-            default_y = {"top": 6, "center": 50, "bottom": 94}[style["position"]]
-            y = output_height * style.get("position_y", default_y) / 100
+        if "position_x" in cue_style or "position_y" in cue_style:
+            x = output_width * cue_style.get("position_x", 50) / 100
+            default_y = {"top": 6, "center": 50, "bottom": 94}[cue_style["position"]]
+            y = output_height * cue_style.get("position_y", default_y) / 100
             placement = rf"{{\an{alignment}\pos({x:.3f},{y:.3f})}}"
         ass_lines.append(
             "Dialogue: 0,"
             f"{_ass_timestamp(cue['start_ms'])},"
             f"{_ass_timestamp(cue['start_ms'] + cue['duration_ms'])},"
-            f"Default,,0,0,0,,{placement}{_ass_text(cue['text'])}"
+            f"{style_name},,0,0,0,,{placement}{_ass_text(cue['text'])}"
         )
     with open(ass_path, "w", encoding="utf-8-sig", newline="\n") as subtitle_file:
         subtitle_file.write("\n".join(ass_lines) + "\n")
@@ -312,7 +359,7 @@ async def _burn_editor_subtitles(
     )
     if rc != 0:
         raise RuntimeError(f"Subtitle burn-in failed: {err[:200]}")
-    os.replace(subtitled_path, video_path)
+    await asyncio.to_thread(_replace_media_file, subtitled_path, video_path)
     return len(cues)
 
 
@@ -572,7 +619,7 @@ async def _mix_global_audio_tracks(
     )
     if rc != 0:
         raise RuntimeError(f"Global audio mix failed: {err[:200]}")
-    os.replace(mixed_path, video_path)
+    await asyncio.to_thread(_replace_media_file, mixed_path, video_path)
 
 
 def _even(value: int) -> int:
@@ -1255,7 +1302,8 @@ async def _compose(
         rel_dir = os.path.join(_STORAGE, "video", user_id, ym)
         os.makedirs(rel_dir, exist_ok=True)
         out_name = f"composed_{episode_id}_{ts}.mp4"
-        out_path = os.path.join(rel_dir, out_name)
+        final_path = os.path.join(rel_dir, out_name)
+        out_path = os.path.join(tmp, 'composed_final.mp4')
         rc, _out, err = await _run(
             [
                 "ffmpeg",
@@ -1291,6 +1339,7 @@ async def _compose(
         )
         duration = await _probe_dur(out_path)
         size = os.path.getsize(out_path)
+        await asyncio.to_thread(_replace_media_file, out_path, final_path)
         file_url = f"/storage/video/{user_id}/{ym}/{out_name}"
         file_path_rel = f"persistent_storage/video/{user_id}/{ym}/{out_name}"
         short = episode_id[-8:]
@@ -1375,7 +1424,7 @@ def start_compose(
             )
         except Exception as exc:
             job["status"] = "failed"
-            job["error"] = str(exc)[:300]
+            job["error"] = public_compose_error(exc)
             logger.exception("compose failed episode=%s", episode_id)
 
     asyncio.create_task(_runner())
@@ -1383,4 +1432,5 @@ def start_compose(
 
 
 def get_status(episode_id: str) -> Dict[str, Any]:
-    return _jobs.get(episode_id) or {"status": "idle", "total": 0, "done": 0, "url": None, "error": None}
+    job = _jobs.get(episode_id) or {"status": "idle", "total": 0, "done": 0, "url": None, "error": None}
+    return {**job, "error": public_compose_error(job['error']) if job.get('error') else None}

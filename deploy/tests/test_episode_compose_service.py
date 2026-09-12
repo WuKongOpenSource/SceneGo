@@ -208,6 +208,50 @@ async def test_editor_subtitles_are_rendered_with_ass_filter(monkeypatch, tmp_pa
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize('dimensions', [(1920, 1080), (1080, 1920)])
+async def test_cue_styles_export_independently_without_global_position_or_font_leak(monkeypatch, tmp_path, dimensions):
+    video = tmp_path / 'final.mp4'
+    video.write_bytes(b'video')
+
+    async def fake_run(cmd):
+        Path(cmd[-1]).write_bytes(b'subtitled')
+        return 0, '', ''
+
+    monkeypatch.setattr(episode_compose_service, '_run', fake_run)
+    cues = [
+        {'cue_id': 'title', 'text': 'Title', 'start_ms': 0, 'duration_ms': 1000,
+         'style': {'position': 'center', 'position_x': 25, 'position_y': 50, 'font_size': 72}},
+        {'cue_id': 'dialogue', 'text': 'Dialogue', 'start_ms': 1000, 'duration_ms': 1000, 'style': {}},
+        {'cue_id': 'legacy', 'text': 'Legacy API', 'start_ms': 2000, 'duration_ms': 1000},
+    ]
+    assert await episode_compose_service._burn_editor_subtitles(cues, {'position': 'top', 'font_size': 90},
+        str(video), 3, str(tmp_path), *dimensions) == 3
+    lines = (tmp_path / 'editor_subtitles.ass').read_text(encoding='utf-8-sig').splitlines()
+    title = next(line.split(',') for line in lines if line.startswith('Style: Cue0,'))
+    dialogue = next(line.split(',') for line in lines if line.startswith('Style: Cue1,'))
+    assert (title[2], title[18]) == ('72', '5')
+    assert (dialogue[2], dialogue[18]) == ('42', '2')
+    events = [line for line in lines if line.startswith('Dialogue:')]
+    assert f"Cue0,,0,0,0,,{{\\an5\\pos({dimensions[0] * .25:.3f},{dimensions[1] * .5:.3f})}}Title" in events[0]
+    assert events[1].endswith('Cue1,,0,0,0,,Dialogue')
+    assert events[2].endswith('Default,,0,0,0,,Legacy API')
+    assert r'\pos' not in events[1]
+
+
+def test_per_cue_style_validation_is_bounded_and_does_not_mutate_neighbors():
+    styles = [{'position': 'bad', 'font_size': 999, 'position_x': -10, 'position_y': float('inf'),
+               'text_color': 'injected', 'background_opacity': -1}, {}]
+    cues = episode_compose_service._normalize_editor_subtitles([
+        {'cue_id': str(index), 'text': 'text', 'start_ms': index * 1000, 'duration_ms': 1000, 'style': style}
+        for index, style in enumerate(styles)
+    ], 3000)
+    assert cues[0]['style'] == {'position': 'bottom', 'font_size': 96, 'position_x': 0,
+        'text_color': '#FFFFFF', 'background_color': '#000000', 'background_opacity': 0}
+    assert cues[1]['style'] == episode_compose_service._normalize_subtitle_style(None)
+    assert styles[0]['font_size'] == 999
+
+
+@pytest.mark.asyncio
 async def test_get_shots_uses_edited_cut_order_and_allows_repeated_source(monkeypatch):
     async def fake_list_shot_takes(_episode_id):
         return [

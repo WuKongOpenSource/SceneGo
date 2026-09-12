@@ -1,12 +1,14 @@
 """Episode video segment and composition route handlers."""
 
 from typing import Any, Optional
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
 from services.project_access_service import require_project_access
 from services.project_access_service import resolve_user_id
+from services.compose_error_service import public_compose_error
 from dao.creative.enhance_export import EnhanceExportDAO
 from services.enhance_media_duration_service import selected_video_duration
 from services.episode_video_service import (
@@ -157,8 +159,9 @@ def create_episode_video_router(
             )
         except EpisodeNotFound as exc:
             raise HTTPException(status_code=404, detail="剧集不存在") from exc
-        except RuntimeError as exc:
-            raise HTTPException(status_code=422, detail=str(exc)[:300]) from exc
+        except (RuntimeError, OSError) as exc:
+            logging.getLogger(__name__).exception('compose preflight failed episode=%s', episode_id)
+            raise HTTPException(status_code=422, detail=public_compose_error(exc)) from exc
 
     @router.get("/api/episodes/{episode_id}/compose/status")
     async def compose_status_endpoint(episode_id: str, user_id: str = Depends(get_current_user)):

@@ -11,6 +11,7 @@ export interface EnhanceSubtitleCue {
   text: string;
   startTime: number;
   duration: number;
+  style?: EnhanceSubtitleStyle;
 }
 
 export interface EnhanceSubtitleStyle {
@@ -32,6 +33,7 @@ export const DEFAULT_ENHANCE_SUBTITLE_STYLE: EnhanceSubtitleStyle = {
 };
 
 export interface PersistedEnhanceTimelineItem {
+  style?: EnhanceSubtitleStyle;
   sourceDurationMs?: number;
   sourceUrl?: string;
   storyboardAnchors?: StoryboardAudioAnchor[];
@@ -75,6 +77,7 @@ export interface ComposeTimelineItem {
 }
 
 export interface ComposeSubtitleCue {
+  style?: ComposeSubtitleStyle;
   cue_id: string;
   text: string;
   start_ms: number;
@@ -153,7 +156,18 @@ export function normalizeEnhanceSubtitleCue(value: unknown): EnhanceSubtitleCue 
     text: String(raw.text || '').replace(/\r\n?/g, '\n').slice(0, 500),
     startTime: roundTime(Math.max(0, finite(raw.startTime))),
     duration: roundTime(clamp(finite(raw.duration, 3), MIN_SUBTITLE_DURATION, 3600)),
+    ...(raw.style && typeof raw.style === 'object'
+      ? { style: normalizeEnhanceSubtitleStyle(raw.style) } : {}),
   };
+}
+
+/** A cue never inherits another cue's placement or the legacy global style. */
+export function updateSubtitleCueStyle(
+  subtitles: EnhanceSubtitleCue[], cueId: string, updates: Partial<EnhanceSubtitleStyle>,
+): EnhanceSubtitleCue[] {
+  return subtitles.map(cue => cue.id === cueId ? {
+    ...cue, style: normalizeEnhanceSubtitleStyle({ ...normalizeEnhanceSubtitleStyle(cue.style), ...updates }),
+  } : cue);
 }
 
 export function moveSubtitleCue(
@@ -472,6 +486,7 @@ export function serializeEnhanceTimeline(
         text: normalized.text,
         startMs: Math.round(normalized.startTime * 1000),
         durationMs: Math.round(normalized.duration * 1000),
+        style: normalizeEnhanceSubtitleStyle(normalized.style),
       }] : [];
     }),
     {
@@ -563,6 +578,7 @@ export function restoreEnhanceSubtitles(
       text: item.text,
       startTime: finite(item.startMs) / 1000,
       duration: finite(item.durationMs, 3000) / 1000,
+      style: normalizeEnhanceSubtitleStyle(item.style),
     });
     return cue ? [cue] : [];
   }).sort((a, b) => a.startTime - b.startTime || a.id.localeCompare(b.id));
@@ -613,6 +629,7 @@ export function composeSubtitleItems(subtitles: EnhanceSubtitleCue[]): ComposeSu
       text: normalized.text,
       start_ms: Math.round(normalized.startTime * 1000),
       duration_ms: Math.round(normalized.duration * 1000),
+      style: composeSubtitleStyle(normalizeEnhanceSubtitleStyle(normalized.style)),
     }];
   }).sort((a, b) => a.start_ms - b.start_ms || a.cue_id.localeCompare(b.cue_id));
 }

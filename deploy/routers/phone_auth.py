@@ -275,15 +275,6 @@ def create_phone_auth_router(
                 user_id = verify_binding_token(body.binding_token or "")
                 if not user_id or not await user_dao.get_user_auth_by_id(user_id):
                     raise InvalidCredentials("binding token is invalid")
-            elif body.purpose == "login":
-                if not await user_dao.get_user_by_phone(phone):
-                    return {
-                        "success": True,
-                        "sent": False,
-                        "next_action": "register",
-                        "phone": phone,
-                        "message": "该手机号尚未注册，请先注册",
-                    }
             elif body.purpose == "password_reset":
                 # Password reset keeps account discovery private. The frontend
                 # must not claim that a code was sent when no delivery occurred.
@@ -294,7 +285,7 @@ def create_phone_auth_router(
                         "expires_in": 300,
                         "resend_in": 60,
                     }
-            elif await user_dao.get_user_by_phone(phone):
+            elif body.purpose == "register" and await user_dao.get_user_by_phone(phone):
                 raise AccountExists("手机号已注册，请直接登录")
 
             provider = build_sms_provider()

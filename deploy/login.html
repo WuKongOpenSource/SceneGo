@@ -954,7 +954,7 @@
 
                 <div id="authTabs" class="auth-tabs">
                     <button type="button" class="auth-tab active" data-method="password">密码登录</button>
-                    <button type="button" class="auth-tab" data-method="sms_code">验证码登录</button>
+                    <button type="button" class="auth-tab" data-method="sms_code">验证码登录 / 注册</button>
                 </div>
 
                 <form id="authForm" onsubmit="handleSubmit(event)"></form>
@@ -1155,8 +1155,8 @@
                 )
                     + (state.method === 'password' ? input('password', 'password', '密码', 'current-password') : codeInput())
                     + captchaMarkup()
-                    + (state.method === 'password' ? forgotPasswordButton() : '')
-                    + submitButton('进入创剧');
+                    + (state.method === 'password' ? forgotPasswordButton() : '<p class="field-hint">未注册手机号验证通过后将自动注册并登录，无需先设置密码。</p>')
+                    + submitButton(state.method === 'sms_code' ? '登录 / 注册' : '进入创剧');
                 authFooter.innerHTML = `还没有账号？ ${footerButton('创建账号', 'register')}`;
             } else if (state.view === 'register') {
                 authTitle.textContent = '创建账号';
@@ -1325,16 +1325,6 @@
                 codeMessage('正在发送短信，请稍候…');
                 const result = await api('/api/auth/sms-code', body);
                 if (view !== state.view || method !== state.method) return;
-                if (result.next_action === 'register') {
-                    if (state.timer) clearInterval(state.timer);
-                    state.timer = null;
-                    state.countdown = 0;
-                    setView('register');
-                    const registerPhone = document.getElementById('phone');
-                    if (registerPhone) registerPhone.value = result.phone || phone;
-                    showError(result.message || '该手机号尚未注册，请先注册');
-                    return;
-                }
                 state.countdown = Number(result.resend_in || 60);
                 startCountdown();
                 const deliveryMessage = result.sent === false

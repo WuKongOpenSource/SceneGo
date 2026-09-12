@@ -21,6 +21,7 @@ import {
   splitTimelineClip,
   trimTimelineClip,
   trimSubtitleCue,
+  updateSubtitleCueStyle,
 } from '../../utils/enhanceTimelineEditor';
 
 function video(id: string, startTime: number, duration: number): EnhanceMediaClip {
@@ -135,7 +136,7 @@ describe('enhance timeline editor', () => {
     const style = { ...DEFAULT_ENHANCE_SUBTITLE_STYLE, position: 'top' as const, backgroundOpacity: 0.3 };
     const saved = serializeEnhanceTimeline([video('a', 0, 5)], ['a'], subtitles, style);
 
-    expect(restoreEnhanceSubtitles(saved)).toEqual(subtitles);
+    expect(restoreEnhanceSubtitles(saved)).toEqual(subtitles.map(cue => ({ ...cue, style: DEFAULT_ENHANCE_SUBTITLE_STYLE })));
     expect(restoreEnhanceSubtitleStyle(saved)).toEqual(style);
     expect(restoreEnhanceSubtitles([{ kind: 'video', sourceId: 'a' }])).toEqual([]);
     expect(restoreEnhanceSubtitleStyle([{ kind: 'video', sourceId: 'a' }]))
@@ -151,6 +152,7 @@ describe('enhance timeline editor', () => {
       text: '字幕',
       start_ms: 1234,
       duration_ms: 2345,
+      style: composeSubtitleStyle(DEFAULT_ENHANCE_SUBTITLE_STYLE),
     }]);
     expect(composeSubtitleStyle({
       fontSize: 999,
@@ -165,5 +167,26 @@ describe('enhance timeline editor', () => {
       background_opacity: 0,
       position: 'center',
     });
+  });
+
+  it('keeps cue styles independent across defaults, save/reload, undo snapshots and export', () => {
+    const initial = restoreEnhanceSubtitles([
+      { kind: 'subtitle', cueId: 'a', text: '标题', startMs: 0, durationMs: 1000 },
+      { kind: 'subtitle', cueId: 'b', text: '对白', startMs: 1000, durationMs: 1000 },
+      { kind: 'subtitle_style', position: 'center', positionY: 52.2, fontSize: 90 },
+    ]);
+    expect(initial.every(cue => cue.style?.position === 'bottom' && cue.style.fontSize === 42)).toBe(true);
+    const updated = updateSubtitleCueStyle(initial, 'a', { positionY: 50, fontSize: 72 });
+    expect(updated[1]).toBe(initial[1]);
+    expect(initial[0].style).toEqual(DEFAULT_ENHANCE_SUBTITLE_STYLE);
+    const restored = restoreEnhanceSubtitles(serializeEnhanceTimeline([], [], updated));
+    expect(restored).toEqual(updated);
+    expect(composeSubtitleItems(restored).map(cue => cue.style)).toEqual([
+      { ...composeSubtitleStyle(DEFAULT_ENHANCE_SUBTITLE_STYLE), position_y: 50, font_size: 72 },
+      composeSubtitleStyle(DEFAULT_ENHANCE_SUBTITLE_STYLE),
+    ]);
+    const reset = updateSubtitleCueStyle(updated, 'a', { position: 'bottom', positionX: undefined, positionY: undefined, fontSize: 42 });
+    expect(reset[0].style).toEqual(DEFAULT_ENHANCE_SUBTITLE_STYLE);
+    expect(updated[0].style?.positionY).toBe(50);
   });
 });

@@ -138,14 +138,34 @@ async def login_phone_code(
     verification_manager: Any,
     user_dao: Any,
 ) -> dict[str, Any]:
+    """Verify ownership first, then sign in or create a normal phone account."""
     normalized_phone = normalize_phone(phone)
-    user = await user_dao.get_user_by_phone(normalized_phone)
-    if not user:
-        raise InvalidCredentials("phone or verification code is incorrect")
-    _assert_active(user)
     await verification_manager.verify(
         channel="sms", target=normalized_phone, purpose="login", code=code
     )
+    user = await user_dao.get_user_by_phone(normalized_phone)
+    if not user:
+        for _ in range(3):
+            username = await _generated_username(normalized_phone, user_dao)
+            try:
+                # No shared/default password is installed. The discarded random
+                # secret is hashed by the standard registration DAO; users may
+                # set a known password later through verified password reset.
+                user = await user_dao.create_phone_user(
+                    phone_number=normalized_phone, username=username,
+                    password=secrets.token_urlsafe(48), email=None,
+                )
+            except Exception as exc:
+                if getattr(exc, 'sqlstate', None) != '23505':
+                    raise
+                # The unique verified-phone index arbitrates concurrent signup.
+                # Never replace the winning account's password or permissions.
+                user = await user_dao.get_user_by_phone(normalized_phone)
+            if user:
+                break
+        if not user:
+            raise PhoneAuthError('账号暂无法创建，请稍后重试或联系管理员')
+    _assert_active(user)
     await user_dao.update_last_login(user["user_id"])
     return user
 

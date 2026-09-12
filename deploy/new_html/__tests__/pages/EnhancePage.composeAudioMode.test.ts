@@ -84,6 +84,8 @@ describe('EnhancePage compose audio mode', () => {
     expect(source).toContain('handleSubtitleDragStart');
     expect(source).toContain('handleSubtitleTrimStart');
     expect(source).toContain('cues={activeSubtitles}');
-    expect(source).toContain('onChange={updateSubtitleStyle}');
+    expect(source).toContain('onChange={(id, updates) => updateSubtitleStyle(updates, id)}');
+    expect(source).toContain('subtitles: updateSubtitleCueStyle(current.subtitles, cueId, updates)');
+    expect(source).not.toContain('位置应用于全部字幕');
   });
 });

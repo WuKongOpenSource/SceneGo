@@ -58,14 +58,16 @@ class RecordingSmsManager:
 
 
 @pytest.mark.asyncio
-async def test_sms_login_for_unregistered_phone_redirects_to_registration_without_sending(monkeypatch):
+async def test_sms_login_for_unregistered_phone_sends_the_same_login_code(monkeypatch):
     provider_calls = []
 
-    def unexpected_provider():
-        provider_calls.append(True)
-        raise AssertionError("SMS provider must not be called for an unregistered login")
+    class Provider:
+        def __init__(self): provider_calls.append(True)
+        async def send_code(self, **_kwargs): return None
 
-    monkeypatch.setattr(phone_auth, "build_sms_provider", unexpected_provider)
+    RecordingSmsManager.calls = []
+    monkeypatch.setattr(phone_auth, "build_sms_provider", Provider)
+    monkeypatch.setattr(phone_auth, "VerificationCodeManager", RecordingSmsManager)
 
     api = FastAPI()
     api.include_router(
@@ -87,12 +89,13 @@ async def test_sms_login_for_unregistered_phone_redirects_to_registration_withou
     assert response.status_code == 200, response.text
     assert response.json() == {
         "success": True,
-        "sent": False,
-        "next_action": "register",
-        "phone": "15889699900",
-        "message": "该手机号尚未注册，请先注册",
+        "sent": True,
+        "expires_in": 300,
+        "resend_in": 60,
     }
-    assert provider_calls == []
+    assert provider_calls == [True]
+    assert RecordingSmsManager.calls[0]['target'] == '15889699900'
+    assert RecordingSmsManager.calls[0]['purpose'] == 'login'
 
 
 @pytest.mark.asyncio

@@ -53,6 +53,7 @@ import {
   restoreEnhanceTimeline,
   restoreEnhanceSubtitles,
   restoreEnhanceSubtitleStyle,
+  updateSubtitleCueStyle,
   serializeEnhanceTimeline,
   splitTimelineClip,
   trimTimelineClip,
@@ -530,6 +531,7 @@ export const EnhancePage: React.FC = () => {
       ))
     : 3;
   const selectedSubtitle = subtitles.find(cue => cue.id === selectedSubtitleId);
+  const selectedSubtitleStyle = normalizeEnhanceSubtitleStyle(selectedSubtitle?.style);
   const activeSubtitles = useMemo(() => subtitles.filter(cue => (
     cue.text.trim()
       && currentTime >= cue.startTime
@@ -1034,12 +1036,13 @@ export const EnhancePage: React.FC = () => {
     }));
   }, [commitSubtitleTimeline, selectedSubtitleId, videoDuration]);
 
-  const updateSubtitleStyle = useCallback((updates: Partial<EnhanceSubtitleStyle>) => {
+  const updateSubtitleStyle = useCallback((updates: Partial<EnhanceSubtitleStyle>, cueId = selectedSubtitleId) => {
+    if (!cueId) return;
     commitSubtitleTimeline(current => ({
       ...current,
-      subtitleStyle: normalizeEnhanceSubtitleStyle({ ...current.subtitleStyle, ...updates }),
+      subtitles: updateSubtitleCueStyle(current.subtitles, cueId, updates),
     }));
-  }, [commitSubtitleTimeline]);
+  }, [commitSubtitleTimeline, selectedSubtitleId]);
 
   const persistAudioClip = useCallback(async (clip: MediaClip) => {
     // All audio edits share the same serialized save queue as video and subtitles.
@@ -1923,7 +1926,6 @@ export const EnhancePage: React.FC = () => {
               )}
               <SubtitlePreview
                 cues={activeSubtitles}
-                style={subtitleStyle}
                 sourceWidth={previewSourceSize.width}
                 sourceHeight={previewSourceSize.height}
                 onSelect={id => {
@@ -1933,7 +1935,7 @@ export const EnhancePage: React.FC = () => {
                   playTimerRef.current = null;
                   setPlaying(false);
                 }}
-                onChange={updateSubtitleStyle}
+                onChange={(id, updates) => updateSubtitleStyle(updates, id)}
               />
             </div>
           </div>
@@ -2003,7 +2005,7 @@ export const EnhancePage: React.FC = () => {
                   <label className="block space-y-1">
                     <span className="text-[11px] text-n300">位置</span>
                     <select
-                      value={subtitleStyle.position}
+                      value={selectedSubtitleStyle.position}
                       onChange={event => updateSubtitleStyle({ position: event.target.value as EnhanceSubtitleStyle['position'], positionX: undefined, positionY: undefined })}
                       className="w-full rounded border border-n40 bg-n0 px-2 py-1.5 text-xs focus:border-primary focus:outline-none"
                     >
@@ -2012,7 +2014,7 @@ export const EnhancePage: React.FC = () => {
                       <option value="bottom">下</option>
                     </select>
                   </label>
-                  <p className="text-[11px] leading-4 text-n100">在预览画面中拖动字幕，或调整下方坐标。位置应用于全部字幕。</p>
+                  <p className="text-[11px] leading-4 text-n100">拖动或修改样式只影响当前字幕；其他字幕和新增字幕保持各自设置。</p>
                   {(['x', 'y'] as const).map(axis => (
                     <label key={axis} className="block space-y-1">
                       <span className="flex items-center justify-between text-[11px] text-n300">
@@ -2020,30 +2022,30 @@ export const EnhancePage: React.FC = () => {
                         <span className="flex items-center gap-1">
                           <input type="number" min={0} max={100} step={0.1}
                             aria-label={axis === 'x' ? '字幕水平位置百分比' : '字幕垂直位置百分比'}
-                            value={resolveSubtitleCoordinates(subtitleStyle)[axis]}
+                            value={resolveSubtitleCoordinates(selectedSubtitleStyle)[axis]}
                             onChange={event => updateSubtitleStyle({ [axis === 'x' ? 'positionX' : 'positionY']: Number(event.target.value) })}
                             className="w-16 rounded border border-n40 bg-n0 px-1 py-1 text-right" />%
                         </span>
                       </span>
                       <input type="range" min={0} max={100} step={0.1}
                         aria-label={axis === 'x' ? '调整字幕水平位置' : '调整字幕垂直位置'}
-                        value={resolveSubtitleCoordinates(subtitleStyle)[axis]}
+                        value={resolveSubtitleCoordinates(selectedSubtitleStyle)[axis]}
                         onChange={event => updateSubtitleStyle({ [axis === 'x' ? 'positionX' : 'positionY']: Number(event.target.value) })}
                         className="w-full accent-primary" />
                     </label>
                   ))}
-                  <button type="button" onClick={() => updateSubtitleStyle({ position: 'bottom', positionX: undefined, positionY: undefined })}
-                    className="text-xs font-medium text-primary hover:underline">恢复底部居中</button>
+                  <button type="button" onClick={() => updateSubtitleStyle({ position: 'bottom', positionX: undefined, positionY: undefined, fontSize: DEFAULT_ENHANCE_SUBTITLE_STYLE.fontSize })}
+                    className="text-xs font-medium text-primary hover:underline">恢复默认位置和字号</button>
                   <label className="block space-y-1">
                     <span className="flex justify-between text-[11px] text-n300">
-                      <span>字号</span><span>{subtitleStyle.fontSize}px</span>
+                      <span>字号</span><span>{selectedSubtitleStyle.fontSize}px</span>
                     </span>
                     <input
                       type="range"
                       min={16}
                       max={96}
                       step={1}
-                      value={subtitleStyle.fontSize}
+                      value={selectedSubtitleStyle.fontSize}
                       onChange={event => updateSubtitleStyle({ fontSize: Number(event.target.value) })}
                       className="w-full accent-primary"
                     />
@@ -2053,7 +2055,7 @@ export const EnhancePage: React.FC = () => {
                       <span className="text-[11px] text-n300">文字颜色</span>
                       <input
                         type="color"
-                        value={subtitleStyle.textColor}
+                        value={selectedSubtitleStyle.textColor}
                         onChange={event => updateSubtitleStyle({ textColor: event.target.value })}
                         className="h-8 w-full rounded border border-n40 bg-n0 p-1"
                       />
@@ -2062,7 +2064,7 @@ export const EnhancePage: React.FC = () => {
                       <span className="text-[11px] text-n300">背景颜色</span>
                       <input
                         type="color"
-                        value={subtitleStyle.backgroundColor}
+                        value={selectedSubtitleStyle.backgroundColor}
                         onChange={event => updateSubtitleStyle({ backgroundColor: event.target.value })}
                         className="h-8 w-full rounded border border-n40 bg-n0 p-1"
                       />
@@ -2070,14 +2072,14 @@ export const EnhancePage: React.FC = () => {
                   </div>
                   <label className="block space-y-1">
                     <span className="flex justify-between text-[11px] text-n300">
-                      <span>背景透明度</span><span>{Math.round(subtitleStyle.backgroundOpacity * 100)}%</span>
+                      <span>背景透明度</span><span>{Math.round(selectedSubtitleStyle.backgroundOpacity * 100)}%</span>
                     </span>
                     <input
                       type="range"
                       min={0}
                       max={1}
                       step={0.05}
-                      value={subtitleStyle.backgroundOpacity}
+                      value={selectedSubtitleStyle.backgroundOpacity}
                       onChange={event => updateSubtitleStyle({ backgroundOpacity: Number(event.target.value) })}
                       className="w-full accent-primary"
                     />

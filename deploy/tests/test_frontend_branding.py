@@ -124,13 +124,12 @@ def test_login_page_uses_the_compact_easy_style_split_and_three_step_preview():
     assert "把一个想法，变成一部好故事" not in login_html
 
 
-def test_unregistered_sms_login_moves_to_prefilled_registration_without_fake_delivery_notice():
+def test_unregistered_sms_login_stays_on_login_and_explains_automatic_signup():
     login_html = (DEPLOY_DIR / "login.html").read_text(encoding="utf-8")
 
-    assert "result.next_action === 'register'" in login_html
-    assert "setView('register')" in login_html
-    assert "registerPhone.value = result.phone || phone" in login_html
-    assert "showError(result.message || '该手机号尚未注册，请先注册')" in login_html
+    assert "result.next_action === 'register'" not in login_html
+    assert '验证码登录 / 注册' in login_html
+    assert '未注册手机号验证通过后将自动注册并登录' in login_html
     assert "result.sent === false" in login_html
 
 

@@ -20,8 +20,18 @@ describe('composition failure details', () => {
 
   it('renders untrusted error content as text and keeps processing terminology', () => {
     const view = render(<ComposeFailureNotice error={'ComfyUI <script>alert(1)</script>'} />);
-    expect(screen.getByRole('alert')).toHaveTextContent('处理服务 <script>alert(1)</script>');
+    expect(screen.getByRole('alert')).toHaveTextContent('合成未完成，请重试');
     expect(view.container.querySelector('script')).toBeNull();
+  });
+
+  it.each([
+    "[Errno 18] Invalid cross-device link: '/tmp/compose/result.mp4' -> '/app/media/final.mp4'",
+    'Cannot open C:\\private\\media\\final.mp4',
+    'ffmpeg error: https://internal.example/private?token=secret',
+    'file %2Ftmp%2Fcompose.mp4 failed',
+  ])('hides internal paths and diagnostics: %s', error => {
+    render(<ComposeFailureNotice error={error} />);
+    expect(screen.getByRole('alert').textContent).toBe('合成失败：合成未完成，请重试；若仍失败，请联系管理员。');
   });
 
   it.each(['EnhancePage', 'FinalProductPage'])('uses the visible notice on %s', page => {

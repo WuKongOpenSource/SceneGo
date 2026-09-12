@@ -1,9 +1,11 @@
 import hashlib
+from unittest.mock import AsyncMock
 
 import pytest
 
 from services import phone_auth_service as svc
 from services.password_service import PASSWORD_HASH_PREFIX
+from services.verification_code_service import VerificationCodeInvalid
 
 
 class FakeVerification:
@@ -125,3 +127,77 @@ def test_email_preferences_keep_defaults_and_apply_partial_updates():
         "credit_alert": False,
         "sharing": True,
     }
+
+
+async def code_login(dao, verifier=None):
+    return await svc.login_phone_code(phone='+86 138-0013-8000', code='123456',
+        verification_manager=verifier or FakeVerification(), user_dao=dao)
+
+
+@pytest.mark.asyncio
+async def test_code_login_registers_only_after_verification_and_reuses_existing_account():
+    dao = FakeUserDAO()
+    async def verify(**kwargs):
+        assert dao.created == [] and kwargs['purpose'] == 'login'
+    verifier = type('Verifier', (), {'verify': staticmethod(verify)})()
+    user = await code_login(dao, verifier)
+    assert user['phone_number'] == '13800138000'
+    assert len(dao.created) == 1 and dao.created[0]['email'] is None
+    assert len(dao.created[0]['password']) >= 48
+    assert dao.created[0]['password'] not in ('123456', '13800138000')
+    assert not {'role', 'permissions'} & dao.created[0].keys()
+    assert 'password' not in user and 'password_hash' not in user
+    assert await code_login(dao) == user and len(dao.created) == 1
+    assert dao.password_updates == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('exists', [False, True])
+async def test_wrong_expired_or_consumed_code_never_creates_or_logs_in(exists):
+    dao = FakeUserDAO()
+    if exists: dao.users['13800138000'] = {'user_id':'old','status':'active'}
+    dao.update_last_login = AsyncMock()
+    verification = FakeVerification()
+    verification.verify = AsyncMock(side_effect=VerificationCodeInvalid('invalid or expired'))
+    with pytest.raises(VerificationCodeInvalid): await code_login(dao,verification)
+    assert dao.created == []
+    dao.update_last_login.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_code_login_does_not_recreate_disabled_account():
+    dao = FakeUserDAO()
+    dao.users['13800138000'] = {'user_id':'disabled','status':'disabled'}
+    with pytest.raises(svc.AccountDisabled): await code_login(dao)
+    assert dao.created == []
+
+
+class UniqueConflict(Exception):
+    sqlstate = '23505'
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('status', ['active', 'disabled'])
+async def test_concurrent_registration_reuses_unique_phone_winner_without_overwriting(status):
+    dao = FakeUserDAO()
+    winner = {'user_id':'winner','status':status,'phone_number':'13800138000','password_hash':'unchanged'}
+    async def concurrent_signup(**kwargs):
+        dao.users[kwargs['phone_number']] = winner
+        raise UniqueConflict()
+    dao.create_phone_user = concurrent_signup
+    if status == 'disabled':
+        with pytest.raises(svc.AccountDisabled): await code_login(dao)
+    else:
+        assert await code_login(dao) == winner
+    assert dao.password_updates == [] and winner['password_hash'] == 'unchanged'
+
+
+@pytest.mark.asyncio
+async def test_username_conflict_retry_is_bounded_and_database_failure_is_not_registration():
+    dao = FakeUserDAO()
+    dao.create_phone_user = AsyncMock(side_effect=UniqueConflict())
+    with pytest.raises(svc.PhoneAuthError): await code_login(dao)
+    assert dao.create_phone_user.await_count == 3
+    dao.create_phone_user = AsyncMock(side_effect=RuntimeError('database unavailable'))
+    with pytest.raises(RuntimeError,match='database unavailable'): await code_login(dao)
+    assert dao.create_phone_user.await_count == 1

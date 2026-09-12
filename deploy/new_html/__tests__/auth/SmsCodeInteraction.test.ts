@@ -163,6 +163,28 @@ describe('SMS code interaction', () => {
     widget.cancel(); await sending;
   });
 
+  it('keeps unregistered visitors on the code form and signs in without a password', async () => {
+    const { win, accept, fetchMock, smsCalls } = await boot({ path: '/login' });
+    win.document.querySelector('[data-method="sms_code"]').click(); await flush();
+    win.document.getElementById('identity').value = '13800000000';
+    expect(win.document.body.textContent).toContain('未注册手机号验证通过后将自动注册并登录');
+    expect(win.document.getElementById('password')).toBeNull();
+    expect(win.document.getElementById('loginBtn').textContent).toBe('登录 / 注册');
+    const sending = win.sendCode(); await flush(); accept(); await sending;
+    expect(JSON.parse(smsCalls()[0][1].body).purpose).toBe('login');
+    expect(win.location.pathname).toBe('/login');
+    expect(win.document.getElementById('identity').value).toBe('13800000000');
+    win.document.getElementById('code').value = '123456';
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, user_id: 'new_user', username: '新用户', session_mode: 'cookie' }) });
+    // Keep jsdom on this document while observing the standard session handoff.
+    const save = vi.fn(); win.saveSession = save;
+    await win.handleSubmit({ preventDefault() {} });
+    const request = fetchMock.mock.calls.find(([url]) => url === '/api/auth/phone/login')!;
+    expect(JSON.parse(request[1].body)).toEqual({ phone: '13800000000', method: 'sms_code', code: '123456' });
+    expect(save).toHaveBeenCalledWith(expect.objectContaining({ success: true, user_id: 'new_user' }));
+    expect(fetchMock.mock.calls.some(([url]) => url === '/api/auth/phone/register')).toBe(false);
+  });
+
   it('does not request any third-party CAPTCHA script', async () => {
     const { win } = await boot();
     expect(html).not.toContain('challenges.cloudflare.com');

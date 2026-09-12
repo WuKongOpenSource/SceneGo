@@ -79,7 +79,7 @@ describe('login card secondary actions', () => {
     expect(loginHtml).toContain('class="forgot-password-button"');
     expect(loginHtml).toContain('.forgot-password-button:focus-visible');
     expect(loginHtml).toContain('min-height: 40px');
-    expect(loginHtml).toContain("(state.method === 'password' ? forgotPasswordButton() : '')");
+    expect(loginHtml).toContain("state.method === 'password' ? forgotPasswordButton() : '<p");
     expect(loginHtml).not.toContain('class="form-row"');
   });
 });
