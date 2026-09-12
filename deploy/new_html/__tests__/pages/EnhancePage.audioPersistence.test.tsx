@@ -1,5 +1,5 @@
 import React from 'react';
-import { beforeEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { EnhancePage } from '../../pages/EnhancePage';
 
@@ -36,6 +36,119 @@ beforeEach(() => {
   state.save.mockReset().mockImplementation(async (_id, data) => { state.items = data.items; state.writes.push(data.items); return { success: true }; });
   vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
   vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
+  vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+});
+
+afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
+
+async function openSeekEditor() {
+  const view = render(<EnhancePage />);
+  await screen.findByTestId('enhance-audio-aud_track_m');
+  const viewport = screen.getByTestId('enhance-timeline-viewport');
+  vi.spyOn(viewport, 'getBoundingClientRect').mockReturnValue({ left: 100, width: 800 } as DOMRect);
+  Object.defineProperty(viewport, 'clientWidth', { configurable: true, value: 800 });
+  return { ...view, viewport, head: screen.getByTestId('enhance-timeline-playhead') };
+}
+
+it.each(['timeline-ruler', 'track-video', 'track-voice', 'track-bgm', 'track-sfx', 'track-subtitles', 'timeline-seek-surface'])(
+  'seeks on %s and stays fixed after mouseup without changing timeline data', async target => {
+    const { head } = await openSeekEditor();
+    const surface = screen.getByTestId(`enhance-${target}`);
+    fireEvent.mouseDown(surface, { button: 0, buttons: 1, clientX: 180 });
+    expect(head.style.left).toBe('80px');
+    fireEvent.mouseUp(window, { button: 0, clientX: 180 });
+    fireEvent.click(surface, { clientX: 180 });
+    fireEvent.mouseMove(window, { clientX: 500, buttons: 0 });
+    fireEvent.mouseMove(window, { clientX: 550, buttons: 1 });
+    expect(head.style.left).toBe('80px');
+    expect(screen.getByTitle('保存时间线（Ctrl+S）')).toHaveTextContent('已保存');
+    expect(state.save).not.toHaveBeenCalled();
+  },
+);
+
+it('uses the scrolled viewport and current zoom even when clicking a ruler label', async () => {
+  const { head, viewport } = await openSeekEditor();
+  fireEvent.click(screen.getByTitle('缩放到适合窗口'));
+  expect(screen.getByText('76px/s')).toBeInTheDocument();
+  viewport.scrollLeft = 120;
+  const label = screen.getByTestId('enhance-timeline-ruler').querySelector('span')!;
+  fireEvent.mouseDown(label, { button: 0, buttons: 1, clientX: 360 });
+  fireEvent.mouseUp(window, { button: 0, clientX: 360 });
+  expect(head.style.left).toBe('380px');
+  expect(screen.getByTitle('时:分:秒:帧（30 FPS）')).toHaveTextContent('00:00:05:00');
+});
+
+it('finishes a scrub at the release coordinate and clamps both timeline edges', async () => {
+  const { head } = await openSeekEditor();
+  const ruler = screen.getByTestId('enhance-timeline-ruler');
+  fireEvent.mouseDown(ruler, { button: 0, buttons: 1, clientX: 120 });
+  fireEvent.mouseMove(window, { buttons: 1, clientX: 200 });
+  fireEvent.mouseUp(window, { button: 0, clientX: 260 });
+  expect(head.style.left).toBe('160px');
+  fireEvent.mouseMove(window, { buttons: 0, clientX: 800 });
+  expect(head.style.left).toBe('160px');
+  fireEvent.mouseDown(ruler, { button: 0, clientX: -100 });
+  expect(head.style.left).toBe('0px');
+  fireEvent.mouseUp(window, { button: 0, clientX: 1000 });
+  expect(head.style.left).toBe('200px');
+});
+
+it.each(['blur', 'released-buttons'])('ends an interrupted scrub on %s', async reason => {
+  const { head } = await openSeekEditor();
+  fireEvent.mouseDown(screen.getByTestId('enhance-track-sfx'), { button: 0, buttons: 1, clientX: 180 });
+  fireEvent.mouseMove(window, { buttons: 1, clientX: 200 });
+  if (reason === 'blur') fireEvent.blur(window);
+  else fireEvent.mouseMove(window, { buttons: 0, clientX: 400 });
+  fireEvent.mouseMove(window, { buttons: 1, clientX: 600 });
+  fireEvent.mouseUp(window, { button: 0, clientX: 600 });
+  expect(head.style.left).toBe('80px');
+});
+
+it('pauses playback when positioning the playhead and leaves it stopped', async () => {
+  const view = await openSeekEditor();
+  vi.useFakeTimers();
+  fireEvent.click(screen.getByTitle('播放'));
+  expect(screen.getByTitle('暂停')).toBeInTheDocument();
+  fireEvent.mouseDown(screen.getByTestId('enhance-track-subtitles'), { button: 0, buttons: 1, clientX: 180 });
+  fireEvent.mouseUp(window, { button: 0, clientX: 180 });
+  expect(screen.getByTitle('播放')).toBeInTheDocument();
+  expect(HTMLMediaElement.prototype.pause).toHaveBeenCalled();
+  act(() => { vi.advanceTimersByTime(1000); });
+  expect(view.head.style.left).toBe('80px');
+  view.unmount();
+});
+
+it('does not seek for right-click, track controls, media dragging or trimming', async () => {
+  const { head } = await openSeekEditor();
+  fireEvent.mouseDown(screen.getByTestId('enhance-timeline-ruler'), { button: 2, clientX: 300 });
+  fireEvent.mouseUp(window, { button: 2, clientX: 300 });
+  fireEvent.click(screen.getByTitle('锁定音乐轨'));
+  fireEvent.click(screen.getByTitle('解锁音乐轨'));
+  const clip = screen.getByTestId('enhance-audio-aud_track_m');
+  fireEvent.mouseDown(clip, { button: 0, clientX: 100 });
+  fireEvent.mouseMove(document, { buttons: 1, clientX: 820, shiftKey: true });
+  fireEvent.mouseUp(document, { button: 0, clientX: 820 });
+  expect(head.style.left).toBe('0px');
+  expect(clip.style.left).toBe('720px');
+  fireEvent.mouseDown(clip.querySelector('[title="拖动裁剪出点"]')!, { button: 0, clientX: 1320 });
+  fireEvent.mouseMove(document, { buttons: 1, clientX: 1300 });
+  fireEvent.mouseUp(document, { button: 0, clientX: 1300 });
+  expect(head.style.left).toBe('0px');
+  expect(clip.style.width).toBe('180px');
+  await waitFor(() => expect(state.items.find(i => i.kind === 'audio')).toMatchObject({ startMs: 36000, durationMs: 9000 }));
+});
+
+it('removes seek listeners and pending frames when leaving the editor', async () => {
+  const view = await openSeekEditor();
+  const remove = vi.spyOn(window, 'removeEventListener');
+  const cancel = vi.spyOn(window, 'cancelAnimationFrame');
+  fireEvent.mouseDown(screen.getByTestId('enhance-timeline-ruler'), { button: 0, buttons: 1, clientX: 200 });
+  fireEvent.mouseMove(window, { buttons: 1, clientX: 400 });
+  view.unmount();
+  expect(remove).toHaveBeenCalledWith('mousemove', expect.any(Function));
+  expect(remove).toHaveBeenCalledWith('mouseup', expect.any(Function));
+  expect(remove).toHaveBeenCalledWith('blur', expect.any(Function));
+  expect(cancel).toHaveBeenCalled();
 });
 
 it('saves actual drag position and keyboard volume, and restores them on remount', async () => {

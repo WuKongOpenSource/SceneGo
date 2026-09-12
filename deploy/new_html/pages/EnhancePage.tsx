@@ -1205,21 +1205,48 @@ export const EnhancePage: React.FC = () => {
     document.addEventListener('mouseup', onUp);
   }, [commitPreviewTimeline, persistAudioClip, scale, trackState]);
 
-  const handleRulerClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!timelineContainerRef.current) return;
+  const timelineSeekCleanupRef = useRef<(() => void) | null>(null);
+  useEffect(() => () => timelineSeekCleanupRef.current?.(), [episodeId, scale, totalDuration]);
+
+  const handleTimelineSeekStart = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const container = timelineContainerRef.current;
+    if (e.button !== 0 || !container) return;
+    e.preventDefault();
+    timelineSeekCleanupRef.current?.();
+    setPlaying(false);
+    let frame = 0;
+    let latestX = e.clientX;
     const seek = (clientX: number) => {
-      const rect = timelineContainerRef.current!.getBoundingClientRect();
-      const x = clientX - rect.left + timelineContainerRef.current!.scrollLeft;
+      const rect = container.getBoundingClientRect();
+      const x = clientX - rect.left + container.scrollLeft;
       setCurrentTime(Math.min(totalDuration, Math.max(0, x / scale)));
     };
-    seek(e.clientX);
-    const onMove = (event: MouseEvent) => seek(event.clientX);
-    const onUp = () => {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
+    const cleanup = () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('blur', cleanup);
+      timelineSeekCleanupRef.current = null;
     };
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
+    const onMove = (event: MouseEvent) => {
+      // A missed mouseup must never leave the playhead attached to the mouse.
+      if (!(event.buttons & 1)) { cleanup(); return; }
+      latestX = event.clientX;
+      if (!frame) frame = requestAnimationFrame(() => {
+        frame = 0;
+        seek(latestX);
+      });
+    };
+    const onUp = (event: MouseEvent) => {
+      if (event.button !== 0) return;
+      seek(event.clientX);
+      cleanup();
+    };
+    timelineSeekCleanupRef.current = cleanup;
+    seek(e.clientX);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('blur', cleanup);
   }, [scale, totalDuration]);
 
   const updateClipSettings = useCallback((updates: Partial<NonNullable<MediaClip['settings']>>) => {
@@ -1634,7 +1661,7 @@ export const EnhancePage: React.FC = () => {
   const handleSubtitleTrimStartStable = useLatestCallback(handleSubtitleTrimStart);
   const timelineMediaLayers = useMemo(() => (<>
               {/* Video track */}
-              <div className="h-16 border-b border-n40 relative bg-n0">
+              <div data-testid="enhance-track-video" className="h-16 border-b border-n40 relative bg-n0">
                 {visibleTimeline.video.map(clip => (
                   <div
                     key={clip.id}
@@ -1695,7 +1722,7 @@ export const EnhancePage: React.FC = () => {
                 { key: 'bgm', clips: visibleTimeline.bgm },
                 { key: 'sfx', clips: visibleTimeline.sfx },
               ].map(group => (
-              <div key={group.key} className="h-10 border-b border-n40 relative bg-n0">
+              <div key={group.key} data-testid={`enhance-track-${group.key}`} className="h-10 border-b border-n40 relative bg-n0">
                 {group.clips.map(clip => (
                   <div
                     key={clip.id}
@@ -1740,7 +1767,7 @@ export const EnhancePage: React.FC = () => {
               ))}
 
               {/* Subtitle track */}
-              <div className="h-10 border-b border-n40 relative bg-n0">
+              <div data-testid="enhance-track-subtitles" className="h-10 border-b border-n40 relative bg-n0">
                 {subtitles.length === 0 && (
                   <div className="absolute inset-0 flex items-center justify-center text-[10px] text-n100 pointer-events-none">
                     点击工具栏“字幕”在播放头处添加
@@ -2687,15 +2714,17 @@ export const EnhancePage: React.FC = () => {
           </div>
 
           {/* Track content */}
-          <div className="flex-1 overflow-auto relative" ref={timelineContainerRef}>
-            <div style={{ width: `${totalDuration * scale}px`, minWidth: '100%' }} className="relative h-full">
+          <div data-testid="enhance-timeline-viewport" className="flex-1 overflow-auto relative" ref={timelineContainerRef}>
+            <div data-testid="enhance-timeline-seek-surface" onMouseDown={handleTimelineSeekStart}
+              style={{ width: `${totalDuration * scale}px`, minWidth: '100%' }} className="relative min-h-full cursor-crosshair">
               {/* Ruler */}
-              <div className="h-5 border-b border-n40 relative cursor-pointer" onClick={handleRulerClick}>
+              <div data-testid="enhance-timeline-ruler" className="h-5 border-b border-n40 relative">
                 {timelineRuler}
               </div>
 
               {/* Playhead */}
               <div
+                data-testid="enhance-timeline-playhead"
                 className="absolute top-0 bottom-0 w-px bg-red-500 z-50 pointer-events-none"
                 style={{ left: `${currentTime * scale}px` }}
               >
