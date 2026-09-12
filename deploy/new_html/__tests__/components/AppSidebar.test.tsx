@@ -206,8 +206,9 @@ describe('AppSidebar public tools', () => {
 
   it('opens the public repository safely between release notes and credits, including collapsed mode', async () => {
     render(<MemoryRouter><AppSidebar /></MemoryRouter>);
-    const link = screen.getByRole('link', { name: /本产品已开源发布 · 助力点亮 Star/ });
-    expect(link).toHaveTextContent('本产品已开源发布 · 助力点亮 Star');
+    const link = screen.getByRole('link', { name: /本产品已开源，助力点亮Star/ });
+    expect(link).toHaveTextContent('本产品已开源，助力点亮Star');
+    expect(within(link).getByText('本产品已开源，助力点亮Star')).toHaveClass('whitespace-nowrap');
     expect(link).toHaveAttribute('href', 'https://github.com/WuKongOpenSource/SceneGo');
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
@@ -215,7 +216,8 @@ describe('AppSidebar public tools', () => {
     expect(link.compareDocumentPosition(screen.getByRole('button', { name: '查看创作点数明细' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getByTestId('app-sidebar-scroll')).not.toContainElement(link);
     fireEvent.click(screen.getByRole('button', { name: '收起左侧导航' }));
-    expect(screen.getByRole('link', { name: /本产品已开源发布 · 助力点亮 Star/ })).toBeVisible();
+    expect(screen.getByRole('link', { name: /本产品已开源，助力点亮Star/ })).toBeVisible();
+    expect(within(link).queryByText('本产品已开源，助力点亮Star')).not.toBeInTheDocument();
     await waitFor(() => expect(apiJson).toHaveBeenCalled());
   });
 

@@ -6,7 +6,7 @@ it('keeps the repository invitation accessible outside the dynamic login form', 
   const html = readFileSync(resolve(process.cwd(), '../login.html'), 'utf8');
   const page = new DOMParser().parseFromString(html, 'text/html');
   const link = page.querySelector<HTMLAnchorElement>('a.open-source-link')!;
-  expect(link.textContent).toBe('本产品已开源发布 · 助力点亮 Star');
+  expect(link.textContent).toBe('本产品已开源，助力点亮Star');
   expect(link.getAttribute('href')).toBe('https://github.com/WuKongOpenSource/SceneGo');
   expect(link.target).toBe('_blank');
   expect(link.rel).toBe('noopener noreferrer');

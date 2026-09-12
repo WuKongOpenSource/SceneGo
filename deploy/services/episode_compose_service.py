@@ -16,16 +16,16 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from dao.creative.episode_compose import EpisodeComposeDAO
 from services.compose_error_service import public_compose_error
+from services.subtitle_font_service import (
+    SUBTITLE_FONTS_DIR as _SUBTITLE_FONTS_DIR,
+    SUBTITLE_FONT_FAMILY as _SUBTITLE_FONT_FAMILY,
+    require_subtitle_glyphs,
+)
 
 logger = logging.getLogger(__name__)
 
 _BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _STORAGE = os.path.join(_BASE, "persistent_storage")
-_SUBTITLE_FONTS_DIR = os.environ.get(
-    "OSTORY_SUBTITLE_FONTS_DIR",
-    "/usr/share/fonts/opentype/noto",
-)
-_SUBTITLE_FONT_FAMILY = os.environ.get("OSTORY_SUBTITLE_FONT_FAMILY", "Noto Sans CJK SC")
 _DEFAULT_OUTPUT_SIZE = (1920, 1080)
 _MAX_SUBTITLE_CUES = 500
 _MAX_SUBTITLE_TEXT = 500
@@ -333,7 +333,7 @@ async def _burn_editor_subtitles(
             "-nostdin",
             "-y",
             "-loglevel",
-            "error",
+            "warning",
             "-i",
             video_path,
             "-vf",
@@ -359,6 +359,7 @@ async def _burn_editor_subtitles(
     )
     if rc != 0:
         raise RuntimeError(f"Subtitle burn-in failed: {err[:200]}")
+    require_subtitle_glyphs(err)
     await asyncio.to_thread(_replace_media_file, subtitled_path, video_path)
     return len(cues)
 

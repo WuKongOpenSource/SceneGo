@@ -7,8 +7,8 @@
 
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Clapperboard, Download, Film, AlertCircle, Loader2, Wand2, Check, X, Layers, Share2, MessageSquare, Copy, ExternalLink, Ban, Clock3 } from 'lucide-react';
-import { listMediaItems } from '../services/mediaLibraryService';
+import { Clapperboard, Download, Film, AlertCircle, Loader2, Wand2, Check, X, Layers, Share2, MessageSquare, Copy, ExternalLink, Ban, Clock3, Trash2 } from 'lucide-react';
+import { deleteMediaItem, listMediaItems } from '../services/mediaLibraryService';
 import { useEpisode } from '../contexts/EpisodeContext';
 import { getVideoTakes, startCompose, getComposeStatus, type VideoShot, type ComposeStatus } from '../services/videoWorkflowService';
 import { selectContentTake } from '../services/contentWorkflowService';
@@ -45,6 +45,9 @@ export const FinalProductPage: React.FC = () => {
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewError, setReviewError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const deletingRef = useRef(false);
+  const [deleteError, setDeleteError] = useState('');
 
 
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -71,11 +74,42 @@ export const FinalProductPage: React.FC = () => {
   const finalScope = `${projectId}:${episodeId}:${assetScopeMode}:${reloadKey}`;
   finalScopeRef.current = finalScope;
 
+  const deleteFinal = async (item: any) => {
+    if (deletingRef.current) return;
+    if (!window.confirm(`确定删除成品“${item.title || '未命名成品'}”吗？\n删除后该成品的分享链接将不可用。源视频、配音和编辑时间线均保留，可以重新合成。`)) return;
+    deletingRef.current = true;
+    setDeletingId(item.library_item_id);
+    setDeleteError('');
+    try {
+      await deleteMediaItem(item.library_item_id, '删除废弃成品');
+      if (finalScopeRef.current !== finalScope) return;
+      setReviewItem(current => current?.library_item_id === item.library_item_id ? null : current);
+      setVideos(current => current.filter(video => video.library_item_id !== item.library_item_id));
+      // Reload from offset zero so deleting a paged item cannot skip its successor.
+      setReloadKey(key => key + 1);
+    } catch {
+      if (finalScopeRef.current === finalScope) setDeleteError('删除成品失败，请稍后重试。');
+    } finally {
+      deletingRef.current = false;
+      setDeletingId(null);
+    }
+  };
+
+  const deleteButton = (item: any) => (
+    <button type="button" aria-label={`删除成品：${item.title || '未命名成品'}`}
+      disabled={deletingId !== null} onClick={() => void deleteFinal(item)}
+      className="inline-flex shrink-0 items-center justify-center gap-1 rounded border border-n40 px-2 py-1.5 text-[11px] text-danger hover:bg-red-50 disabled:opacity-50">
+      {deletingId === item.library_item_id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+      {deletingId === item.library_item_id ? '删除中' : '删除'}
+    </button>
+  );
+
   useEffect(() => {
     if (!projectId) return;
     let alive = true;
     (async () => {
       setLoading(true); setErr(null); setLoadingMore(false); setLoadMoreError('');
+      setDeleteError('');
       loadingMoreRef.current = false;
       try {
         const params: any = { project_id: projectId, item_type: 'video', source: 'composed_final', limit: 24 };
@@ -101,7 +135,7 @@ export const FinalProductPage: React.FC = () => {
   }, [projectId, episodeId, assetScopeMode, reloadKey]);
 
   const loadMoreFinals = async () => {
-    if (loadingMoreRef.current || !hasMoreFinals) return;
+    if (loadingMoreRef.current || deletingRef.current || !hasMoreFinals) return;
     loadingMoreRef.current = true;
     setLoadingMore(true);
     setLoadMoreError('');
@@ -306,6 +340,7 @@ export const FinalProductPage: React.FC = () => {
         )}
       </header>
 
+      {deleteError && <p role="alert" className="mb-3 text-sm text-danger">{deleteError}</p>}
       {loading ? (
         <div className="flex items-center gap-2 text-n300 py-10 justify-center">
           <Loader2 className="w-4 h-4 animate-spin" /> 加载成品中…
@@ -339,6 +374,7 @@ export const FinalProductPage: React.FC = () => {
                   <button type="button" onClick={() => openReview(featured, 'feedback')} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs text-n500 hover:bg-n20 border border-n40"><MessageSquare size={14} />意见</button>
                   <button type="button" onClick={() => openReview(featured, 'share')} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs text-primary hover:bg-primary-light border border-n40"><Share2 size={14} />分享</button>
                   <a href={featured.file_url} download className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs text-primary hover:bg-primary-light border border-n40"><Download className="w-3.5 h-3.5" />下载</a>
+                  {deleteButton(featured)}
                 </div>
               </div>
               <LazyVideo
@@ -378,6 +414,7 @@ export const FinalProductPage: React.FC = () => {
                         <button type="button" onClick={() => openReview(v, 'feedback')} className="flex-1 inline-flex justify-center items-center gap-1 rounded px-2 py-1 text-[11px] text-n300 hover:bg-n20"><MessageSquare size={12} />意见</button>
                         <button type="button" onClick={() => openReview(v, 'share')} className="flex-1 inline-flex justify-center items-center gap-1 rounded px-2 py-1 text-[11px] text-primary hover:bg-primary-light"><Share2 size={12} />分享</button>
                         <a href={v.file_url} download className="p-1 text-n100 hover:text-primary" title="下载"><Download className="w-3.5 h-3.5" /></a>
+                        {deleteButton(v)}
                       </div>
                     </div>
                   </div>

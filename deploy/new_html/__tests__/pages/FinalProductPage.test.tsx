@@ -5,11 +5,11 @@ import '@testing-library/jest-dom';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
 import FinalProductPage from '../../pages/FinalProductPage';
-import { listMediaItems } from '../../services/mediaLibraryService';
+import { deleteMediaItem, listMediaItems } from '../../services/mediaLibraryService';
 import { getComposeStatus } from '../../services/videoWorkflowService';
 import { getFinalShare, listFinalFeedback } from '../../services/finalProductShareService';
 
-vi.mock('../../services/mediaLibraryService', () => ({ listMediaItems: vi.fn() }));
+vi.mock('../../services/mediaLibraryService', () => ({ listMediaItems: vi.fn(), deleteMediaItem: vi.fn() }));
 vi.mock('../../services/videoWorkflowService', () => ({
   getVideoTakes: vi.fn(),
   startCompose: vi.fn(),
@@ -30,8 +30,13 @@ vi.mock('../../components/LazyVideo', () => ({
 }));
 
 describe('FinalProductPage', () => {
+  const renderPage = () => render(<MemoryRouter initialEntries={['/projects/proj_1/ep/ep_1/workflow/final']}>
+    <Routes><Route path="/projects/:projectId/ep/:episodeId/workflow/final" element={<FinalProductPage />} /></Routes>
+  </MemoryRouter>);
+
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(deleteMediaItem).mockResolvedValue({ success: true });
     (listMediaItems as any).mockResolvedValue({
       success: true,
       items: [
@@ -61,6 +66,44 @@ describe('FinalProductPage', () => {
     expect(listMediaItems).toHaveBeenNthCalledWith(2, expect.objectContaining({ limit: 24, offset: 24 }));
     expect(screen.getAllByText('成片 23')).toHaveLength(1);
     expect(screen.getByText('成片 0')).toBeInTheDocument();
+  });
+
+  it.each(['第三次合成', '第二次合成'])('requires confirmation before deleting %s', async title => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: `删除成品：${title}` }));
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining('源视频、配音和编辑时间线均保留'));
+    expect(deleteMediaItem).not.toHaveBeenCalled();
+    expect(screen.getByText(title)).toBeInTheDocument();
+    confirm.mockRestore();
+  });
+
+  it('deletes only the confirmed final and reloads the first page without creating a share', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    renderPage();
+    const remove = await screen.findByRole('button', { name: '删除成品：第三次合成' });
+    vi.mocked(listMediaItems).mockResolvedValue({ success: true, items: [], total: 0 });
+    fireEvent.click(remove);
+    fireEvent.click(remove);
+    await waitFor(() => expect(deleteMediaItem).toHaveBeenCalledExactlyOnceWith('mli_3', '删除废弃成品'));
+    expect(await screen.findByText(/还没有成品视频/)).toBeInTheDocument();
+    expect(listMediaItems).toHaveBeenLastCalledWith(expect.objectContaining({ limit: 24, source: 'composed_final' }));
+    expect(listMediaItems).not.toHaveBeenLastCalledWith(expect.objectContaining({ offset: expect.any(Number) }));
+    expect(getFinalShare).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: '合成成品' })).toBeEnabled();
+    confirm.mockRestore();
+  });
+
+  it('retains the final and permits retry when deletion fails', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    vi.mocked(deleteMediaItem).mockRejectedValueOnce(new Error('/private/path'));
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: '删除成品：第二次合成' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('删除成品失败，请稍后重试。');
+    expect(screen.getByText('第二次合成')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '删除成品：第二次合成' })).toBeEnabled();
+    expect(listMediaItems).toHaveBeenCalledTimes(1);
+    confirm.mockRestore();
   });
 
   it('does not restart compose polling after leaving the page', async () => {

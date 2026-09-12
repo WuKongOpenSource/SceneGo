@@ -12,6 +12,7 @@ _MESSAGES = (
     '时间线上没有可合成的视频片段。',
     '字幕合成失败，请检查字幕设置后重试。',
     '音频混合失败，请检查音乐和音效素材后重试。',
+    '字幕字体不可用，请联系管理员修复字体后重新合成。',
 )
 
 
@@ -23,6 +24,7 @@ def public_compose_error(error) -> str:
         return _MESSAGES[1] if error.errno == errno.ENOSPC else _MESSAGES[0]
     # Return only static text, never excerpts of paths, identifiers or stderr.
     for markers, safe in (
+        (('Subtitle font unavailable',), _MESSAGES[9]),
         (('源视频时长已变化', '源视频已变化'), _MESSAGES[3]),
         (('超出源视频', '裁剪范围超出'), _MESSAGES[4]),
         (('源视频文件不存在', '视频源不存在', '源视频无法读取'), _MESSAGES[2]),
