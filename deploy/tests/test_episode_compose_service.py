@@ -1079,7 +1079,8 @@ async def test_compose_uses_portrait_canvas_for_vertical_clips(monkeypatch, tmp_
     async def fake_video_size(_path):
         return (720, 1280)
 
-    async def fake_burn(cues, style, _path, _duration, _tmp, width, height):
+    async def fake_burn(cues, style, _path, _duration, _tmp, width, height, source_spans=None):
+        assert source_spans == [(0, 4000, 720, 1280)]
         burned.append((cues, style, width, height))
         return 1
 
@@ -1157,6 +1158,13 @@ async def test_compose_inserts_black_transition_without_counting_it_as_a_shot(mo
 
     commands = []
     saved = {}
+    spans = []
+
+    async def capture_subtitles(*_args, source_spans=None):
+        spans.extend(source_spans)
+        return 0
+
+    monkeypatch.setattr(episode_compose_service, '_burn_editor_subtitles', capture_subtitles)
 
     async def fake_run(command):
         commands.append(command)
@@ -1202,6 +1210,7 @@ async def test_compose_inserts_black_transition_without_counting_it_as_a_shot(mo
     assert "d=0.700" in next(part for part in black_commands[0] if "color=c=black" in str(part))
     assert job["done"] == 2
     assert "(2 镜)" in saved["title"]
+    assert spans == [(0, 2000, 1920, 1080), (2000, 2700, 1920, 1080), (2700, 4700, 1920, 1080)]
 
 
 async def _async_value(value):

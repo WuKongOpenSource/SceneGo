@@ -246,9 +246,13 @@ async def test_start_episode_compose_forwards_edited_timeline():
     assert FakeComposeService.started["timeline"] == timeline
 
 
-async def test_start_episode_compose_forwards_subtitle_contract():
+@pytest.mark.parametrize('unit', [None, 'source_em'])
+async def test_start_episode_compose_forwards_subtitle_contract(unit):
     subtitles = [{"cue_id": "cue-1", "text": "中文字幕", "start_ms": 0, "duration_ms": 1500}]
     subtitle_style = {"font_size": 42, "position": "bottom"}
+    if unit:
+        subtitle_style['font_size_unit'] = unit
+        subtitles[0]['style'] = dict(subtitle_style)
 
     await episode_video_service.start_episode_compose(
         "ep_1",

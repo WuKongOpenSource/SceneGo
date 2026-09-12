@@ -166,6 +166,7 @@ export interface ComposeTimelineItem {
 }
 
 export interface ComposeSubtitleCue {
+  style?: ComposeSubtitleStyle;
   cue_id: string;
   text: string;
   start_ms: number;
@@ -173,6 +174,7 @@ export interface ComposeSubtitleCue {
 }
 
 export interface ComposeSubtitleStyle {
+  font_size_unit?: 'source_em';
   font_size: number;
   text_color: string;
   background_color: string;

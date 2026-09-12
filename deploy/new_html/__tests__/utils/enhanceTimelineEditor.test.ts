@@ -162,6 +162,7 @@ describe('enhance timeline editor', () => {
       backgroundOpacity: -1,
       position: 'center',
     })).toEqual({
+      font_size_unit: 'source_em',
       font_size: 96,
       text_color: '#12ABEF',
       background_color: '#000000',

@@ -20,6 +20,7 @@ from services.subtitle_font_service import (
     SUBTITLE_FONTS_DIR as _SUBTITLE_FONTS_DIR,
     SUBTITLE_FONT_FAMILY as _SUBTITLE_FONT_FAMILY,
     require_subtitle_glyphs,
+    subtitle_css_to_ass_ratio,
 )
 
 logger = logging.getLogger(__name__)
@@ -176,6 +177,7 @@ def _normalize_subtitle_style(value: Any) -> Dict[str, Any]:
 
     return {
         "font_size": max(16, min(int(_finite_number(raw.get("font_size"), 42)), 96)),
+        **({"font_size_unit": "source_em"} if raw.get("font_size_unit") == "source_em" else {}),
         "text_color": color("text_color", "#FFFFFF"),
         "background_color": color("background_color", "#000000"),
         "background_opacity": max(
@@ -255,6 +257,53 @@ def _ffmpeg_filter_path(path: str) -> str:
     return path.replace("\\", "/").replace(":", r"\:").replace("'", r"\'")
 
 
+def _preview_subtitle_events(
+    cues: List[Dict[str, Any]],
+    default_style: Dict[str, Any],
+    source_spans: Optional[List[Tuple[int, int, int, int]]],
+    output_width: int,
+    output_height: int,
+    em_ratio: float,
+) -> List[Dict[str, Any]]:
+    """Match the editor's object-contain source-pixel typography per shot.
+
+    A cue can cross differently sized sources. Split only its rendering events;
+    the saved cue, text, timing, independent style and result count stay intact.
+    Black clips/transitions use the editor's deterministic 1920x1080 basis.
+    """
+    events = []
+    for cue in cues:
+        style = cue.get('style', default_style)
+        if style.get('font_size_unit') != 'source_em':
+            events.append(cue)
+            continue
+        end = cue['start_ms'] + cue['duration_ms']
+        spans = source_spans or [(0, end, output_width, output_height)]
+        first_event = len(events)
+        for span_start, span_end, width, height in spans:
+            start, stop = max(cue['start_ms'], span_start), min(end, span_end)
+            if stop <= start:
+                continue
+            scale = min(output_width / width, output_height / height)
+            picture_width, picture_height = width * scale, height * scale
+            default_y = {'top': 6, 'center': 50, 'bottom': 94}[style['position']]
+            render_style = {
+                **style,
+                '_render_font_size': style['font_size'] * scale * em_ratio,
+                '_render_scale': scale,
+                'position_x': ((output_width - picture_width) / 2 + picture_width * style.get('position_x', 50) / 100) / output_width * 100,
+                'position_y': ((output_height - picture_height) / 2 + picture_height * style.get('position_y', default_y) / 100) / output_height * 100,
+            }
+            event = {**cue, 'start_ms': start, 'duration_ms': stop - start, 'style': render_style}
+            if (len(events) > first_event
+                    and events[-1].get('style') == render_style
+                    and events[-1]['start_ms'] + events[-1]['duration_ms'] == start):
+                events[-1]['duration_ms'] += event['duration_ms']
+            else:
+                events.append(event)
+    return events
+
+
 async def _burn_editor_subtitles(
     raw_cues: Any,
     raw_style: Any,
@@ -263,23 +312,32 @@ async def _burn_editor_subtitles(
     tmp: str,
     output_width: int,
     output_height: int,
+    source_spans: Optional[List[Tuple[int, int, int, int]]] = None,
 ) -> int:
     cues = _normalize_editor_subtitles(raw_cues, max(0, int(video_duration * 1000)))
     if not cues:
         return 0
+    cue_count = len(cues)
     style = _normalize_subtitle_style(raw_style)
     margin_v = max(24, round(output_height * 0.06))
     font_family = "".join(
         character for character in _SUBTITLE_FONT_FAMILY[:100]
         if character not in {",", "\r", "\n"}
     ).strip() or "Noto Sans CJK SC"
+    if any(cue.get('style', style).get('font_size_unit') == 'source_em' for cue in cues):
+        em_ratio = await asyncio.to_thread(subtitle_css_to_ass_ratio, font_family)
+        cues = _preview_subtitle_events(cues, style, source_spans, output_width, output_height, em_ratio)
 
     def ass_style(name: str, cue_style: Dict[str, Any]) -> str:
         alignment = {"top": 8, "center": 5, "bottom": 2}[cue_style["position"]]
         background = _ass_color(cue_style["background_color"], cue_style["background_opacity"])
         outline_size = 6 if cue_style["background_opacity"] > 0 else 2
+        font_size = cue_style['font_size']
+        if '_render_font_size' in cue_style:
+            font_size = f"{cue_style['_render_font_size']:.3f}"
+            outline_size = f"{outline_size * cue_style['_render_scale']:.3f}"
         return (
-            f"Style: {name},{font_family},{cue_style['font_size']},"
+            f"Style: {name},{font_family},{font_size},"
             f"{_ass_color(cue_style['text_color'])},{_ass_color(cue_style['text_color'])},"
             f"{background},{background},0,0,0,0,100,100,0,0,3,{outline_size},0,"
             f"{alignment},48,48,{margin_v},1"
@@ -361,7 +419,7 @@ async def _burn_editor_subtitles(
         raise RuntimeError(f"Subtitle burn-in failed: {err[:200]}")
     require_subtitle_glyphs(err)
     await asyncio.to_thread(_replace_media_file, subtitled_path, video_path)
-    return len(cues)
+    return cue_count
 
 
 def _global_audio_timeline(
@@ -960,7 +1018,7 @@ async def _compose(
             size = await _probe_video_size(video_path)
             if size:
                 probed_sizes.append(size)
-            prepared.append({**row, "_video_path": video_path})
+            prepared.append({**row, "_video_path": video_path, "_source_size": size})
 
         output_width, output_height, output_aspect = _choose_output_size(probed_sizes)
         vf = _video_filter(output_width, output_height)
@@ -969,6 +1027,16 @@ async def _compose(
         job["output_aspect"] = output_aspect
 
         clips: List[str] = []
+        subtitle_source_spans: List[Tuple[int, int, int, int]] = []
+        subtitle_clock_ms = 0
+
+        def append_subtitle_span(duration: float, size: Optional[Tuple[int, int]] = None) -> None:
+            nonlocal subtitle_clock_ms
+            end = subtitle_clock_ms + round(duration * 1000)
+            width, height = size or _DEFAULT_OUTPUT_SIZE
+            subtitle_source_spans.append((subtitle_clock_ms, end, width, height))
+            subtitle_clock_ms = end
+
         idx = 0
         for row in prepared:
             video_path = row["_video_path"]
@@ -986,6 +1054,7 @@ async def _compose(
                 if rc != 0:
                     raise RuntimeError(f'黑幕片段编码失败: {err[:200]}')
                 clips.append(clip_path)
+                append_subtitle_span(duration)
                 job['done'] = idx
                 continue
             video_duration = await _probe_dur(video_path)
@@ -1258,6 +1327,7 @@ async def _compose(
             if rc != 0:
                 raise RuntimeError(f"第 {idx} 个视频片段编码失败: {err[:200]}")
             clips.append(clip_path)
+            append_subtitle_span(target_duration, row.get('_source_size'))
             if transition_after == "black":
                 black_duration = max(0.1, min(3.0, transition_duration_ms / 1000.0))
                 black_path = os.path.join(tmp, f"transition_{idx:03d}_black.mp4")
@@ -1286,6 +1356,7 @@ async def _compose(
                 if rc != 0:
                     raise RuntimeError(f"第 {idx} 个视频片段后的黑幕转场编码失败: {err[:200]}")
                 clips.append(black_path)
+                append_subtitle_span(black_duration)
             job["done"] = idx
 
         if not clips:
@@ -1337,6 +1408,7 @@ async def _compose(
             tmp,
             output_width,
             output_height,
+            source_spans=subtitle_source_spans,
         )
         duration = await _probe_dur(out_path)
         size = os.path.getsize(out_path)

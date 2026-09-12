@@ -2,13 +2,76 @@
 from __future__ import annotations
 
 import os
+import struct
 import subprocess
 import tempfile
+from functools import lru_cache
 from pathlib import Path
 
 SUBTITLE_FONTS_DIR = os.environ.get("OSTORY_SUBTITLE_FONTS_DIR", "/usr/share/fonts/opentype/noto")
 SUBTITLE_FONT_FAMILY = os.environ.get("OSTORY_SUBTITLE_FONT_FAMILY", "Noto Sans CJK SC")
 FONT_ERROR = "Subtitle font unavailable"
+
+
+def _ass_em_ratio(font_path: str, face_index: int = 0) -> float:
+    """Convert CSS em pixels to libass REAL_DIM pixels using the selected face.
+
+    libass uses Win ascent + descent (then typo/hhea metrics as fallbacks),
+    whereas browser font-size specifies unitsPerEm. Do not guess a fixed ratio:
+    it differs between fonts, including otherwise similar CJK families.
+    """
+    with open(font_path, 'rb') as font:
+        def read_at(offset: int, length: int) -> bytes:
+            font.seek(offset)
+            value = font.read(length)
+            if len(value) != length:
+                raise ValueError('Incomplete font metrics')
+            return value
+
+        offset = 0
+        if read_at(0, 4) == b'ttcf':
+            count = struct.unpack('>I', read_at(8, 4))[0]
+            if not 0 <= face_index < min(count, 1024):
+                raise ValueError('Invalid font face')
+            offset = struct.unpack('>I', read_at(12 + face_index * 4, 4))[0]
+        count = struct.unpack('>H', read_at(offset + 4, 2))[0]
+        if count > 256:
+            raise ValueError('Invalid font tables')
+        tables = {}
+        for index in range(count):
+            tag, _checksum, start, length = struct.unpack('>4sIII', read_at(offset + 12 + index * 16, 16))
+            tables[tag] = (start, length)
+        units = struct.unpack('>H', read_at(tables[b'head'][0] + 18, 2))[0]
+        if not units:
+            raise ValueError('Invalid font em size')
+        ascent = descent = 0
+        if b'OS/2' in tables and tables[b'OS/2'][1] >= 78:
+            start = tables[b'OS/2'][0]
+            ascent, descent = struct.unpack('>hh', read_at(start + 74, 4))
+            if not ascent + descent:
+                ascent, descent = struct.unpack('>hh', read_at(start + 68, 4))
+                descent = -descent
+        if not ascent + descent:
+            ascent, descent = struct.unpack('>hh', read_at(tables[b'hhea'][0] + 4, 4))
+            descent = -descent
+        ratio = (ascent + descent) / units
+        if not 0.5 <= ratio <= 4:
+            raise ValueError('Invalid font em metrics')
+        return ratio
+
+
+@lru_cache(maxsize=8)
+def subtitle_css_to_ass_ratio(family: str) -> float:
+    """Resolve the installed rendering face once, without reading user media."""
+    try:
+        result = subprocess.run(
+            ['fc-match', '-f', '%{file}\n%{index}\n', family],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5, check=True,
+        )
+        lines = result.stdout.decode('utf-8').splitlines()
+        return _ass_em_ratio(lines[0], int(lines[1]) & 0xFFFF)
+    except (OSError, ValueError, KeyError, IndexError, struct.error, subprocess.SubprocessError) as exc:
+        raise RuntimeError(FONT_ERROR) from exc
 
 
 def require_subtitle_glyphs(stderr: str) -> None:

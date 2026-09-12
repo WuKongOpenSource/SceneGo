@@ -21,6 +21,19 @@ function setup() {
 }
 
 describe('subtitle positioning', () => {
+  it.each([[1280, 720], [1920, 1080], [3840, 2160], [720, 1280]])(
+    'keeps source-em size proportional to the displayed picture (%i x %i)', (width, height) => {
+      const { rerender } = render(<SubtitlePreview cues={[{ id: 'cue', text: '请问有桂花乌龙吗？', startTime: 0, duration: 3 }]}
+        sourceWidth={width} sourceHeight={height} onChange={() => {}} onSelect={() => {}} />);
+      const subtitle = screen.getByRole('button');
+      const scale = Math.min(1000 / width, 600 / height);
+      expect(parseFloat(subtitle.style.fontSize)).toBeCloseTo(42 * scale);
+      expect(parseFloat(subtitle.style.fontSize) / (height * scale)).toBeCloseTo(42 / height);
+      rerender(<SubtitlePreview cues={[{ id: 'cue', text: '请问有桂花乌龙吗？', startTime: 0, duration: 3 }]}
+        sourceWidth={width * 2} sourceHeight={height * 2} onChange={() => {}} onSelect={() => {}} />);
+      expect(parseFloat(subtitle.style.fontSize)).toBeCloseTo(42 * scale / 2);
+    },
+  );
   it('previews synchronized opacity and moves the batch without copying the selected font size', () => {
     let cues: EnhanceSubtitleCue[] = [
       { id: 'a', text: '标题', startTime: 0, duration: 3, style: {

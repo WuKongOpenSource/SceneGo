@@ -1955,8 +1955,8 @@ export const EnhancePage: React.FC = () => {
               )}
               <SubtitlePreview
                 cues={activeSubtitles}
-                sourceWidth={previewSourceSize.width}
-                sourceHeight={previewSourceSize.height}
+                sourceWidth={videoUnderPlayhead?.isBlack || blackTransitionUnderPlayhead ? 1920 : previewSourceSize.width}
+                sourceHeight={videoUnderPlayhead?.isBlack || blackTransitionUnderPlayhead ? 1080 : previewSourceSize.height}
                 onSelect={id => {
                   setSelectedSubtitleId(id);
                   setSelectedClipId(null);

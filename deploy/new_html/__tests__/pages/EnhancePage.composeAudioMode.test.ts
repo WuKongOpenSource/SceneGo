@@ -5,6 +5,10 @@ import { describe, expect, it } from 'vitest';
 const source = readFileSync(resolve(__dirname, '../../pages/EnhancePage.tsx'), 'utf-8');
 
 describe('EnhancePage compose audio mode', () => {
+  it('uses a deterministic subtitle canvas for black clips and transitions', () => {
+    expect(source).toContain('sourceWidth={videoUnderPlayhead?.isBlack || blackTransitionUnderPlayhead ? 1920 : previewSourceSize.width}');
+    expect(source).toContain('sourceHeight={videoUnderPlayhead?.isBlack || blackTransitionUnderPlayhead ? 1080 : previewSourceSize.height}');
+  });
   it('defaults future compositions to video original audio', () => {
     expect(source).toContain(
       'useState<ComposeAudioMode>(DEFAULT_COMPOSE_AUDIO_MODE)',

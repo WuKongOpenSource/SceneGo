@@ -206,11 +206,12 @@ describe('video workflow service', () => {
     });
   });
 
-  it('sends subtitle cues and style with the edited timeline', async () => {
+  it.each([undefined, 'source_em'] as const)('sends subtitle cues and style with the edited timeline (%s)', async (unit) => {
     const { startCompose } = await loadService();
     mockFetch.mockResolvedValueOnce(mockJsonResponse({ status: 'running', total: 1, done: 0 }));
     const subtitles = [{ cue_id: 'cue-1', text: '中文字幕', start_ms: 500, duration_ms: 1500 }];
     const subtitleStyle = {
+      ...(unit ? { font_size_unit: unit } : {}),
       font_size: 42,
       text_color: '#FFFFFF',
       background_color: '#000000',

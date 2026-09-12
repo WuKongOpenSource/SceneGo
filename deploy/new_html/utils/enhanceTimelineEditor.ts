@@ -85,6 +85,7 @@ export interface ComposeSubtitleCue {
 }
 
 export interface ComposeSubtitleStyle {
+  font_size_unit?: 'source_em';
   font_size: number;
   text_color: string;
   background_color: string;
@@ -639,6 +640,8 @@ export function composeSubtitleItems(subtitles: EnhanceSubtitleCue[]): ComposeSu
 export function composeSubtitleStyle(style: EnhanceSubtitleStyle): ComposeSubtitleStyle {
   const normalized = normalizeEnhanceSubtitleStyle(style);
   return {
+    // Preview CSS pixels belong to the source picture, not the export canvas.
+    font_size_unit: 'source_em',
     font_size: normalized.fontSize,
     text_color: normalized.textColor,
     background_color: normalized.backgroundColor,
