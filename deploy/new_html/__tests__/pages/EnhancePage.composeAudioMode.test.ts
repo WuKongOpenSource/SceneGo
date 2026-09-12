@@ -85,7 +85,18 @@ describe('EnhancePage compose audio mode', () => {
     expect(source).toContain('handleSubtitleTrimStart');
     expect(source).toContain('cues={activeSubtitles}');
     expect(source).toContain('onChange={(id, updates) => updateSubtitleStyle(updates, id)}');
-    expect(source).toContain('subtitles: updateSubtitleCueStyle(current.subtitles, cueId, updates)');
+    expect(source).toContain('subtitles: updateSubtitleCueStyle(current.subtitles, cueId, updates, applySubtitleStyleToAll)');
     expect(source).not.toContain('位置应用于全部字幕');
+  });
+
+  it('requires opt-in for batch styling, resets scope per episode, and keeps changes undoable', () => {
+    expect(source).toContain('const [applySubtitleStyleToAll, setApplySubtitleStyleToAll] = useState(false)');
+    expect(source).toContain("const scope = episodeId || '';\n    setApplySubtitleStyleToAll(false)");
+    expect(source).toContain('checked={applySubtitleStyleToAll}');
+    expect(source).toContain('onChange={event => setApplySubtitleStyleToAll(event.target.checked)}');
+    expect(source).toContain('同步修改所有字幕样式');
+    expect(source).toContain('仅同步调整项，不改变文字和时间；新增字幕保持默认设置。');
+    expect(source).toMatch(/const updateSubtitleStyle[\s\S]*?commitSubtitleTimeline\(current =>[\s\S]*?updateSubtitleCueStyle\(current.subtitles, cueId, updates, applySubtitleStyleToAll\)/);
+    expect(source).toContain('[applySubtitleStyleToAll, commitSubtitleTimeline, selectedSubtitleId]');
   });
 });

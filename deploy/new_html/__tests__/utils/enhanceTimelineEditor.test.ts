@@ -22,6 +22,7 @@ import {
   trimTimelineClip,
   trimSubtitleCue,
   updateSubtitleCueStyle,
+  type EnhanceSubtitleCue,
 } from '../../utils/enhanceTimelineEditor';
 
 function video(id: string, startTime: number, duration: number): EnhanceMediaClip {
@@ -188,5 +189,68 @@ describe('enhance timeline editor', () => {
     const reset = updateSubtitleCueStyle(updated, 'a', { position: 'bottom', positionX: undefined, positionY: undefined, fontSize: 42 });
     expect(reset[0].style).toEqual(DEFAULT_ENHANCE_SUBTITLE_STYLE);
     expect(updated[0].style?.positionY).toBe(50);
+  });
+});
+
+describe('opt-in subtitle batch styling', () => {
+  const cues = (): EnhanceSubtitleCue[] => [
+    { id: 'a', text: '标题', startTime: 0, duration: 2, style: {
+      ...DEFAULT_ENHANCE_SUBTITLE_STYLE, fontSize: 72, position: 'center', positionY: 45,
+      textColor: '#FF0000', backgroundColor: '#112233', backgroundOpacity: 0.2,
+    } },
+    { id: 'b', text: '对白', startTime: 3, duration: 4, style: {
+      ...DEFAULT_ENHANCE_SUBTITLE_STYLE, positionX: 25, backgroundOpacity: 0.8,
+    } },
+    { id: 'c', text: '旧字幕', startTime: 8, duration: 1 },
+  ];
+
+  it('merges only opacity across existing cues, preserves history and round-trips into export', () => {
+    const before = cues();
+    const snapshot = JSON.stringify(before);
+    const updated = updateSubtitleCueStyle(before, 'a', { backgroundOpacity: 0.35 }, true);
+    expect(updated).toEqual(before.map(cue => ({ ...cue,
+      style: { ...normalizeEnhanceSubtitleStyle(cue.style), backgroundOpacity: 0.35 },
+    })));
+    expect(JSON.stringify(before)).toBe(snapshot);
+    const restored = restoreEnhanceSubtitles(serializeEnhanceTimeline([], [], updated));
+    expect(restored).toEqual(updated);
+    expect(composeSubtitleItems(restored)).toEqual(composeSubtitleItems(before).map(cue => ({
+      ...cue, style: { ...cue.style, background_opacity: 0.35 },
+    })));
+  });
+
+  it.each([
+    { fontSize: 64 }, { textColor: '#12ABEF' }, { backgroundColor: '#334455' },
+    { positionX: 40, positionY: 80 },
+    { position: 'bottom' as const, positionX: undefined, positionY: undefined, fontSize: 42 },
+  ])('synchronizes the explicitly edited fields %j without copying other fields', updates => {
+    const before = cues();
+    const updated = updateSubtitleCueStyle(before, 'a', updates, true);
+    expect(updated).toEqual(before.map(cue => ({ ...cue,
+      style: normalizeEnhanceSubtitleStyle({ ...normalizeEnhanceSubtitleStyle(cue.style), ...updates }),
+    })));
+  });
+
+  it('stops propagating after opt-out and never changes the defaults for new cues', () => {
+    const batch = updateSubtitleCueStyle(cues(), 'a', { backgroundOpacity: 0 }, true);
+    const selectedOnly = updateSubtitleCueStyle(batch, 'b', { backgroundOpacity: 1 }, false);
+    expect(selectedOnly[0]).toBe(batch[0]);
+    expect(selectedOnly[1].style?.backgroundOpacity).toBe(1);
+    expect(selectedOnly[2]).toBe(batch[2]);
+    expect(updateSubtitleCueStyle(batch, 'b', { backgroundOpacity: 1 })).toEqual(selectedOnly);
+    const newCue = { id: 'new', text: '新增字幕', startTime: 10, duration: 1 };
+    expect(restoreEnhanceSubtitles(serializeEnhanceTimeline([], [], [...selectedOnly, newCue])).at(-1)?.style)
+      .toEqual(DEFAULT_ENHANCE_SUBTITLE_STYLE);
+    expect(DEFAULT_ENHANCE_SUBTITLE_STYLE).toMatchObject({ position: 'bottom', fontSize: 42, backgroundOpacity: 0.55 });
+  });
+
+  it('does not batch edit from a stale selection and bounds invalid opacity', () => {
+    const before = cues();
+    expect(updateSubtitleCueStyle(before, 'missing', { fontSize: 90 }, true)).toBe(before);
+    expect(updateSubtitleCueStyle([], 'missing', { fontSize: 90 }, true)).toEqual([]);
+    for (const [input, expected] of [[-1, 0], [2, 1]]) {
+      expect(updateSubtitleCueStyle(before, 'a', { backgroundOpacity: input }, true)
+        .every(cue => cue.style?.backgroundOpacity === expected)).toBe(true);
+    }
   });
 });

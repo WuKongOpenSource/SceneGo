@@ -255,6 +255,7 @@ export const EnhancePage: React.FC = () => {
   const [subtitles, setSubtitles] = useState<EnhanceSubtitleCue[]>([]);
   const [subtitleStyle, setSubtitleStyle] = useState<EnhanceSubtitleStyle>(DEFAULT_ENHANCE_SUBTITLE_STYLE);
   const [selectedSubtitleId, setSelectedSubtitleId] = useState<string | null>(null);
+  const [applySubtitleStyleToAll, setApplySubtitleStyleToAll] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [snapGuide, setSnapGuide] = useState<number | null>(null);
@@ -494,6 +495,7 @@ export const EnhancePage: React.FC = () => {
 
   useEffect(() => {
     const scope = episodeId || '';
+    setApplySubtitleStyleToAll(false);
     if (clipScopeRef.current && clipScopeRef.current !== scope) {
       setClips([]);
       setSelectedClipId(null);
@@ -1040,9 +1042,9 @@ export const EnhancePage: React.FC = () => {
     if (!cueId) return;
     commitSubtitleTimeline(current => ({
       ...current,
-      subtitles: updateSubtitleCueStyle(current.subtitles, cueId, updates),
+      subtitles: updateSubtitleCueStyle(current.subtitles, cueId, updates, applySubtitleStyleToAll),
     }));
-  }, [commitSubtitleTimeline, selectedSubtitleId]);
+  }, [applySubtitleStyleToAll, commitSubtitleTimeline, selectedSubtitleId]);
 
   const persistAudioClip = useCallback(async (clip: MediaClip) => {
     // All audio edits share the same serialized save queue as video and subtitles.
@@ -2029,6 +2031,18 @@ export const EnhancePage: React.FC = () => {
                 </button>
                 <div className="rounded-lg border border-n40 bg-n10 p-3 space-y-3">
                   <div className="text-xs font-medium text-n500">字幕样式</div>
+                  <label className="flex cursor-pointer items-start gap-2 text-xs text-n500">
+                    <input type="checkbox" checked={applySubtitleStyleToAll}
+                      onChange={event => setApplySubtitleStyleToAll(event.target.checked)}
+                      aria-describedby="subtitle-style-scope-hint"
+                      className="mt-0.5 shrink-0 accent-primary" />
+                    <span>同步修改所有字幕样式</span>
+                  </label>
+                  <p id="subtitle-style-scope-hint" className="text-[11px] leading-4 text-n100">
+                    {applySubtitleStyleToAll
+                      ? `已开启：接下来调整的位置、字号、颜色或背景透明度，会同步到本集已有的 ${subtitles.length} 条字幕。仅同步调整项，不改变文字和时间；新增字幕保持默认设置。`
+                      : '拖动或修改样式只影响当前字幕；其他字幕和新增字幕保持各自设置。'}
+                  </p>
                   <label className="block space-y-1">
                     <span className="text-[11px] text-n300">位置</span>
                     <select
@@ -2041,7 +2055,6 @@ export const EnhancePage: React.FC = () => {
                       <option value="bottom">下</option>
                     </select>
                   </label>
-                  <p className="text-[11px] leading-4 text-n100">拖动或修改样式只影响当前字幕；其他字幕和新增字幕保持各自设置。</p>
                   {(['x', 'y'] as const).map(axis => (
                     <label key={axis} className="block space-y-1">
                       <span className="flex items-center justify-between text-[11px] text-n300">

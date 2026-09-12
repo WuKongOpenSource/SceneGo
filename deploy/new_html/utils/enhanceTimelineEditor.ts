@@ -161,11 +161,13 @@ export function normalizeEnhanceSubtitleCue(value: unknown): EnhanceSubtitleCue 
   };
 }
 
-/** A cue never inherits another cue's placement or the legacy global style. */
+/** Explicit batch edits merge only the changed fields; cue defaults stay independent. */
 export function updateSubtitleCueStyle(
   subtitles: EnhanceSubtitleCue[], cueId: string, updates: Partial<EnhanceSubtitleStyle>,
+  applyToAll = false,
 ): EnhanceSubtitleCue[] {
-  return subtitles.map(cue => cue.id === cueId ? {
+  if (!subtitles.some(cue => cue.id === cueId)) return subtitles;
+  return subtitles.map(cue => applyToAll || cue.id === cueId ? {
     ...cue, style: normalizeEnhanceSubtitleStyle({ ...normalizeEnhanceSubtitleStyle(cue.style), ...updates }),
   } : cue);
 }

@@ -21,6 +21,28 @@ function setup() {
 }
 
 describe('subtitle positioning', () => {
+  it('previews synchronized opacity and moves the batch without copying the selected font size', () => {
+    let cues: EnhanceSubtitleCue[] = [
+      { id: 'a', text: '标题', startTime: 0, duration: 3, style: {
+        ...DEFAULT_ENHANCE_SUBTITLE_STYLE, fontSize: 70, positionY: 50,
+      } },
+      { id: 'b', text: '对白', startTime: 0, duration: 3 },
+    ];
+    const view = () => <SubtitlePreview cues={cues} sourceWidth={1000} sourceHeight={500}
+      onSelect={() => {}} onChange={(id, changes) => { cues = updateSubtitleCueStyle(cues, id, changes, true); }} />;
+    const { rerender } = render(view());
+    cues = updateSubtitleCueStyle(cues, 'a', { backgroundOpacity: 0 }, true);
+    rerender(view());
+    const title = screen.getByRole('button', { name: '移动字幕：标题' });
+    const dialogue = screen.getByRole('button', { name: '移动字幕：对白' });
+    expect(title).toHaveStyle({ backgroundColor: 'rgba(0, 0, 0, 0)', top: '50%', fontSize: '70px' });
+    expect(dialogue).toHaveStyle({ backgroundColor: 'rgba(0, 0, 0, 0)', top: '94%', fontSize: '42px' });
+    fireEvent.keyDown(title, { key: 'ArrowUp' });
+    rerender(view());
+    expect(title).toHaveStyle({ top: '49%', fontSize: '70px' });
+    expect(dialogue).toHaveStyle({ top: '49%', fontSize: '42px' });
+  });
+
   it('drags against actual picture dimensions excluding letterboxing, saving once', () => {
     const { subtitle, onChange, onSelect } = setup();
     fireEvent.pointerDown(subtitle, { button: 0, clientX: 500, clientY: 500 });
