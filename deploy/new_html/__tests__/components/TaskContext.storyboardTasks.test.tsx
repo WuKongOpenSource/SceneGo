@@ -30,6 +30,20 @@ beforeEach(() => {
 afterEach(() => { cleanup(); taskRegistry.reset(); });
 
 describe('task runtime to storyboard cards', () => {
+  it.each([false, true])('restores video-upscale kind including legacy registrations (existing: %s)', async existing => {
+    if (existing) taskRegistry.register({ taskId: 'upscale-1', kind: 'video-i2v', title: 'Video',
+      targetPage: 'enhance', initialStatus: 'running', progress: 0.89 });
+    render(<QueryClientProvider client={new QueryClient()}><TaskProvider><Cards /></TaskProvider></QueryClientProvider>);
+    await waitFor(() => expect(runtime.listener).not.toBeNull());
+    act(() => runtime.listener!('tasks_updated', { tasks: [{ id: 'upscale-1', category: 'comfyui', taskType: 'upscale',
+      displayName: '视频放大 · 1080p', status: 'running', progress: 0.89, sourcePage: 'enhance' }] }));
+    expect(taskRegistry.get('upscale-1')?.kind).toBe('video-upscale');
+    act(() => runtime.listener!('progress', { taskId: 'upscale-1', progress: 0.1, message: '视频放大：AI 放大中' }));
+    act(() => runtime.listener!('progress', { taskId: 'upscale-1', progress: 0.1, message: '视频放大：编码视频' }));
+    expect(taskRegistry.get('upscale-1')).toMatchObject({ kind: 'video-upscale', status: 'running', metadata: { stage: '视频放大：编码视频' } });
+    expect(taskRegistry.list()).toHaveLength(1);
+  });
+
   it('uses the backend ID for one live card and invalidates results on baseline completion without a toast', async () => {
     taskRegistry.register({ taskId: 'comfyui_1_100', kind: 'angle-adjust', title: '角度调整 · 镜头2-3',
       targetPage: 'generation', initialStatus: 'running', targetEntityType: 'storyboard_item', targetEntityId: 'shot-23',

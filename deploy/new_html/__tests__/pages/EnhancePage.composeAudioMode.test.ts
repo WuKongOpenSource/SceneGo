@@ -5,6 +5,18 @@ import { describe, expect, it } from 'vitest';
 const source = readFileSync(resolve(__dirname, '../../pages/EnhancePage.tsx'), 'utf-8');
 
 describe('EnhancePage compose audio mode', () => {
+  it('does not show local upscale counters as an overall percentage on the page', () => {
+    const upscale = source.slice(source.indexOf("kind: 'video-upscale'"));
+    const progress = upscale.slice(upscale.indexOf('onProgress:'), upscale.indexOf('onComplete:'));
+    expect(progress).toContain('setProcessProgress(0)');
+    expect(progress).toContain('视频放大处理中，阶段详情见任务通知');
+    expect(progress).not.toContain('Math.floor');
+    const restored = source.slice(source.indexOf('attachVideoPollCallbacks(uuid,'), source.indexOf('const applyEnhancement'));
+    expect(restored).toContain("uuid.startsWith('enhance-upscale:')");
+    expect(restored).toContain('setProcessProgress(isUpscale ? 0 : progress > 1 ? Math.floor(progress) : Math.floor(progress * 100))');
+    expect(source).toContain('setProcessProgress(progress > 1 ? Math.floor(progress) : Math.floor(progress * 100))');
+  });
+
   it('uses a deterministic subtitle canvas for black clips and transitions', () => {
     expect(source).toContain('sourceWidth={videoUnderPlayhead?.isBlack || blackTransitionUnderPlayhead ? 1920 : previewSourceSize.width}');
     expect(source).toContain('sourceHeight={videoUnderPlayhead?.isBlack || blackTransitionUnderPlayhead ? 1080 : previewSourceSize.height}');

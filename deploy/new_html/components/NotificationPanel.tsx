@@ -21,6 +21,7 @@ import { getModelDisplayName } from '../services/videoModelService';
 import { buildNotificationTargetUrl } from '../services/notificationNavigation';
 import { getNotificationModelLabel } from '../services/notificationLabels';
 import { useCancellationSeconds } from '../hooks/useCancellationSeconds';
+import { videoUpscaleProgress } from '../utils/videoUpscaleProgress';
 
 
 const STATUS_THEME = {
@@ -386,7 +387,9 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onNavigate, onRemove, removeL
     const theme = STATUS_THEME[task.status] || STATUS_THEME.queued;
     const KindIcon = getKindIcon(task.kind);
     const kindLabel = getNotificationModelLabel(task) || KIND_LABEL[task.kind] || task.kind;
-    const statusText = active && deadline ? (seconds ? `可撤销 · ${seconds} 秒后提交 API` : '生成中 · 不可取消') : statusLabel(task);
+    const upscale = task.status === 'running' && task.kind === 'video-upscale'
+        ? videoUpscaleProgress(task.metadata?.stage) : null;
+    const statusText = active && deadline ? (seconds ? `可撤销 · ${seconds} 秒后提交 API` : '生成中 · 不可取消') : upscale?.label || statusLabel(task);
 
     return (
         <div
@@ -424,7 +427,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onNavigate, onRemove, removeL
                 </div>
 
                 {/* Progress bar */}
-                {task.status === 'running' && task.progress != null && (
+                {task.status === 'running' && task.progress != null && !upscale && (
                     <div className="mt-1.5 h-1 bg-n30 rounded-full overflow-hidden">
                         <div
                             className="h-full bg-b400 rounded-full transition-all duration-500"
@@ -434,7 +437,13 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onNavigate, onRemove, removeL
                 )}
 
 
-                {task.metadata && (() => {
+                {upscale && (
+                    <div role="status" className="mt-1 text-[10px] leading-relaxed text-n300">
+                        <div>{upscale.detail}</div>
+                        <div>按实际阶段更新；视频越长、分辨率越高，耗时越久。</div>
+                    </div>
+                )}
+                {!upscale && task.metadata && (() => {
                     const stage = task.metadata.stage as string | undefined;
                     const step = task.metadata.step as number | undefined;
                     const totalSteps = task.metadata.totalSteps as number | undefined;

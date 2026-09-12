@@ -83,6 +83,7 @@ function inferRuntimeTaskKind(task: GlobalTask): TaskKind {
   const name = `${task.displayName || ''} ${task.taskType || ''} ${task.id || ''}`.toLowerCase();
   const toolKind = inferImageToolKind(name);
   if (toolKind) return toolKind;
+  if (task.taskType === 'upscale') return 'video-upscale';
   const videoModel = String(task.modelName || '').toLowerCase();
   if (videoModel === 'seedance15') return 'seedance-1.5';
   if (videoModel === 'seedance2fast') return 'seedance-fast';
@@ -269,11 +270,13 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
               || existing.metadata?.cancelDeadline !== t.cancelDeadline
               || existing.error
               || (inferImageToolKind(t.taskType || t.displayName || '') && existing.kind !== inferRuntimeTaskKind(t))
+              || (t.taskType === 'upscale' && existing.kind !== 'video-upscale')
               || (t.provider && existing.metadata?.provider !== t.provider)
               || (t.modelName && existing.metadata?.modelName !== t.modelName)
             ) {
               taskRegistry.update(t.id, {
                 status: t.status,
+                ...(t.taskType === 'upscale' ? { kind: 'video-upscale' as const } : {}),
                 ...(inferImageToolKind(t.taskType || t.displayName || '') ? {
                   kind: inferRuntimeTaskKind(t),
                   title: IMAGE_TOOL_LABELS[inferRuntimeTaskKind(t)] || existing.title,

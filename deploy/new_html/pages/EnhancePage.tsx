@@ -1368,8 +1368,9 @@ export const EnhancePage: React.FC = () => {
       attachVideoPollCallbacks(uuid, {
         onProgress: (progress, status) => {
           setProcessing(true);
-          setProcessStage(status === 'queued' ? '排队中' : '处理集群正在执行，可能需要数分钟');
-          setProcessProgress(progress > 1 ? Math.floor(progress) : Math.floor(progress * 100));
+          const isUpscale = uuid.startsWith('enhance-upscale:');
+          setProcessStage(status === 'queued' ? '排队中' : isUpscale ? '视频放大处理中，阶段详情见任务通知' : '处理集群正在执行，可能需要数分钟');
+          setProcessProgress(isUpscale ? 0 : progress > 1 ? Math.floor(progress) : Math.floor(progress * 100));
         },
         onComplete: () => {
           setProcessProgress(100);
@@ -1591,10 +1592,10 @@ export const EnhancePage: React.FC = () => {
         episodeId: episodeId || undefined,
         projectId: projectId || undefined,
         callbacks: {
-          onProgress: (progress, status) => {
+          onProgress: (_progress, status) => {
             setProcessing(true);
-            setProcessStage(status === 'queued' ? '排队中' : '处理集群正在执行，可能需要数分钟');
-            setProcessProgress(progress > 1 ? Math.floor(progress) : Math.floor(progress * 100));
+            setProcessStage(status === 'queued' ? '排队中' : '视频放大处理中，阶段详情见任务通知');
+            setProcessProgress(0);
           },
           onComplete: () => {
             setProcessProgress(100);
