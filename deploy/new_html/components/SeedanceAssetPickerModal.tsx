@@ -85,15 +85,12 @@ export const SeedanceAssetPickerModal: React.FC<SeedanceAssetPickerModalProps> =
                 <div className="flex items-center justify-between px-3 py-2 border-b border-n40">
                     <div className="text-sm text-n700">{p.targetFrame ? `选择${p.targetFrame === 'first_frame' ? '首帧' : '尾帧'}（单选）` : '从库里添加（多选）'}</div>
                     {episodeId && (
-                        <div className="ml-auto mr-2 flex items-center gap-1 p-0.5 rounded-md border border-n40 bg-n20" title="素材引用范围">
+                        <div className="ui-tabs ui-tabs--compact ml-auto mr-2" title="素材引用范围">
                             <button
                                 type="button"
                                 onClick={() => setAssetScopeMode('episode')}
-                                className={`flex items-center gap-1 px-2 py-1 rounded text-[11px] transition-colors ${
-                                    assetScopeMode === 'episode'
-                                        ? 'bg-primary text-white'
-                                        : 'text-n300 hover:text-n800 hover:bg-n0'
-                                }`}
+                                className="ui-tab"
+                                aria-pressed={assetScopeMode === 'episode'}
                             >
                                 <ImageIcon size={12} />
                                 本集素材
@@ -101,11 +98,8 @@ export const SeedanceAssetPickerModal: React.FC<SeedanceAssetPickerModalProps> =
                             <button
                                 type="button"
                                 onClick={() => setAssetScopeMode('project')}
-                                className={`flex items-center gap-1 px-2 py-1 rounded text-[11px] transition-colors ${
-                                    assetScopeMode === 'project'
-                                        ? 'bg-primary text-white'
-                                        : 'text-n300 hover:text-n800 hover:bg-n0'
-                                }`}
+                                className="ui-tab"
+                                aria-pressed={assetScopeMode === 'project'}
                             >
                                 <Layers size={12} />
                                 全部素材

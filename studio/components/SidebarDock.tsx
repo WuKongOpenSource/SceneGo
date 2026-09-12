@@ -134,16 +134,18 @@ export const SidebarDock: React.FC<SidebarDockProps> = ({
                             <span className="text-xs font-bold uppercase tracking-widest text-white/50">历史记录</span>
                         </div>
                         {/* Tabs */}
-                        <div className="flex bg-black/20 p-1 rounded-lg">
+                        <div className="ui-tabs ui-tabs--compact">
                             <button
                                 onClick={() => setActiveHistoryTab('image')}
-                                className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-[10px] font-bold rounded-md transition-all ${activeHistoryTab === 'image' ? 'bg-white/10 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
+                                className="ui-tab"
+                                aria-pressed={activeHistoryTab === 'image'}
                             >
                                 <ImageIcon size={12} /> 图片
                             </button>
                             <button
                                 onClick={() => setActiveHistoryTab('video')}
-                                className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-[10px] font-bold rounded-md transition-all ${activeHistoryTab === 'video' ? 'bg-white/10 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
+                                className="ui-tab"
+                                aria-pressed={activeHistoryTab === 'video'}
                             >
                                 <VideoIcon size={12} /> 视频
                             </button>

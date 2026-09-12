@@ -63,13 +63,13 @@ export const MusicAssetSidebar: React.FC<MusicAssetSidebarProps> = ({ audioTrack
         </span>
       </div>
 
-      <div role="tablist" aria-label="音频资产分类" className="grid grid-cols-2 gap-1 border-b border-n40 bg-n20 p-2">
+      <div role="tablist" aria-label="音频资产分类" className="ui-tabs">
         <button
           type="button"
           role="tab"
           aria-selected={category === 'music'}
           onClick={() => setCategory('music')}
-          className={`rounded-md px-2 py-1.5 text-xs font-semibold ${category === 'music' ? 'bg-success text-white' : 'text-n500 hover:bg-n0'}`}
+          className="ui-tab"
         >
           音乐 {counts.music}
         </button>
@@ -78,7 +78,7 @@ export const MusicAssetSidebar: React.FC<MusicAssetSidebarProps> = ({ audioTrack
           role="tab"
           aria-selected={category === 'sfx'}
           onClick={() => setCategory('sfx')}
-          className={`rounded-md px-2 py-1.5 text-xs font-semibold ${category === 'sfx' ? 'bg-primary text-white' : 'text-n500 hover:bg-n0'}`}
+          className="ui-tab"
         >
           音效 {counts.sfx}
         </button>

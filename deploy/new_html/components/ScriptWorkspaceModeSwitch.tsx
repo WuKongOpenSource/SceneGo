@@ -33,7 +33,7 @@ export const ScriptWorkspaceModeSwitch: React.FC<ScriptWorkspaceModeSwitchProps>
   onChange,
 }) => (
   <div
-    className="inline-flex h-9 flex-shrink-0 items-center rounded-full border border-n40 bg-n30 p-1"
+    className="ui-tabs ui-tabs--compact"
     role="radiogroup"
     aria-label="分集剧本工作模式"
     data-testid="script-workspace-mode-switch"
@@ -48,11 +48,7 @@ export const ScriptWorkspaceModeSwitch: React.FC<ScriptWorkspaceModeSwitchProps>
           aria-checked={active}
           title={option.title}
           onClick={() => onChange(option.value)}
-          className={`inline-flex h-7 min-w-[68px] items-center justify-center rounded-full px-3 text-xs font-medium transition-all ${
-            active
-              ? 'bg-n0 text-primary shadow-sm'
-              : 'text-n400 hover:bg-n0/65 hover:text-n800'
-          }`}
+          className="ui-tab"
         >
           {option.label}
         </button>

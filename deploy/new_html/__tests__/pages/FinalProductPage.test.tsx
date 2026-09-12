@@ -98,5 +98,21 @@ describe('FinalProductPage', () => {
     await waitFor(() => expect(listFinalFeedback).toHaveBeenCalledWith('mli_3'));
     fireEvent.click(screen.getByRole('button', { name: /审阅意见/ }));
     expect(await screen.findByText('节奏再慢一点')).toBeInTheDocument();
+    const shareTab = screen.getByRole('button', { name: '分享链接' });
+    const reviewTab = screen.getByRole('button', { name: /审阅意见/ });
+    expect(shareTab.parentElement).toHaveClass('ui-tabs');
+    expect(shareTab).toHaveClass('ui-tab');
+    expect(reviewTab).toHaveClass('ui-tab');
+    expect(reviewTab).toHaveAttribute('aria-pressed', 'true');
+    expect(shareTab).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(shareTab);
+    expect(shareTab).toHaveAttribute('aria-pressed', 'true');
+    expect(reviewTab).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByText('节奏再慢一点')).not.toBeInTheDocument();
+    fireEvent.click(reviewTab);
+    expect(screen.getByText('节奏再慢一点')).toBeInTheDocument();
+    // Switching presentation must not refetch, create a share, or lose feedback.
+    expect(listFinalFeedback).toHaveBeenCalledTimes(1);
+    expect(getFinalShare).toHaveBeenCalledTimes(1);
   });
 });

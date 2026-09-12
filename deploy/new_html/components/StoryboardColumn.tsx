@@ -1034,24 +1034,18 @@ export const StoryboardColumn: React.FC<StoryboardColumnProps> = ({
 
 
             <div className="p-4 border-b border-n40 bg-n20">
-              <div className="flex items-center gap-3">
+              <div className="ui-tabs">
                 <button
                   onClick={() => setInsertMode('manual')}
-                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${
-                    insertMode === 'manual'
-                      ? 'bg-primary text-white'
-                      : 'bg-n0 text-n300 hover:bg-n20'
-                  }`}
+                  className="ui-tab"
+                  aria-pressed={insertMode === 'manual'}
                 >
                   ✍️ 手动填写
                 </button>
                 <button
                   onClick={() => setInsertMode('ai')}
-                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${
-                    insertMode === 'ai'
-                      ? 'bg-primary text-white'
-                      : 'bg-n0 text-n300 hover:bg-n20'
-                  }`}
+                  className="ui-tab"
+                  aria-pressed={insertMode === 'ai'}
                 >
                   🤖 AI生成
                 </button>

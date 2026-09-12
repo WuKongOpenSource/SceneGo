@@ -167,6 +167,7 @@ export const ProjectMaterialPicker: React.FC<ProjectMaterialPickerProps> = ({
                 </button>
               </div>
               <div className="shrink-0 px-5 py-3 border-b border-n40 flex flex-wrap items-center gap-2">
+                <div className="ui-tabs ui-tabs--compact">
                  {([
                    ['shot', '本镜头'],
                    ['other-shot', '其他分镜'],
@@ -180,16 +181,18 @@ export const ProjectMaterialPicker: React.FC<ProjectMaterialPickerProps> = ({
                      <button
                        key={value}
                        onClick={() => void handleMaterialPickerFilterChange(value)}
-                       className={`h-8 px-3 inline-flex items-center gap-1.5 text-xs border rounded ${materialPickerFilter === value ? 'bg-primary text-white border-primary' : 'bg-n0 text-n700 border-n40 hover:bg-n20'}`}
+                       className="ui-tab"
+                       aria-pressed={materialPickerFilter === value}
                      >
                        {value === 'other-shot' && <Clapperboard className="w-3.5 h-3.5" />}
                        <span>{label}</span>
-                       <span className={`min-w-4 h-4 px-1 inline-flex items-center justify-center rounded text-[9px] ${materialPickerFilter === value ? 'bg-white/20 text-white' : 'bg-n30 text-n500'}`}>
+                       <span className="ui-tab-count">
                          {count}
                        </span>
                      </button>
                    );
                  })}
+                </div>
                 {onRefresh && <button type="button" onClick={onRefresh} disabled={loading || busy} className="h-8 px-3 text-xs text-primary border border-primary/30 rounded disabled:opacity-50">刷新素材</button>}
                 <label className="ml-auto min-w-[220px] h-8 flex items-center gap-2 px-3 border border-n40 rounded bg-n0">
                   <Search className="w-3.5 h-3.5 text-n100" />

@@ -263,15 +263,12 @@ export const FinalProductPage: React.FC = () => {
         <span className="text-xs text-n100">每次合成都保留为独立版本，可分享审阅并汇总修改意见</span>
         <div className="flex-1 min-w-[16px]" />
         {episodeId && (
-          <div className="flex items-center gap-1 p-0.5 rounded-md border border-n40 bg-n0" title="成品可见范围">
+          <div className="ui-tabs ui-tabs--compact" title="成品可见范围">
             <button
               type="button"
               onClick={() => setAssetScopeMode('episode')}
-              className={`flex items-center gap-1 px-2 py-1 rounded text-[11px] transition-colors ${
-                assetScopeMode === 'episode'
-                  ? 'bg-primary text-white'
-                  : 'text-n300 hover:text-n800 hover:bg-n0'
-              }`}
+              className="ui-tab"
+              aria-pressed={assetScopeMode === 'episode'}
             >
               <Film size={12} />
               本集成品
@@ -279,11 +276,8 @@ export const FinalProductPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setAssetScopeMode('project')}
-              className={`flex items-center gap-1 px-2 py-1 rounded text-[11px] transition-colors ${
-                assetScopeMode === 'project'
-                  ? 'bg-primary text-white'
-                  : 'text-n300 hover:text-n800 hover:bg-n0'
-              }`}
+              className="ui-tab"
+              aria-pressed={assetScopeMode === 'project'}
             >
               <Layers size={12} />
               全部成品
@@ -412,9 +406,9 @@ export const FinalProductPage: React.FC = () => {
               </div>
               <button type="button" onClick={() => setReviewItem(null)} className="ml-auto text-n100 hover:text-n700"><X size={17} /></button>
             </div>
-            <div className="px-5 pt-3 flex items-center gap-1 border-b border-n40">
-              <button type="button" onClick={() => setReviewTab('share')} className={`px-3 py-2 text-xs border-b-2 ${reviewTab === 'share' ? 'border-primary text-primary' : 'border-transparent text-n300'}`}>分享链接</button>
-              <button type="button" onClick={() => setReviewTab('feedback')} className={`px-3 py-2 text-xs border-b-2 ${reviewTab === 'feedback' ? 'border-primary text-primary' : 'border-transparent text-n300'}`}>审阅意见 {feedback.length ? `(${feedback.length})` : ''}</button>
+            <div className="ui-tabs" aria-label="成品分享与审阅">
+              <button type="button" onClick={() => setReviewTab('share')} className="ui-tab" aria-pressed={reviewTab === 'share'}>分享链接</button>
+              <button type="button" onClick={() => setReviewTab('feedback')} className="ui-tab" aria-pressed={reviewTab === 'feedback'}>审阅意见 {feedback.length ? `(${feedback.length})` : ''}</button>
             </div>
             <div className="p-5 overflow-y-auto min-h-[230px]">
               {reviewLoading ? (

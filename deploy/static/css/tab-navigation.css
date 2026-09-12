@@ -1,0 +1,114 @@
+/* Shared by the application, login page and canvas. Content tabs only:
+   workflow steps, sidebar navigation, badges and parameter controls opt out. */
+.ui-tabs {
+  --tab-accent: var(--color-primary, #5B49F0);
+  --tab-text: var(--n300, #6A6A74);
+  --tab-hover: var(--n800, #17171C);
+  --tab-divider: var(--n40, #E5E5E0);
+  --tab-surface: var(--n0, #FFFFFF);
+  --tab-height: 48px;
+  --tab-font-size: 14px;
+  display: flex;
+  align-items: stretch;
+  flex-wrap: nowrap;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+  flex-shrink: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0 4px;
+  border: 0;
+  border-bottom: 1px solid var(--tab-divider);
+  border-radius: 0;
+  background: var(--tab-surface);
+  box-shadow: none;
+}
+
+.ui-tabs--compact {
+  --tab-height: 40px;
+  --tab-font-size: 12px;
+}
+
+.ui-tabs .ui-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  height: var(--tab-height);
+  min-width: max-content;
+  margin: 0;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--tab-text);
+  box-shadow: none;
+  font-family: inherit;
+  font-size: var(--tab-font-size);
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: normal;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+
+.ui-tabs .ui-tab::after {
+  content: '';
+  position: absolute;
+  inset: auto 8px 0;
+  height: 2px;
+  background: transparent;
+  pointer-events: none;
+}
+
+.ui-tabs .ui-tab:where(:hover:not(:disabled)) {
+  color: var(--tab-hover);
+}
+
+.ui-tabs .ui-tab:is([aria-selected="true"], [aria-pressed="true"], [aria-checked="true"], .active) {
+  color: var(--tab-accent);
+  font-weight: 500;
+}
+
+.ui-tabs .ui-tab:is([aria-selected="true"], [aria-pressed="true"], [aria-checked="true"], .active)::after {
+  background: var(--tab-accent);
+}
+
+/* Keep keyboard focus visible without the global rounded button outline.
+   Pointer focus must not look like a second selected tab. */
+.ui-tabs .ui-tab:focus-visible {
+  outline: none;
+  text-decoration: underline dotted var(--tab-accent);
+  text-underline-offset: 5px;
+  text-decoration-thickness: 2px;
+}
+
+.ui-tabs .ui-tab:active:not(:disabled) {
+  transform: none;
+}
+
+.ui-tabs .ui-tab:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.ui-tabs .ui-tab-count {
+  padding: 0 4px;
+  font-size: 10px;
+  color: inherit;
+  background: transparent;
+}
+
+:root[data-studio-theme="dark"] .ui-tabs,
+.ui-tabs.ui-tabs--dark {
+  --tab-accent: #A79AFF;
+  --tab-text: #A6A6B0;
+  --tab-hover: #F4F4F6;
+  --tab-divider: #3A3A44;
+  --tab-surface: #1C1C22;
+}

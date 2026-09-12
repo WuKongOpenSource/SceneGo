@@ -367,7 +367,7 @@ export const ImageUpscalePage: React.FC = () => {
           </div>
         </div>
 
-        <div className="mb-5 flex min-w-0 items-center gap-1 overflow-x-auto border-b border-n40 bg-n0 px-1" role="tablist" aria-label="图片高清放大功能">
+        <div className="ui-tabs mb-5" role="tablist" aria-label="图片高清放大功能">
           <button
             id="image-upscale-tab"
             type="button"
@@ -375,7 +375,7 @@ export const ImageUpscalePage: React.FC = () => {
             aria-selected={activeTab === 'upscale'}
             aria-controls="image-upscale-panel"
             onClick={() => setActiveTab('upscale')}
-            className={`relative h-12 shrink-0 rounded-none bg-transparent px-3 text-sm transition-colors focus-visible:z-10 ${activeTab === 'upscale' ? 'font-medium text-primary after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-primary' : 'text-n300 hover:text-n800'}`}
+            className="ui-tab"
           >
             开始放大
           </button>
@@ -386,7 +386,7 @@ export const ImageUpscalePage: React.FC = () => {
             aria-selected={activeTab === 'history'}
             aria-controls="image-upscale-history-panel"
             onClick={() => setActiveTab('history')}
-            className={`relative h-12 shrink-0 rounded-none bg-transparent px-3 text-sm transition-colors focus-visible:z-10 ${activeTab === 'history' ? 'font-medium text-primary after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-primary' : 'text-n300 hover:text-n800'}`}
+            className="ui-tab"
           >
             放大历史
           </button>

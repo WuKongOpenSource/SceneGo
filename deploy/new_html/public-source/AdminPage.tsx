@@ -199,9 +199,9 @@ export const AdminPage: React.FC<JsonRecord> = () => {
         </header>
 
         <div className="flex items-center justify-between gap-3 border-b border-n40">
-          <div className="flex gap-1">
-            <button className={`px-4 py-3 text-sm ${tab === 'providers' ? 'border-b-2 border-primary font-semibold text-primary' : 'text-n300'}`} onClick={() => setTab('providers')}><KeyRound className="mr-1 inline h-4 w-4" />API 配置</button>
-            <button className={`px-4 py-3 text-sm ${tab === 'users' ? 'border-b-2 border-primary font-semibold text-primary' : 'text-n300'}`} onClick={() => setTab('users')}><Users className="mr-1 inline h-4 w-4" />用户账号</button>
+          <div className="ui-tabs">
+            <button className="ui-tab" aria-pressed={tab === 'providers'} onClick={() => setTab('providers')}><KeyRound className="h-4 w-4" />API 配置</button>
+            <button className="ui-tab" aria-pressed={tab === 'users'} onClick={() => setTab('users')}><Users className="h-4 w-4" />用户账号</button>
           </div>
           <button className="rounded-md border border-n40 bg-n0 p-2 text-n300" onClick={() => void reload()} title="刷新"><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /></button>
         </div>

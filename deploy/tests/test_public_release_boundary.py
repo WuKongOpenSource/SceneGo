@@ -384,7 +384,7 @@ def test_superseded_browser_token_scripts_fail(tmp_path: Path, filename) -> None
 
 
 @pytest.mark.parametrize("relative", [
-    "deploy/login.html", "deploy/static/css/slider-captcha.css",
+    "deploy/login.html", "deploy/static/css/slider-captcha.css", "deploy/static/css/tab-navigation.css",
     "deploy/static/js/slider-captcha.js", "deploy/tests/test_frontend_entry_files.py",
 ])
 def test_public_auth_entries_and_route_regression_cannot_be_omitted(tmp_path, relative):

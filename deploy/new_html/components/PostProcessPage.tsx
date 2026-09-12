@@ -30,25 +30,19 @@ const PostProcessPage: React.FC = () => {
             </div>
 
 
-            <div className="flex border-b border-n40">
+            <div className="ui-tabs">
                 <button
                     onClick={() => setActiveTab('upscale')}
-                    className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-                        activeTab === 'upscale'
-                            ? 'border-primary text-n800'
-                            : 'border-transparent text-n300 hover:text-n700'
-                    }`}
+                    className="ui-tab"
+                    aria-pressed={activeTab === 'upscale'}
                 >
                     <ArrowUpCircle className="w-4 h-4" />
                     视频放大
                 </button>
                 <button
                     onClick={() => setActiveTab('voice')}
-                    className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-                        activeTab === 'voice'
-                            ? 'border-primary text-n800'
-                            : 'border-transparent text-n300 hover:text-n700'
-                    }`}
+                    className="ui-tab"
+                    aria-pressed={activeTab === 'voice'}
                 >
                     <Volume2 className="w-4 h-4" />
                     配音

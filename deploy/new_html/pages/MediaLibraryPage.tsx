@@ -378,15 +378,12 @@ export const MediaLibraryPage: React.FC = () => {
 
         <div className="toolbar-actions ml-auto">
           {episodeId && (
-            <div className="flex items-center gap-1 p-0.5 rounded-md border border-n40 bg-n20" title="素材可见范围">
+            <div className="ui-tabs ui-tabs--compact" title="素材可见范围">
               <button
                 type="button"
                 onClick={() => setAssetScopeMode('episode')}
-                className={`flex items-center gap-1 px-2 py-1 rounded text-[11px] transition-colors ${
-                  assetScopeMode === 'episode'
-                    ? 'bg-primary text-white'
-                    : 'text-n300 hover:text-n800 hover:bg-n0'
-                }`}
+                className="ui-tab"
+                aria-pressed={assetScopeMode === 'episode'}
               >
                 <ImageIcon size={12} />
                 本集素材
@@ -394,11 +391,8 @@ export const MediaLibraryPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setAssetScopeMode('project')}
-                className={`flex items-center gap-1 px-2 py-1 rounded text-[11px] transition-colors ${
-                  assetScopeMode === 'project'
-                    ? 'bg-primary text-white'
-                    : 'text-n300 hover:text-n800 hover:bg-n0'
-                }`}
+                className="ui-tab"
+                aria-pressed={assetScopeMode === 'project'}
               >
                 <Layers size={12} />
                 全部素材

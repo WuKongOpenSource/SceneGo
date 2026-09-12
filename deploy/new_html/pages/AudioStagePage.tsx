@@ -688,34 +688,26 @@ export const AudioStagePage: React.FC = () => {
       <header className="workflow-stage-toolbar flex items-center gap-3 px-6 py-3 border-b border-n40 shrink-0">
         <Mic size={20} className="text-primary" />
         <h1 className="text-lg font-bold tracking-tight">声音工作台</h1>
-        <div role="tablist" aria-label="声音工作台功能" className="ml-4 flex items-center rounded-xl border border-n40 bg-n30 p-1">
+        <div role="tablist" aria-label="声音工作台功能" className="ui-tabs ml-4">
           <button
             type="button"
             role="tab"
             aria-selected={workspaceMode === 'dubbing'}
             onClick={() => setWorkspaceMode('dubbing')}
-            className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
-              workspaceMode === 'dubbing'
-                ? 'bg-primary text-white shadow-sm'
-                : 'text-n500 hover:bg-n0 hover:text-n800'
-            }`}
+            className="ui-tab"
           >
             <Mic size={15} /> 配音制作
-            <span className={`rounded px-1.5 py-0.5 text-[10px] ${workspaceMode === 'dubbing' ? 'bg-white/20' : 'bg-n40 text-n100'}`}>台词</span>
+            <span className="ui-tab-count">台词</span>
           </button>
           <button
             type="button"
             role="tab"
             aria-selected={workspaceMode === 'music'}
             onClick={() => setWorkspaceMode('music')}
-            className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
-              workspaceMode === 'music'
-                ? 'bg-success text-white shadow-sm'
-                : 'text-n500 hover:bg-n0 hover:text-n800'
-            }`}
+            className="ui-tab"
           >
             <Music size={15} /> 音乐生成
-            <span className={`rounded px-1.5 py-0.5 text-[10px] ${workspaceMode === 'music' ? 'bg-white/20' : 'bg-success/10 text-success'}`}>BGM / 主题曲</span>
+            <span className="ui-tab-count">BGM / 主题曲</span>
           </button>
         </div>
         <span className="flex-1" />

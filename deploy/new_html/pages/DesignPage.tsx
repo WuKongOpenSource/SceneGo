@@ -962,7 +962,7 @@ export const DesignPage: React.FC = () => {
             <h2 className="text-sm font-bold text-n700">{tabLabel}设计</h2>
             <span className="text-[10px] text-n100">{tabDesignedCount}/{filtered.length}</span>
           </div>
-          <div className="inline-flex overflow-hidden rounded-md border border-n40 bg-n0 shadow-sm" role="tablist" aria-label="设计分类">
+          <div className="ui-tabs ui-tabs--compact" role="tablist" aria-label="设计分类">
             {TAB_CONFIG.map(({ key, label, Icon }) => {
               const active = tab === key; const count = designAssets.filter(a => a.assetType === key).length;
               return (
@@ -971,14 +971,12 @@ export const DesignPage: React.FC = () => {
                   role="tab"
                   aria-selected={active}
                   onClick={() => { setTab(key); setSelectedIds(new Set()); }}
-                  className={`h-8 inline-flex items-center gap-1.5 px-3 text-xs font-medium border-r border-n40 last:border-r-0 transition-colors ${
-                    active ? 'bg-primary text-white' : 'bg-n0 text-n300 hover:bg-n20 hover:text-n700'
-                  }`}
+                  className="ui-tab"
                 >
                   <Icon size={13} />
                   {label}
                   {count > 0 && (
-                    <span className={`min-w-4 px-1 py-0.5 rounded text-[9px] leading-none ${active ? 'bg-white/20 text-white' : 'bg-n30 text-n300'}`}>
+                    <span className="ui-tab-count">
                       {count}
                     </span>
                   )}

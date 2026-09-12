@@ -535,7 +535,7 @@ export const EpisodeHubPage: React.FC = () => {
             >
               <ArrowLeft size={18} />
             </button>
-            <div className="flex h-full min-w-0 items-end gap-4 overflow-x-auto">
+            <div className="ui-tabs">
               {episodeTabs.map(tab => {
                 const active = activeStatusTab === tab.key;
                 return (
@@ -544,7 +544,7 @@ export const EpisodeHubPage: React.FC = () => {
                     type="button"
                     aria-pressed={active}
                     onClick={() => setActiveStatusTab(tab.key)}
-                    className={`relative flex h-full shrink-0 items-center px-2 text-sm font-medium transition-colors after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 ${active ? 'text-primary after:bg-primary' : 'text-n700 after:bg-transparent hover:text-primary'}`}
+                    className="ui-tab"
                   >
                     {tab.label}
                     <span className={`ml-2 inline-flex min-w-5 items-center justify-center rounded-full border px-1.5 py-0.5 text-[11px] ${active ? 'border-b75 bg-primary-light text-primary' : 'border-n40 bg-n20 text-n300'}`}>

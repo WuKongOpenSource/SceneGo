@@ -4829,25 +4829,19 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
                 </div>
 
                 {/* Mode Tabs */}
-                <div className="flex gap-2 mb-4">
+                <div className="ui-tabs mb-4">
                     <button
                         onClick={() => setMode('edit')}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
-                            mode === 'edit'
-                                ? 'bg-primary text-white'
-                                : 'bg-n0 text-n300 hover:bg-n20'
-                        }`}
+                        className="ui-tab"
+                        aria-pressed={mode === 'edit'}
                     >
                         <Pencil className="w-4 h-4" />
                         编辑底图
                     </button>
                     <button
                         onClick={() => setMode('sketch')}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
-                            mode === 'sketch'
-                                ? 'bg-blue-500 text-white'
-                                : 'bg-n0 text-n300 hover:bg-n20'
-                        }`}
+                        className="ui-tab"
+                        aria-pressed={mode === 'sketch'}
                     >
                         <Layers className="w-4 h-4" />
                         绘制线稿

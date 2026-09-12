@@ -299,14 +299,11 @@ export const StoryboardToolModal: React.FC<StoryboardToolModalProps> = ({
                 </div>
 
 
-                <div className="flex border-b border-n40 flex-shrink-0">
+                <div className="ui-tabs">
                     <button
                         onClick={() => setToolType('panorama')}
-                        className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                            toolType === 'panorama'
-                                ? 'text-primary border-b-2 border-primary bg-primary-light'
-                                : 'text-n300 hover:text-n700'
-                        }`}
+                        className="ui-tab"
+                        aria-pressed={toolType === 'panorama'}
                     >
                         <div className="flex items-center justify-center gap-2">
                             <Globe className="w-4 h-4" />
@@ -315,11 +312,8 @@ export const StoryboardToolModal: React.FC<StoryboardToolModalProps> = ({
                     </button>
                     <button
                         onClick={() => setToolType('auto')}
-                        className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                            toolType === 'auto'
-                                ? 'text-primary border-b-2 border-primary bg-primary-light'
-                                : 'text-n300 hover:text-n700'
-                        }`}
+                        className="ui-tab"
+                        aria-pressed={toolType === 'auto'}
                     >
                         <div className="flex items-center justify-center gap-2">
                             <Wand2 className="w-4 h-4" />
@@ -328,11 +322,8 @@ export const StoryboardToolModal: React.FC<StoryboardToolModalProps> = ({
                     </button>
                     <button
                         onClick={() => setToolType('multi_grid')}
-                        className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                            toolType === 'multi_grid'
-                                ? 'text-primary border-b-2 border-primary bg-primary-light'
-                                : 'text-n300 hover:text-n700'
-                        }`}
+                        className="ui-tab"
+                        aria-pressed={toolType === 'multi_grid'}
                     >
                         <div className="flex items-center justify-center gap-2">
                             <Grid3X3 className="w-4 h-4" />

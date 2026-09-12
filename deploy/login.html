@@ -11,6 +11,7 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260824-chuangju-v1" />
     <title>创剧 · 登录</title>
     <link rel="stylesheet" href="/static/css/slider-captcha.css">
+    <link rel="stylesheet" href="/static/css/tab-navigation.css">
     <style>
         :root {
             --n0: #FFFFFF;
@@ -662,31 +663,7 @@
         .platform-login-footer a:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
 
         .auth-tabs {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 4px;
-            padding: 4px;
             margin: 0 0 28px;
-            border-radius: 11px;
-            background: #F3F2FA;
-        }
-
-        .auth-tab {
-            height: 36px;
-            border: 0;
-            border-radius: 8px;
-            background: transparent;
-            color: var(--n300);
-            font: inherit;
-            font-size: 14px;
-            cursor: pointer;
-        }
-
-        .auth-tab.active {
-            background: var(--n0);
-            color: var(--primary);
-            font-weight: 600;
-            box-shadow: 0 1px 6px rgba(20, 20, 25, 0.08);
         }
 
         .code-row {
@@ -952,9 +929,9 @@
                 <h2 id="authTitle">欢迎回来</h2>
                 <p id="authSubtitle" class="subtitle">登录后继续完成你的故事</p>
 
-                <div id="authTabs" class="auth-tabs">
-                    <button type="button" class="auth-tab active" data-method="password">密码登录</button>
-                    <button type="button" class="auth-tab" data-method="sms_code">验证码登录 / 注册</button>
+                <div id="authTabs" class="auth-tabs ui-tabs">
+                    <button type="button" class="auth-tab ui-tab active" aria-pressed="true" data-method="password">密码登录</button>
+                    <button type="button" class="auth-tab ui-tab" aria-pressed="false" data-method="sms_code">验证码登录 / 注册</button>
                 </div>
 
                 <form id="authForm" onsubmit="handleSubmit(event)"></form>
@@ -1143,7 +1120,11 @@
         function render() {
             clearMessage();
             authTabs.classList.toggle('hidden', state.view !== 'login');
-            authTabs.querySelectorAll('.auth-tab').forEach(button => button.classList.toggle('active', button.dataset.method === state.method));
+            authTabs.querySelectorAll('.auth-tab').forEach(button => {
+                const active = button.dataset.method === state.method;
+                button.classList.toggle('active', active);
+                button.setAttribute('aria-pressed', String(active));
+            });
             if (state.view === 'login') {
                 authTitle.textContent = '欢迎回来';
                 authSubtitle.textContent = '使用手机号继续完成你的故事';

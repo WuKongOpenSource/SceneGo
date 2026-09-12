@@ -4470,7 +4470,7 @@ const ApiConfigPanel: React.FC = () => {
                 ) : (
                     <div className="space-y-3">
                         <section className="rounded-md border border-n40 bg-n0 shadow-card">
-                            <div className="flex flex-wrap items-center gap-1 border-b border-n40 px-3 py-2">
+                            <div className="ui-tabs">
                                 {categoryTabs.map(tab => {
                                     const active = tab.key === activeCategory;
                                     return (
@@ -4478,16 +4478,11 @@ const ApiConfigPanel: React.FC = () => {
                                             key={tab.key}
                                             type="button"
                                             onClick={() => selectCategory(tab.key)}
-                                            className={`inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition ${
-                                                active
-                                                    ? 'bg-primary text-white shadow-sm'
-                                                    : 'text-n500 hover:bg-n20'
-                                            }`}
+                                            className="ui-tab"
+                                            aria-pressed={active}
                                         >
                                             <span>{tab.label}</span>
-                                            <span className={`rounded px-1.5 py-0.5 font-mono text-[10px] ${
-                                                active ? 'bg-white/20 text-white' : 'bg-n20 text-n100'
-                                            }`}>
+                                            <span className="ui-tab-count">
                                                 {tab.count}
                                             </span>
                                         </button>

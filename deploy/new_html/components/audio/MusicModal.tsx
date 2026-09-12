@@ -430,18 +430,20 @@ export const MusicModal: React.FC<MusicModalProps> = ({
             <Music size={14} className="text-success" /> 本地 MiniMax Music 3
           </h4>
           <div className="space-y-3">
-            <div className="flex gap-2">
+            <div className="ui-tabs">
               <button
                 type="button"
                 onClick={() => setMusicMode('instrumental')}
-                className={`rounded-lg border px-3 py-2 text-sm ${musicMode === 'instrumental' ? 'border-success bg-success/10 text-success' : 'border-n40 bg-n0 text-n700'}`}
+                className="ui-tab"
+                aria-pressed={musicMode === 'instrumental'}
               >
                 纯音乐 / BGM
               </button>
               <button
                 type="button"
                 onClick={() => setMusicMode('theme')}
-                className={`rounded-lg border px-3 py-2 text-sm ${musicMode === 'theme' ? 'border-success bg-success/10 text-success' : 'border-n40 bg-n0 text-n700'}`}
+                className="ui-tab"
+                aria-pressed={musicMode === 'theme'}
               >
                 主题曲（含歌词）
               </button>

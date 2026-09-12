@@ -8,7 +8,7 @@ import { ScriptWorkspaceModeSwitch } from '../../components/ScriptWorkspaceModeS
 afterEach(cleanup);
 
 describe('ScriptWorkspaceModeSwitch', () => {
-  it('renders three pill-style workspace modes and reports an explicit mode change', () => {
+  it('renders three underline workspace tabs and reports an explicit mode change', () => {
     const onChange = vi.fn();
     render(<ScriptWorkspaceModeSwitch mode="writing" onChange={onChange} />);
 
@@ -29,6 +29,7 @@ describe('ScriptWorkspaceModeSwitch', () => {
 
     fireEvent.click(radios[2]);
     expect(onChange).toHaveBeenCalledWith('reverse');
-    expect(screen.getByTestId('script-workspace-mode-switch')).toHaveClass('rounded-full');
+    expect(screen.getByTestId('script-workspace-mode-switch')).toHaveClass('ui-tabs');
+    expect(radios.every(radio => radio.className === 'ui-tab')).toBe(true);
   });
 });

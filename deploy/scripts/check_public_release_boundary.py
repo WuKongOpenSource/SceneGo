@@ -77,6 +77,7 @@ PUBLIC_RUNTIME_REGRESSION_TESTS = (
 PUBLIC_AUTH_ENTRY_FILES = (
     "deploy/login.html",
     "deploy/static/css/slider-captcha.css",
+    "deploy/static/css/tab-navigation.css",
     "deploy/static/js/slider-captcha.js",
 )
 

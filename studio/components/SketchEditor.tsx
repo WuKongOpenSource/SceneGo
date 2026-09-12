@@ -272,7 +272,7 @@ export const SketchEditor: React.FC<SketchEditorProps> = ({ onClose, onGenerate 
                 </button>
 
                 <div className="flex-1 flex justify-center">
-                    <div className="flex bg-black/30 p-1 rounded-lg">
+                    <div className="ui-tabs ui-tabs--compact ui-tabs--dark">
                         {[
                             { id: 'video', label: '涂鸦生视频', icon: Play },
                             { id: 'image', label: '涂鸦生图', icon: ImageIcon },
@@ -281,12 +281,8 @@ export const SketchEditor: React.FC<SketchEditorProps> = ({ onClose, onGenerate 
                             <button
                                 key={mode.id}
                                 onClick={() => setActiveMode(mode.id as Mode)}
-                                className={`
-                                    flex items-center gap-2 px-6 py-1.5 rounded-md text-xs font-bold transition-all
-                                    ${activeMode === mode.id
-                                        ? 'bg-white/10 text-white shadow-sm'
-                                        : 'text-slate-500 hover:text-slate-300'}
-                                `}
+                                className="ui-tab"
+                                aria-pressed={activeMode === mode.id}
                             >
                                 <mode.icon size={12} />
                                 {mode.label}

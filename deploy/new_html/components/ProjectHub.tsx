@@ -520,13 +520,12 @@ const ProjectHub: React.FC = () => {
                         </div>
                     </div>
                     <div className="flex flex-col gap-3 border-y border-n40 px-4 py-3 sm:px-6 md:flex-row md:items-center md:justify-between md:py-0 lg:px-8">
-                        <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
+                        <div className="ui-tabs">
                             <button
                                 type="button"
                                 onClick={() => setActiveTab('all')}
-                                className={`relative h-12 shrink-0 px-1.5 text-sm transition-colors md:h-16 md:px-2 ${
-                                    activeTab === 'all' ? 'font-medium text-primary after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-primary' : 'text-n300 hover:text-n800'
-                                }`}
+                                className="ui-tab"
+                                aria-pressed={activeTab === 'all'}
                             >
                                 全部项目
                                 <span className="ml-2 inline-flex min-w-5 items-center justify-center rounded-full border border-b75 bg-b50 px-1.5 py-0.5 text-[11px] text-primary">
@@ -536,9 +535,8 @@ const ProjectHub: React.FC = () => {
                             <button
                                 type="button"
                                 onClick={() => setActiveTab('archived')}
-                                className={`relative h-12 shrink-0 px-3 text-sm transition-colors md:h-16 ${
-                                    activeTab === 'archived' ? 'font-medium text-primary after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-primary' : 'text-n300 hover:text-n800'
-                                }`}
+                                className="ui-tab"
+                                aria-pressed={activeTab === 'archived'}
                             >
                                 已归档
                                 <span className="ml-2 inline-flex min-w-5 items-center justify-center rounded-full border border-b75 bg-b50 px-1.5 py-0.5 text-[11px] text-primary">
@@ -593,10 +591,10 @@ const ProjectHub: React.FC = () => {
                             <p className="text-xs text-n200">项目分组 → 项目 · 先选择分组，再进入项目</p>
                             <button type="button" onClick={() => setGroupManagerOpen(true)} className="shrink-0 text-sm text-primary">管理分组</button>
                         </div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="ui-tabs ui-tabs--compact">
                             {[{ id: 'all', name: '全部分组' }, { id: 'ungrouped', name: '未分组' }, ...visibleGroups].map(group => (
                                 <button key={group.id} type="button" aria-pressed={groupFilter === group.id} onClick={() => setGroupFilter(group.id)}
-                                    className={`rounded-full border px-3 py-1.5 text-xs ${groupFilter === group.id ? 'border-primary bg-b50 text-primary' : 'border-n40 text-n300 hover:bg-n20'}`}>{group.name}</button>
+                                    className="ui-tab">{group.name}</button>
                             ))}
                         </div>
                         {groupsError && <button type="button" className="mt-2 text-xs text-danger" onClick={() => { void loadGroups(); }}>{groupsError}</button>}

@@ -15,6 +15,7 @@ import '@fontsource/sora/700.css';
 import '@fontsource/space-mono/400.css';
 import '@fontsource/space-mono/700.css';
 import './styles.css';
+import '../deploy/static/css/tab-navigation.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {

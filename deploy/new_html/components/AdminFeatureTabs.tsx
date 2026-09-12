@@ -112,16 +112,13 @@ export const AdminFeatureTabs: React.FC<{ embedTab?: SubTab }> = ({ embedTab }) 
   return (
     <div className="h-full flex flex-col">
       {!embedTab && (
-      <div className="flex border-b border-n40 bg-n0">
+      <div className="ui-tabs">
         {SUB_TABS.map(t => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium border-b-2 ${
-              tab === t.key
-                ? 'border-primary text-primary bg-n0'
-                : 'border-transparent text-n100 hover:text-n700'
-            }`}
+            className="ui-tab"
+            aria-pressed={tab === t.key}
           >
             {t.icon}
             {t.label}
