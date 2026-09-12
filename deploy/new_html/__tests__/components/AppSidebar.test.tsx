@@ -204,6 +204,21 @@ describe('AppSidebar public tools', () => {
     await waitFor(() => expect(apiJson).toHaveBeenCalled());
   });
 
+  it('opens the public repository safely between release notes and credits, including collapsed mode', async () => {
+    render(<MemoryRouter><AppSidebar /></MemoryRouter>);
+    const link = screen.getByRole('link', { name: /本产品已开源发布 · 助力点亮 Star/ });
+    expect(link).toHaveTextContent('本产品已开源发布 · 助力点亮 Star');
+    expect(link).toHaveAttribute('href', 'https://github.com/WuKongOpenSource/SceneGo');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(screen.getByLabelText('平台版本与更新记录').compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(link.compareDocumentPosition(screen.getByRole('button', { name: '查看创作点数明细' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByTestId('app-sidebar-scroll')).not.toContainElement(link);
+    fireEvent.click(screen.getByRole('button', { name: '收起左侧导航' }));
+    expect(screen.getByRole('link', { name: /本产品已开源发布 · 助力点亮 Star/ })).toBeVisible();
+    await waitFor(() => expect(apiJson).toHaveBeenCalled());
+  });
+
   it('opens the standalone recycle bin without project context', async () => {
     (apiJson as any).mockResolvedValueOnce({ success: true, projects: [{ project_id: 'proj_1', project_name: '测试项目' }] });
 

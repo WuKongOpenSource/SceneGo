@@ -1,5 +1,6 @@
 """Episode final-video composition service."""
 from __future__ import annotations
+from utils.reference_audio_anchors import normalize_anchors, reference_layers
 
 import asyncio
 import hashlib
@@ -354,6 +355,7 @@ def _global_audio_timeline(
     # never relocate the user's chosen start back to the beginning.
     start_ms = max(0, int(_finite_number(timeline.get("startMs", timeline.get("start_ms")))))
     is_bgm = row.get("track_type") == "bgm"
+    supports_fades = row.get("track_type") in {"bgm", "sfx_global"}
     fade_in_ms = (
         max(
             0,
@@ -362,7 +364,7 @@ def _global_audio_timeline(
                 duration_ms,
             ),
         )
-        if is_bgm
+        if supports_fades
         else 0
     )
     fade_out_ms = (
@@ -373,7 +375,7 @@ def _global_audio_timeline(
                 duration_ms - fade_in_ms,
             ),
         )
-        if is_bgm
+        if supports_fades
         else 0
     )
     default_volume = 0.35 if is_bgm else 1.0
@@ -705,6 +707,8 @@ def _normalize_editor_timeline(timeline: Optional[Any]) -> List[Dict[str, Any]]:
                 "transition_after": transition_after,
                 "transition_duration_ms": transition_duration_ms,
                 "_index": index,
+                **({'is_black': True, 'duration_ms': min(duration_ms, 300_000), 'source_offset_ms': 0} if raw.get('is_black') is True else {}),
+                **({'storyboard_anchors': normalize_anchors(raw['storyboard_anchors'])} if raw.get('storyboard_anchors') else {}),
             }
         )
     return sorted(normalized, key=lambda item: (item["start_ms"], item["_index"]))
@@ -719,6 +723,8 @@ async def _get_shots(
     shots = await _list_shot_takes(episode_id)
     edited_timeline = _normalize_editor_timeline(timeline)
     if edited_timeline:
+        anchor_ids = list({a['itemId'] for i in edited_timeline for a in i.get('storyboard_anchors', [])})
+        reference_rows = await EpisodeComposeDAO.list_storyboard_audio_rows(episode_id, anchor_ids) if anchor_ids else []
         take_rows: Dict[str, Dict[str, Any]] = {}
         for shot in shots:
             for take in shot.get("takes") or []:
@@ -732,6 +738,9 @@ async def _get_shots(
                 }
         result: List[Dict[str, Any]] = []
         for item in edited_timeline:
+            if item.get('is_black'):
+                result.append({**item, 'video_url': None})
+                continue
             source = take_rows.get(item["segment_id"])
             if not source:
                 raise RuntimeError(f"时间线片段 {item['clip_id']} 对应的视频源不存在，请刷新后重试")
@@ -746,6 +755,7 @@ async def _get_shots(
                     "source_identity": item["source_identity"],
                     "transition_after": item["transition_after"],
                     "transition_duration_ms": item["transition_duration_ms"],
+                    **({'reference_audio_layers': reference_layers(item['storyboard_anchors'], reference_rows)} if item.get('storyboard_anchors') else {}),
                 }
             )
         return result
@@ -793,6 +803,9 @@ async def preflight_timeline(episode_id: str, timeline: Optional[Any]) -> List[D
     validated: List[Dict[str, Any]] = []
     tolerance_ms = 250
     for item, row in zip(normalized, shots):
+        if item.get('is_black'):
+            validated.append({key: value for key, value in item.items() if key != '_index'})
+            continue
         video_url = str(row.get("video_url") or "")
         video_path = _local(video_url)
         if not video_path or not os.path.isfile(video_path):
@@ -830,6 +843,7 @@ async def preflight_timeline(episode_id: str, timeline: Optional[Any]) -> List[D
             "source_duration_ms": actual_duration_ms,
             "source_identity": identity,
             "duration_corrected": corrected,
+            **({'storyboard_anchors': item['storyboard_anchors']} if item.get('storyboard_anchors') else {}),
             "transition_after": item["transition_after"],
             "transition_duration_ms": item["transition_duration_ms"],
         })
@@ -886,6 +900,9 @@ async def _compose(
         prepared: List[Dict[str, Any]] = []
         probed_sizes: List[Tuple[int, int]] = []
         for row in shots:
+            if row.get('is_black'):
+                prepared.append({**row, '_video_path': None})
+                continue
             video_path = _local(row.get("video_url"))
             if not video_path or not os.path.isfile(video_path):
                 raise RuntimeError(f"源视频文件不存在: {row.get('clip_id') or row.get('segment_id') or 'unknown'}")
@@ -909,6 +926,20 @@ async def _compose(
             video_path = row["_video_path"]
             idx += 1
             clip_path = os.path.join(tmp, f"clip_{idx:03d}.mp4")
+            if row.get('is_black'):
+                duration = max(.1, min(300, row['duration_ms'] / 1000))
+                rc, _out, err = await _run([
+                    'ffmpeg', '-nostdin', '-y', '-loglevel', 'error',
+                    '-f', 'lavfi', '-i', f'color=c=black:s={output_width}x{output_height}:r=30:d={duration:.3f}',
+                    '-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=stereo', '-t', f'{duration:.3f}',
+                    '-c:v', 'libx264', '-preset', 'veryfast', '-pix_fmt', 'yuv420p', '-r', '30',
+                    '-video_track_timescale', '30000', '-c:a', 'aac', '-ar', '48000', '-ac', '2', clip_path,
+                ])
+                if rc != 0:
+                    raise RuntimeError(f'黑幕片段编码失败: {err[:200]}')
+                clips.append(clip_path)
+                job['done'] = idx
+                continue
             video_duration = await _probe_dur(video_path)
             source_offset = max(0.0, _finite_number(row.get("source_offset_ms")) / 1000.0)
             edited_duration_ms = int(_finite_number(row.get("duration_ms")))
@@ -948,6 +979,12 @@ async def _compose(
             # A clip with its own sound does not depend on reference speech in
             # original-audio mode. Do not resolve or probe those unused files.
             read_reference_audio = audio_mode == "reference_dubbing" or not video_has_audio
+            reference_inputs = []
+            for layer in (row.get('reference_audio_layers') or []) if read_reference_audio else []:
+                path = _local(layer['audio_url'])
+                if not path or not os.path.isfile(path):
+                    raise RuntimeError('镜头关联配音文件缺失，请重新保存配音')
+                reference_inputs.append({**layer, 'path': path})
             audio_segments = (row.get("audio_segments") or []) if read_reference_audio else []
             ordered_parts: List[Dict[str, Any]] = []
             for segment in audio_segments:
@@ -993,10 +1030,11 @@ async def _compose(
             if sfx_path and not os.path.isfile(sfx_path):
                 sfx_path = None
             use_reference_audio = bool(
-                (ordered_parts or audio_paths)
-                and audio_ms > 0
+                ((ordered_parts or audio_paths) and audio_ms > 0 or reference_inputs)
                 and read_reference_audio
             )
+            if reference_inputs:
+                audio_ms = max(layer['start_ms'] + layer['duration_ms'] for layer in reference_inputs)
 
             common = [
                 "-c:v",
@@ -1019,7 +1057,22 @@ async def _compose(
             ]
             if use_reference_audio:
                 target_duration = edited_duration or max(video_duration, audio_ms / 1000.0)
-                if ordered_parts:
+                if reference_inputs:
+                    audio_inputs = []
+                    reference_filters = []
+                    labels = []
+                    for input_index, layer in enumerate(reference_inputs, 1):
+                        audio_inputs.extend(['-i', layer['path']])
+                        label = f'ref{input_index}'
+                        reference_filters.append(
+                            f"[{input_index}:a]atrim=duration={layer['duration_ms'] / 1000:.3f},"
+                            f"asetpts=PTS-STARTPTS,adelay=delays={layer['start_ms']}:all=1[{label}]"
+                        )
+                        labels.append(f'[{label}]')
+                    reference_filters.append(f"{''.join(labels)}amix=inputs={len(labels)}:duration=longest:normalize=0[mixed]")
+                    reference_filters.append(f"[mixed]{_audio_trim_filter(source_offset, target_duration)}")
+                    audio_filter = ';'.join(reference_filters)
+                elif ordered_parts:
                     audio_inputs: List[str] = []
                     sequence_filters: List[str] = []
                     sequence_labels: List[str] = []

@@ -9,6 +9,15 @@ from db_manager import get_db_manager
 
 class EpisodeComposeDAO:
     @staticmethod
+    async def list_storyboard_audio_rows(episode_id: str, item_ids: List[str]) -> List[Dict[str, Any]]:
+        rows = await get_db_manager().fetch(
+            """SELECT item_id,mixed_audio_url,dialogue_audio_url,narration_audio_url,
+                      sfx_audio_url,audio_duration_ms FROM storyboard_items
+               WHERE episode_id=$1 AND item_id=ANY($2::text[])""", episode_id, item_ids,
+        )
+        return [dict(row) for row in rows]
+
+    @staticmethod
     async def list_shot_take_rows(episode_id: str) -> List[Dict[str, Any]]:
         db = get_db_manager()
         rows = await db.fetch(

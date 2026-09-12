@@ -1,4 +1,5 @@
 import type { EnhanceMediaClip } from './enhanceSourceClips';
+import type { StoryboardAudioAnchor } from './enhanceAudioAnchors';
 
 export const MIN_TIMELINE_CLIP_DURATION = 0.1;
 export const MIN_SUBTITLE_DURATION = 0.2;
@@ -31,7 +32,10 @@ export const DEFAULT_ENHANCE_SUBTITLE_STYLE: EnhanceSubtitleStyle = {
 };
 
 export interface PersistedEnhanceTimelineItem {
-  kind: 'video' | 'excluded_video' | 'audio' | 'audio_sources' | 'subtitle' | 'subtitle_style';
+  sourceDurationMs?: number;
+  sourceUrl?: string;
+  storyboardAnchors?: StoryboardAudioAnchor[];
+  kind: 'video' | 'black' | 'excluded_video' | 'audio' | 'audio_sources' | 'subtitle' | 'subtitle_style';
   sourceIds?: string[];
   volume?: number;
   fadeInMs?: number;
@@ -56,6 +60,8 @@ export interface PersistedEnhanceTimelineItem {
 }
 
 export interface ComposeTimelineItem {
+  is_black?: boolean;
+  storyboard_anchors?: StoryboardAudioAnchor[];
   clip_id: string;
   segment_id: string;
   start_ms: number;
@@ -213,6 +219,15 @@ export function cloneEnhanceClips(clips: EnhanceMediaClip[]): EnhanceMediaClip[]
 
 export function clipEnd(clip: EnhanceMediaClip): number {
   return clip.startTime + clip.duration;
+}
+
+export function createBlackClip(id: string, duration = 1): EnhanceMediaClip {
+  return { id, sourceId: id, isBlack: true, type: 'video', url: '', sourceLabel: '黑幕',
+    startTime: 0, duration: clamp(finite(duration, 1), .1, 300), sourceOffset: 0, sourceDuration: 300 };
+}
+
+export function insertBlackClip(clips: EnhanceMediaClip[], id: string, at: number): EnhanceMediaClip[] {
+  return moveTimelineClip([...clips, createBlackClip(id)], id, at, { ripple: true, snap: false }).clips;
 }
 
 function transitionGap(clip: EnhanceMediaClip): number {
@@ -384,7 +399,7 @@ export function trimTimelineClip(
   const sourceDuration = Math.max(target.sourceDuration || Number.POSITIVE_INFINITY, MIN_TIMELINE_CLIP_DURATION);
   let applied = finite(deltaSeconds);
   if (side === 'left') {
-    const availableBefore = target.type === 'video' && ripple
+    const availableBefore = target.isBlack ? 300 - target.duration : target.type === 'video' && ripple
       ? target.sourceOffset
       : Math.min(target.startTime, target.sourceOffset);
     applied = Math.max(-availableBefore, applied);
@@ -400,7 +415,7 @@ export function trimTimelineClip(
       return {
         ...clip,
         startTime: roundTime(clip.startTime + applied),
-        sourceOffset: roundTime(clip.sourceOffset + applied),
+        sourceOffset: clip.isBlack ? 0 : roundTime(clip.sourceOffset + applied),
         duration: roundTime(clip.duration - applied),
       };
     }
@@ -421,12 +436,15 @@ export function serializeEnhanceTimeline(
   const normalizedStyle = normalizeEnhanceSubtitleStyle(subtitleStyle);
   return [
     ...videoClips.map(clip => ({
-      kind: 'video' as const,
+      kind: clip.isBlack ? 'black' as const : 'video' as const,
       clipId: clip.id,
       sourceId: clip.sourceId || clip.id,
       startMs: Math.round(clip.startTime * 1000),
       durationMs: Math.round(clip.duration * 1000),
       sourceOffsetMs: Math.round(clip.sourceOffset * 1000),
+      sourceDurationMs: Math.round((clip.sourceDuration || clip.duration) * 1000),
+      sourceUrl: clip.url,
+      ...(clip.storyboardAnchors ? { storyboardAnchors: clip.storyboardAnchors } : {}),
       ...(clip.transitionAfter && clip.transitionAfter !== 'cut' ? {
         transitionAfter: clip.transitionAfter,
         transitionDurationMs: Math.round(clamp(finite(clip.transitionDuration, 0.5), 0.1, 3) * 1000),
@@ -482,6 +500,11 @@ export function restoreEnhanceTimeline(
   const restored: EnhanceMediaClip[] = [];
   const usedSources = new Set<string>();
   for (const item of items) {
+    if (item.kind === 'black') {
+      restored.push({ ...createBlackClip(item.clipId || item.sourceId || `black_${restored.length}`, finite(item.durationMs, 1000) / 1000),
+        startTime: Math.max(0, finite(item.startMs) / 1000) });
+      continue;
+    }
     if (item.kind !== 'video') continue;
     if (!item.sourceId) continue;
     const source = sourceById.get(item.sourceId);
@@ -491,6 +514,7 @@ export function restoreEnhanceTimeline(
       ...source,
       id: item.clipId || source.id,
       sourceId: item.sourceId,
+      storyboardAnchors: item.storyboardAnchors || source.storyboardAnchors,
       startTime: Math.max(0, finite(item.startMs) / 1000),
       duration: Math.max(MIN_TIMELINE_CLIP_DURATION, finite(item.durationMs, source.duration * 1000) / 1000),
       sourceOffset: Math.max(0, finite(item.sourceOffsetMs) / 1000),
@@ -571,6 +595,8 @@ export function composeTimelineItems(clips: EnhanceMediaClip[]): ComposeTimeline
       duration_ms: Math.max(100, Math.round(clip.duration * 1000)),
       source_offset_ms: Math.max(0, Math.round(clip.sourceOffset * 1000)),
       source_duration_ms: Math.max(100, Math.round((clip.sourceDuration || clip.duration) * 1000)),
+      ...(clip.isBlack ? { is_black: true, source_offset_ms: 0 } : {}),
+      ...(clip.storyboardAnchors ? { storyboard_anchors: clip.storyboardAnchors } : {}),
       ...(clip.transitionAfter && clip.transitionAfter !== 'cut' ? {
         transition_after: clip.transitionAfter,
         transition_duration_ms: Math.round(clamp(finite(clip.transitionDuration, 0.5), 0.1, 3) * 1000),

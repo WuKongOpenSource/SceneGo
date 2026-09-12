@@ -55,7 +55,7 @@ def test_global_audio_timeline_normalizes_clip_boundaries_and_bgm_fades():
     }
 
 
-def test_global_audio_timeline_disables_fades_for_sound_effects():
+def test_global_audio_timeline_applies_fades_to_sound_effects():
     timeline = episode_compose_service._global_audio_timeline(
         {
             "track_type": "sfx_global",
@@ -70,8 +70,8 @@ def test_global_audio_timeline_disables_fades_for_sound_effects():
         episode_duration_ms=8_000,
     )
 
-    assert timeline["fade_in_ms"] == 0
-    assert timeline["fade_out_ms"] == 0
+    assert timeline["fade_in_ms"] == 1000
+    assert timeline["fade_out_ms"] == 1000
     assert timeline["volume"] == 1
 
 
@@ -407,6 +407,8 @@ async def test_mix_global_audio_tracks_uses_timeline_trim_delay_and_bgm_fades(
                     "timeline": {
                         "startMs": 3_500,
                         "durationMs": 1_500,
+                        "fadeInMs": 200,
+                        "fadeOutMs": 400,
                         "volume": 0.8,
                     }
                 },
@@ -443,6 +445,8 @@ async def test_mix_global_audio_tracks_uses_timeline_trim_delay_and_bgm_fades(
     assert "adelay=delays=1000:all=1" in filters
     assert "atrim=start=0.000:duration=1.500" in filters
     assert "volume=0.800" in filters
+    assert "afade=t=in:st=0:d=0.200" in filters
+    assert "afade=t=out:st=1.100:d=0.400" in filters
     assert "adelay=delays=3500:all=1" in filters
     assert "amix=inputs=3:duration=first" in filters
     assert video.read_bytes() == b"mixed"

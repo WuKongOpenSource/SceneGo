@@ -14,6 +14,7 @@ export function buildSubtitleChunks(clips: EnhanceMediaClip[], source: SubtitleS
   const end = Math.max(0, ...clips.filter(c => c.type === 'video').map(c => c.startTime + c.duration));
   const chunks: SubtitleChunk[] = [];
   for (const clip of clips.filter(c => source === 'video_original' ? c.type === 'video' : c.type === 'audio' && c.audioKind === 'voice' && (c.volume ?? 1) > 0)) {
+    if (clip.isBlack) continue;
     if (!clip.url) throw new Error('片段缺少音视频源，请刷新素材');
     if (![clip.startTime, clip.sourceOffset, clip.duration].every(Number.isFinite) || clip.startTime < 0 || clip.sourceOffset < 0 || clip.duration <= 0) throw new Error('片段裁剪范围无效，请先调整时间线');
     let remaining = Math.round(Math.min(clip.duration, end - clip.startTime) * 1000);

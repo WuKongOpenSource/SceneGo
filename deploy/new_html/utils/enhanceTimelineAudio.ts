@@ -1,9 +1,13 @@
+import { audioFadeGain } from './audioFades';
+
 export interface TimelineAudioClip {
   id: string;
   startTime: number;
   duration: number;
   sourceOffset?: number;
   volume?: number;
+  fadeIn?: number;
+  fadeOut?: number;
   enabled?: boolean;
 }
 
@@ -48,7 +52,10 @@ export async function syncTimelineAudioPlayback({
 
     const target = Math.max(0, currentTime - clip.startTime + (clip.sourceOffset || 0));
     if (typeof el.volume === 'number') {
-      el.volume = Math.min(1, Math.max(0, clip.volume ?? 1));
+      const volume = Number.isFinite(clip.volume) ? clip.volume! : 1;
+      el.volume = Math.min(1, Math.max(0, volume)) * audioFadeGain(
+        clip.duration, currentTime - clip.startTime, clip.fadeIn, clip.fadeOut,
+      );
     }
     if (el.paused || Math.abs(el.currentTime - target) > 0.35) {
       el.currentTime = target;

@@ -54,10 +54,10 @@ export function resolveAudioTrackTimeline(
   // Saved placement is independent of the current video length. Composition
   // trims overflow; reopening the editor must not move music to time zero.
   const startMs = Math.max(0, finiteMs(params.startMs ?? params.start_ms));
-  const fadeInMs = track.trackType === 'bgm'
+  const fadeInMs = ['bgm', 'sfx_global'].includes(track.trackType)
     ? clamp(finiteMs(params.fadeInMs ?? params.fade_in_ms), 0, durationMs)
     : 0;
-  const fadeOutMs = track.trackType === 'bgm'
+  const fadeOutMs = ['bgm', 'sfx_global'].includes(track.trackType)
     ? clamp(finiteMs(params.fadeOutMs ?? params.fade_out_ms), 0, durationMs - fadeInMs)
     : 0;
   const defaultVolume = track.trackType === 'bgm' ? 0.35 : 1;
@@ -154,8 +154,8 @@ export function patchAudioTrackTimeline(
       startMs: Math.max(0, Math.round(edit.startMs)),
       sourceOffsetMs: Math.max(0, Math.round(edit.sourceOffsetMs)),
       durationMs: Math.max(MIN_CLIP_DURATION_MS, Math.round(edit.durationMs)),
-      fadeInMs: track.trackType === 'bgm' ? Math.max(0, Math.round(edit.fadeInMs)) : 0,
-      fadeOutMs: track.trackType === 'bgm' ? Math.max(0, Math.round(edit.fadeOutMs)) : 0,
+      fadeInMs: ['bgm', 'sfx_global'].includes(track.trackType) ? Math.max(0, Math.round(edit.fadeInMs)) : 0,
+      fadeOutMs: ['bgm', 'sfx_global'].includes(track.trackType) ? Math.max(0, Math.round(edit.fadeOutMs)) : 0,
       volume: clamp(edit.volume, 0, 2),
     },
   };

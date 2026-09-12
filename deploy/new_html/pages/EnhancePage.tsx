@@ -30,7 +30,10 @@ import { ComposeFailureNotice } from '../components/ComposeFailureNotice';
 import { SubtitlePreview } from '../components/SubtitlePreview';
 import { MusicModal } from '../components/audio/MusicModal';
 import { SfxModal } from '../components/audio/SfxModal';
-import { withEntityFileVideoFallbacks, type EnhanceMediaClip } from '../utils/enhanceSourceClips';
+import { buildEnhanceSourceClips as buildCanonicalEnhanceSourceClips, withEntityFileVideoFallbacks, type EnhanceMediaClip } from '../utils/enhanceSourceClips';
+import { AudioFadeControls } from '../components/audio/AudioFadeControls';
+import { BlackClipControls } from '../components/BlackClipControls';
+import { reanchorLinkedAudio } from '../utils/enhanceAudioAnchors';
 import {
   DEFAULT_ENHANCE_SUBTITLE_STYLE,
   cloneEnhanceClips,
@@ -41,6 +44,7 @@ import {
   duplicateTimelineClip,
   formatTimelineTime,
   layoutVideoClips,
+  insertBlackClip,
   moveTimelineClip,
   moveSubtitleCue,
   normalizeEnhanceSubtitleStyle,
@@ -145,141 +149,16 @@ function normalizeStoryboardAudioItem(r: any): StoryboardItemDB {
   } as StoryboardItemDB;
 }
 
-function itemId(item: StoryboardItemDB & Record<string, any>): string {
-  return String(item.itemId ?? item.item_id ?? '');
-}
-
 function itemSort(item: StoryboardItemDB & Record<string, any>): number {
-  const raw = item.sortOrder ?? item.sort_order;
-  return typeof raw === 'number' ? raw : 0;
-}
-
-function itemDurationMs(item: StoryboardItemDB & Record<string, any>): number {
-  const raw = item.audioDurationMs ?? item.audio_duration_ms ?? item.plannedDurationMs ?? item.planned_duration_ms;
-  const n = Number(raw);
-  return Number.isFinite(n) && n > 0 ? n : 3000;
+  return Number(item.sortOrder ?? item.sort_order) || 0;
 }
 
 export function buildEnhanceSourceClips(
-  videoSegments: VideoSegment[],
-  storyboardAudioItems: StoryboardItemDB[],
-  audioTracks: AudioTrack[],
+  videoSegments: VideoSegment[], storyboardAudioItems: StoryboardItemDB[], audioTracks: AudioTrack[],
+  editorItems?: PersistedEnhanceTimelineItem[],
 ): MediaClip[] {
-  const allClips: MediaClip[] = [];
-  let videoTime = 0;
-
-  const sortedSegs = [...videoSegments].sort((a, b) => a.sortOrder - b.sortOrder);
-  const storyboardById = new Map(
-    storyboardAudioItems.map(item => [itemId(item as StoryboardItemDB & Record<string, any>), item]),
-  );
-  const videoTimelineByStoryboardId = new Map<string, { startMs: number; durationMs: number }>();
-  for (let i = 0; i < sortedSegs.length; i++) {
-    const seg = sortedSegs[i];
-    const storyboard = seg.storyboardItemId ? storyboardById.get(seg.storyboardItemId) : undefined;
-    const dur = (seg.durationMs || 5000) / 1000;
-    const videoUrl = seg.videoUrl ? secureMediaUrl(seg.videoUrl) : '';
-    if (videoUrl) {
-      if (seg.storyboardItemId) {
-        videoTimelineByStoryboardId.set(seg.storyboardItemId, {
-          startMs: Math.round(videoTime * 1000),
-          durationMs: Math.round(dur * 1000),
-        });
-      }
-      allClips.push({
-        id: seg.segmentId || `vid_${i}`,
-        sourceId: seg.segmentId || `vid_${i}`,
-        url: videoUrl,
-        thumbnailUrl: enhanceVideoPosterUrl(String(seg.videoUrl || '')),
-        referenceImageUrl: storyboard?.generatedImageUrl
-          ? secureMediaUrl(storyboard.generatedImageUrl)
-          : undefined,
-        model: seg.model,
-        startTime: videoTime,
-        duration: dur,
-        sourceDuration: dur,
-        sourceOffset: 0,
-        type: 'video',
-        settings: { upscale: false, interpolate: false, lipSync: false },
-      });
-    }
-    videoTime += dur;
-  }
-
-  const sortedItems = [...storyboardAudioItems].sort((a, b) =>
-    itemSort(a as StoryboardItemDB & Record<string, any>) - itemSort(b as StoryboardItemDB & Record<string, any>)
-  );
-  for (const raw of sortedItems) {
-    const item = raw as StoryboardItemDB & Record<string, any>;
-    const id = itemId(item);
-    if (!id) continue;
-    const videoAnchor = videoTimelineByStoryboardId.get(id);
-    // Anchor audio only to video segments present in this workspace.
-    if (!videoAnchor) continue;
-    const startTime = videoAnchor.startMs / 1000;
-    const duration = itemDurationMs(item) / 1000;
-    const mixedUrl = item.mixedAudioUrl ?? item.mixed_audio_url;
-    if (mixedUrl) {
-      allClips.push({
-        id: `aud_sb_${id}_mixed`,
-        url: secureMediaUrl(String(mixedUrl)),
-        startTime,
-        duration,
-        sourceOffset: 0,
-        type: 'audio',
-        sourceLabel: '参考配音',
-        audioKind: 'voice',
-      });
-      continue;
-    }
-
-    const audioParts = [
-      ['dialogue', item.dialogueAudioUrl ?? item.dialogue_audio_url],
-      ['narration', item.narrationAudioUrl ?? item.narration_audio_url],
-      ['sfx', item.sfxAudioUrl ?? item.sfx_audio_url],
-    ] as const;
-    for (const [kind, url] of audioParts) {
-      if (!url) continue;
-      allClips.push({
-        id: `aud_sb_${id}_${kind}`,
-        url: secureMediaUrl(String(url)),
-        startTime,
-        duration,
-        sourceOffset: 0,
-        type: 'audio',
-        sourceLabel: kind === 'dialogue' ? '参考对白' : kind === 'narration' ? '参考旁白' : '参考音效',
-        audioKind: kind === 'sfx' ? 'sfx' : 'voice',
-      });
-    }
-  }
-
-  for (const track of audioTracks) {
-    if (!track.audioUrl) continue;
-    const episodeDurationMs = Math.max(100, Math.round(videoTime * 1000));
-    const timeline = resolveAudioTrackTimeline(track, episodeDurationMs);
-    const hasPersistedTimeline = Boolean(track.generationParams?.timeline && typeof track.generationParams.timeline === 'object');
-    const anchoredStartMs = track.startItemId
-      ? videoTimelineByStoryboardId.get(track.startItemId)?.startMs
-      : undefined;
-    const startMs = hasPersistedTimeline ? timeline.startMs : anchoredStartMs ?? timeline.startMs;
-    const kind = track.trackType === 'bgm' ? 'bgm' : track.trackType === 'sfx_global' ? 'sfx' : 'voice';
-    allClips.push({
-      id: `aud_track_${track.trackId}`,
-      url: secureMediaUrl(track.audioUrl),
-      startTime: startMs / 1000,
-      duration: timeline.durationMs / 1000,
-      sourceOffset: timeline.sourceOffsetMs / 1000,
-      type: 'audio',
-      sourceLabel: track.name || '音频轨道',
-      audioKind: kind,
-      audioTrackId: track.trackId,
-      sourceDuration: Math.max(0.1, (track.durationMs || timeline.durationMs) / 1000),
-      volume: timeline.volume,
-      fadeIn: timeline.fadeInMs / 1000,
-      fadeOut: timeline.fadeOutMs / 1000,
-    });
-  }
-
-  return allClips;
+  return buildCanonicalEnhanceSourceClips(videoSegments, storyboardAudioItems, audioTracks, secureMediaUrl, editorItems)
+    .map(clip => clip.type === 'video' ? { ...clip, thumbnailUrl: enhanceVideoPosterUrl(clip.url) } : clip);
 }
 
 function mergeSourceClips(prev: MediaClip[], source: MediaClip[]): MediaClip[] {
@@ -565,30 +444,6 @@ export const EnhancePage: React.FC = () => {
     return () => { active = false; };
   }, [episodeId]);
 
-  const actorDubbingClips = useMemo<MediaClip[]>(() => {
-    const sortedSegments = [...videoSegments].sort((a, b) => a.sortOrder - b.sortOrder);
-    const starts = new Map<string, number>();
-    const durations = new Map<string, number>();
-    let cursor = 0;
-    for (const segment of sortedSegments) {
-      starts.set(segment.segmentId, cursor);
-      durations.set(segment.segmentId, (segment.durationMs || 5000) / 1000);
-      cursor += (segment.durationMs || 5000) / 1000;
-    }
-    return segmentFiles.filter(file => file.fileRole === 'actor_dubbing' && starts.has(file.entityId || ''))
-      .map(file => ({
-        id: `aud_actor_${file.fileId}`,
-        url: secureMediaUrl(file.fileUrl),
-        startTime: starts.get(file.entityId!) || 0,
-        duration: durations.get(file.entityId!) || 5,
-        sourceOffset: 0,
-        type: 'audio' as const,
-        sourceLabel: '演员录音',
-        audioKind: 'voice' as const,
-        volume: 1,
-      }));
-  }, [videoSegments, segmentFiles]);
-
   const enhanceVideoSegments = useMemo(
     () => withEntityFileVideoFallbacks(videoSegments, segmentVideoFallbacks),
     [videoSegments, segmentVideoFallbacks],
@@ -596,11 +451,17 @@ export const EnhancePage: React.FC = () => {
 
   useEffect(() => {
     if (!storyboardAudioLoaded || !timelineReady || !segmentFilesReady) return;
-    const sourceClips = [
-      ...buildEnhanceSourceClips(enhanceVideoSegments, storyboardAudioItems, audioTracks),
-      ...actorDubbingClips,
-    ];
     const draft = persistedTimelineItemsRef.current;
+    const sourceClips = buildEnhanceSourceClips(enhanceVideoSegments, storyboardAudioItems, audioTracks, draft || undefined);
+    const activeCuts = (draft ? restoreEnhanceTimeline(sourceClips, draft) : sourceClips).filter(c => c.type === 'video' && !c.isBlack);
+    for (const file of segmentFiles.filter(f => f.fileRole === 'actor_dubbing')) {
+      activeCuts.filter(c => (c.sourceId || c.id) === file.entityId).forEach((cut, index) => {
+        sourceClips.push({ id: `aud_actor_${file.fileId}${index ? `_cut_${cut.id}` : ''}`,
+          anchorVideoClipId: cut.id, url: secureMediaUrl(file.fileUrl), startTime: cut.startTime,
+          duration: cut.duration, sourceOffset: cut.sourceOffset, type: 'audio',
+          sourceLabel: '演员录音', audioKind: 'voice', volume: 1 });
+      });
+    }
     knownAudioSourcesRef.current = sourceClips.filter(c => c.type === 'audio').map(c => c.sourceId || c.id);
     if (sourceClips.length === 0) {
       setClips([]);
@@ -628,7 +489,7 @@ export const EnhancePage: React.FC = () => {
       const draftFirstId = persistedTimelineItemsRef.current?.find(item => item.kind === 'video')?.clipId;
       return draftFirstId ?? sourceClips.find(c => c.type === 'video')?.id ?? sourceClips[0]?.id ?? null;
     });
-  }, [enhanceVideoSegments, storyboardAudioItems, audioTracks, actorDubbingClips, storyboardAudioLoaded, timelineReady, segmentFilesReady, episodeId]);
+  }, [enhanceVideoSegments, storyboardAudioItems, audioTracks, segmentFiles, storyboardAudioLoaded, timelineReady, segmentFilesReady, episodeId]);
 
   useEffect(() => {
     const scope = episodeId || '';
@@ -730,6 +591,8 @@ export const EnhancePage: React.FC = () => {
         duration: clip.duration,
         sourceOffset: clip.sourceOffset,
         volume: clip.volume,
+        fadeIn: clip.fadeIn,
+        fadeOut: clip.fadeOut,
         enabled: composeAudioMode === 'reference_dubbing' || clip.audioKind !== 'voice',
       })),
       audioElements: audioElementRefs.current,
@@ -811,7 +674,7 @@ export const EnhancePage: React.FC = () => {
       subtitles: subtitlesRef.current.map(cue => ({ ...cue })),
       subtitleStyle: { ...subtitleStyleRef.current },
     };
-    const nextClips = update(cloneEnhanceClips(current.clips));
+    const nextClips = reanchorLinkedAudio(current.clips, update(cloneEnhanceClips(current.clips)));
     if (JSON.stringify(nextClips) === JSON.stringify(current.clips)) return false;
     undoStackRef.current = [...undoStackRef.current.slice(-79), current];
     redoStackRef.current = [];
@@ -847,7 +710,7 @@ export const EnhancePage: React.FC = () => {
   }, [markTimelineChanged]);
 
   const commitPreviewTimeline = useCallback((before: MediaClip[]) => {
-    const current = clipsRef.current;
+    const current = reanchorLinkedAudio(before, clipsRef.current);
     if (JSON.stringify(before) === JSON.stringify(current)) return;
     undoStackRef.current = [...undoStackRef.current.slice(-79), {
       clips: cloneEnhanceClips(before),
@@ -1799,15 +1662,15 @@ export const EnhancePage: React.FC = () => {
                           className="w-full h-full object-cover pointer-events-none"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-n100 bg-n20">
-                          <Film size={14} />
+                        <div className={`w-full h-full flex items-center justify-center text-n100 ${clip.isBlack ? 'bg-black text-white' : 'bg-n20'}`}>
+                          {clip.isBlack ? <span className="text-[10px]">黑幕</span> : <Film size={14} />}
                         </div>
                       )}
                     </div>
                     <div className="absolute inset-x-0 top-0 h-6 bg-gradient-to-b from-black/70 to-transparent pointer-events-none" />
                     <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
                     <div className="absolute top-1 left-1 right-10 text-[9px] text-white font-mono z-10 truncate pointer-events-none drop-shadow">
-                      {clip.id.slice(0, 12)}
+                      {clip.isBlack ? '黑幕' : clip.id.slice(0, 12)}
                     </div>
                     <div className="absolute top-0.5 right-1 px-1 rounded bg-black/50 text-[9px] text-white/90 font-mono z-10 pointer-events-none">
                       {clip.duration.toFixed(1)}s
@@ -2048,7 +1911,7 @@ export const EnhancePage: React.FC = () => {
                   className="w-full h-full object-contain"
                   style={{ opacity: videoTransitionOpacity }}
                 />
-              ) : blackTransitionUnderPlayhead ? (
+              ) : blackTransitionUnderPlayhead || videoUnderPlayhead?.isBlack ? (
                 <div className="absolute inset-0 bg-black" aria-label="黑幕转场预览" />
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-n100 gap-2">
@@ -2222,6 +2085,12 @@ export const EnhancePage: React.FC = () => {
                 </div>
                 <p className="text-[11px] leading-5 text-n100">可直接拖动下方字幕块调整开始时间，拖动两端调整持续时间；Delete 可删除。</p>
               </div>
+            ) : selectedClip?.isBlack ? (
+              <BlackClipControls key={selectedClip.id} duration={selectedClip.duration}
+                onChange={duration => {
+                  commitTimeline(current => layoutVideoClips(current.map(c => c.id === selectedClip.id ? { ...c, duration } : c)));
+                  void saveTimelineNow().catch(() => {});
+                }} onDelete={handleDelete} />
             ) : selectedClip && selectedClip.type === 'video' ? (
               <>
                 <div className="text-[11px] text-n100 truncate">
@@ -2589,41 +2458,10 @@ export const EnhancePage: React.FC = () => {
                       className="w-full accent-primary"
                     />
                   </label>
-                  {selectedClip.audioKind === 'bgm' && (
-                    <div className="grid grid-cols-2 gap-2">
-                      <label className="space-y-1">
-                        <span className="text-[11px] text-n300">淡入（秒）</span>
-                        <input
-                          type="number"
-                          min={0}
-                          max={selectedClip.duration}
-                          step={0.1}
-                          value={(selectedClip.fadeIn || 0).toFixed(1)}
-                          onChange={event => updateSelectedAudioClip({ fadeIn: Math.max(0, Number(event.target.value) || 0) })}
-                          onBlur={() => {
-                            const current = clipsRef.current.find(clip => clip.id === selectedClip.id);
-                            if (current) void persistAudioClip(current);
-                          }}
-                          className="w-full rounded border border-n40 px-2 py-1.5 text-xs focus:border-primary focus:outline-none"
-                        />
-                      </label>
-                      <label className="space-y-1">
-                        <span className="text-[11px] text-n300">淡出（秒）</span>
-                        <input
-                          type="number"
-                          min={0}
-                          max={selectedClip.duration}
-                          step={0.1}
-                          value={(selectedClip.fadeOut || 0).toFixed(1)}
-                          onChange={event => updateSelectedAudioClip({ fadeOut: Math.max(0, Number(event.target.value) || 0) })}
-                          onBlur={() => {
-                            const current = clipsRef.current.find(clip => clip.id === selectedClip.id);
-                            if (current) void persistAudioClip(current);
-                          }}
-                          className="w-full rounded border border-n40 px-2 py-1.5 text-xs focus:border-primary focus:outline-none"
-                        />
-                      </label>
-                    </div>
+                  {(selectedClip.audioKind === 'bgm' || (selectedClip.audioKind === 'sfx' && selectedClip.audioTrackId)) && (
+                    <AudioFadeControls key={selectedClip.id} duration={selectedClip.duration}
+                      fadeIn={selectedClip.fadeIn} fadeOut={selectedClip.fadeOut}
+                      onChange={fades => updateSelectedAudioClip(fades, true)} />
                   )}
                 </div>
 
@@ -2755,6 +2593,16 @@ export const EnhancePage: React.FC = () => {
               title="在播放头位置添加字幕"
             >
               <Captions size={13} /> 字幕
+            </button>
+            <button type="button" disabled={!timelineReady || trackState.video.locked}
+              onClick={() => {
+                const id = `black_${crypto.randomUUID()}`;
+                commitTimeline(current => insertBlackClip(current, id, currentTime));
+                setSelectedSubtitleId(null); setSelectedClipId(id);
+              }}
+              className="flex items-center gap-1 rounded px-2 py-1.5 text-xs text-n300 hover:bg-n20 hover:text-primary disabled:opacity-50"
+              title="在播放头附近的视频边界插入独立黑幕，可拖动和调整时长">
+              <Film size={13} /> 插入黑幕
             </button>
             <button type="button" onClick={() => setShowSubtitleModal(true)}
               disabled={!episodeId || videoClips.length === 0}

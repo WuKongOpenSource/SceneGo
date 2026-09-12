@@ -7,7 +7,7 @@ from utils.enhance_export import TIMELINE_NAME, decode, plan_export
 
 class EnhanceExportDAO:
     @staticmethod
-    async def export(episode_id, user_id):
+    async def export(episode_id, user_id, resolve_duration=None):
         db = get_db_manager()
         async with db.acquire() as conn:
             async with conn.transaction():
@@ -22,9 +22,19 @@ class EnhanceExportDAO:
                     AND f.file_type='video' AND NOT f.is_deleted ORDER BY f.created_at DESC FOR UPDATE OF f""", episode_id)
                 tracks = await conn.fetch('SELECT track_id,items FROM timeline_tracks WHERE episode_id=$1 AND track_name=$2 ORDER BY created_at FOR UPDATE', episode_id, TIMELINE_NAME)
                 track = tracks[0] if tracks else None
-                selected, items = plan_export(decode(raw, {}), [dict(s) for s in segments],
-                                              [dict(f) for f in files], decode(track['items'], []) if track else [])
+                shots = await conn.fetch('SELECT item_id,planned_duration_ms,audio_duration_ms FROM storyboard_items WHERE episode_id=$1', episode_id)
+                file_rows = [dict(f) for f in files]
+                old_items = decode(track['items'], []) if track else []
+                selected, items = plan_export(decode(raw, {}), [dict(s) for s in segments], file_rows, old_items, [dict(s) for s in shots])
+                if resolve_duration:
+                    selected_ids = {s['file_id'] for s in selected}
+                    for file in file_rows:
+                        if file['file_id'] in selected_ids:
+                            file['duration_seconds'] = (await resolve_duration(file)) / 1000
+                    selected, items = plan_export(decode(raw, {}), [dict(s) for s in segments], file_rows, old_items, [dict(s) for s in shots])
                 for order, selection in enumerate(selected):
+                    if resolve_duration:
+                        await conn.execute('UPDATE files SET duration_seconds=$2 WHERE file_id=$1', selection['file_id'], selection['duration_ms'] / 1000)
                     await conn.execute("UPDATE video_segments SET video_url=$2,duration_ms=$3,sort_order=$4 WHERE segment_id=$1",
                                        selection['segment_id'], selection['video_url'], selection['duration_ms'], order)
                     await conn.execute("""UPDATE files SET is_selected=(file_id=$2) WHERE entity_type='video_segment'

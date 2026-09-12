@@ -730,6 +730,22 @@
             cursor: pointer;
         }
 
+        .open-source-link {
+            display: block;
+            margin-top: 20px;
+            padding: 10px 12px;
+            border: 1px solid var(--n40);
+            border-radius: 9px;
+            color: var(--primary);
+            background: var(--n10);
+            text-align: center;
+            text-decoration: none;
+            font-size: 13px;
+            line-height: 1.7;
+        }
+        .open-source-link:hover { background: var(--primary-light); }
+        .open-source-link:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+
         .field-hint {
             margin: -16px 0 0;
             color: var(--n200);
@@ -946,6 +962,8 @@
                 <div id="errorMessage" class="error hidden" role="alert"></div>
                 <div id="successMessage" class="success hidden" role="status"></div>
                 <div id="authFooter" class="auth-footer"></div>
+                <a class="open-source-link" href="https://github.com/WuKongOpenSource/SceneGo"
+                   target="_blank" rel="noopener noreferrer" title="前往 SceneGo GitHub 开源仓库（新窗口打开）">本产品已开源发布 · 助力点亮 Star</a>
             </div>
         </section>
     </main>

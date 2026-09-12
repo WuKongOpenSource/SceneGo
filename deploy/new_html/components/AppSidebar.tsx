@@ -13,6 +13,7 @@ import {
   Clock3,
   Coins,
   FolderOpen,
+  Github,
   LayoutGrid,
   Library,
   Loader2,
@@ -357,6 +358,18 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ exportTo, tools, credits
 
 
       <PlatformFooter placement="sidebar" collapsed={collapsed} />
+
+      <a
+        href="https://github.com/WuKongOpenSource/SceneGo"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="本产品已开源发布 · 助力点亮 Star（GitHub 新窗口打开）"
+        title="本产品已开源发布 · 助力点亮 Star（GitHub 新窗口打开）"
+        className={`mt-1 flex min-h-7 shrink-0 items-center rounded-lg text-[11px] text-n200 transition-colors hover:bg-n700 hover:text-n0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-b200 ${collapsed ? 'justify-center' : 'gap-1.5 px-2'}`}
+      >
+        <Github size={14} aria-hidden="true" className="shrink-0" />
+        {!collapsed && <span className="min-w-0 leading-4">本产品已开源发布 · 助力点亮 Star</span>}
+      </a>
 
       <button
         type="button"

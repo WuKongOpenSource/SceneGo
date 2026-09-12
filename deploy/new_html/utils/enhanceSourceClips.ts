@@ -1,9 +1,12 @@
 import type { AudioTrack, StoryboardItemDB, VideoSegment } from '../types';
 import { resolveAudioTrackTimeline } from './audioTrackTimeline';
+import { storyboardAudioPositions, type AudioAnchorVideoItem, type StoryboardAudioAnchor } from './enhanceAudioAnchors';
 
 export interface EnhanceMediaClip {
   id: string;
   sourceId?: string;
+  isBlack?: boolean;
+  storyboardAnchors?: StoryboardAudioAnchor[];
   url: string;
   thumbnailUrl?: string;
   referenceImageUrl?: string;
@@ -12,6 +15,7 @@ export interface EnhanceMediaClip {
   sourceLabel?: string;
   audioKind?: 'voice' | 'bgm' | 'sfx';
   audioTrackId?: string;
+  anchorVideoClipId?: string;
   sourceDuration?: number;
   volume?: number;
   fadeIn?: number;
@@ -58,6 +62,7 @@ export function buildEnhanceSourceClips(
   storyboardAudioItems: StoryboardItemDB[],
   audioTracks: AudioTrack[],
   secureMediaUrl: UrlResolver = url => url,
+  editorItems?: AudioAnchorVideoItem[],
 ): EnhanceMediaClip[] {
   const allClips: EnhanceMediaClip[] = [];
   let videoTime = 0;
@@ -99,6 +104,7 @@ export function buildEnhanceSourceClips(
     videoTime += dur;
   }
 
+  const referencePositions = storyboardAudioPositions(sortedSegs.filter(s => Boolean(s.videoUrl)), editorItems);
   const sortedItems = [...storyboardAudioItems].sort((a, b) =>
     itemSort(a as StoryboardItemDB & Record<string, any>) - itemSort(b as StoryboardItemDB & Record<string, any>)
   );
@@ -106,42 +112,47 @@ export function buildEnhanceSourceClips(
     const item = raw as StoryboardItemDB & Record<string, any>;
     const id = itemId(item);
     if (!id) continue;
-    const videoAnchor = videoTimelineByStoryboardId.get(id);
-    if (!videoAnchor) continue;
-    const startTime = videoAnchor.startMs / 1000;
-    const duration = itemDurationMs(item) / 1000;
-    const mixedUrl = item.mixedAudioUrl ?? item.mixed_audio_url;
-    if (mixedUrl) {
-      allClips.push({
-        id: `aud_sb_${id}_mixed`,
-        url: secureMediaUrl(String(mixedUrl)),
-        startTime,
-        duration,
-        sourceOffset: 0,
-        type: 'audio',
-        sourceLabel: '参考配音',
-        audioKind: 'voice',
-      });
-      continue;
-    }
+    const positions = referencePositions.get(id) || [];
+    for (const [positionIndex, videoAnchor] of positions.entries()) {
+      const startTime = videoAnchor.startMs / 1000;
+      const duration = Math.min(itemDurationMs(item) - videoAnchor.sourceOffsetMs, videoAnchor.durationMs) / 1000;
+      if (duration <= 0) continue;
+      const suffix = positionIndex ? `_cut_${videoAnchor.clipId}` : '';
+      const mixedUrl = item.mixedAudioUrl ?? item.mixed_audio_url;
+      if (mixedUrl) {
+        allClips.push({
+          id: `aud_sb_${id}_mixed${suffix}`,
+          anchorVideoClipId: videoAnchor.clipId,
+          url: secureMediaUrl(String(mixedUrl)),
+          startTime,
+          duration,
+          sourceOffset: videoAnchor.sourceOffsetMs / 1000,
+          type: 'audio',
+          sourceLabel: '参考配音',
+          audioKind: 'voice',
+        });
+        continue;
+      }
 
-    const audioParts = [
-      ['dialogue', item.dialogueAudioUrl ?? item.dialogue_audio_url],
-      ['narration', item.narrationAudioUrl ?? item.narration_audio_url],
-      ['sfx', item.sfxAudioUrl ?? item.sfx_audio_url],
-    ] as const;
-    for (const [kind, url] of audioParts) {
-      if (!url) continue;
-      allClips.push({
-        id: `aud_sb_${id}_${kind}`,
-        url: secureMediaUrl(String(url)),
-        startTime,
-        duration,
-        sourceOffset: 0,
-        type: 'audio',
-        sourceLabel: kind === 'dialogue' ? '参考对白' : kind === 'narration' ? '参考旁白' : '参考音效',
-        audioKind: kind === 'sfx' ? 'sfx' : 'voice',
-      });
+      const audioParts = [
+        ['dialogue', item.dialogueAudioUrl ?? item.dialogue_audio_url],
+        ['narration', item.narrationAudioUrl ?? item.narration_audio_url],
+        ['sfx', item.sfxAudioUrl ?? item.sfx_audio_url],
+      ] as const;
+      for (const [kind, url] of audioParts) {
+        if (!url) continue;
+        allClips.push({
+          id: `aud_sb_${id}_${kind}${suffix}`,
+          anchorVideoClipId: videoAnchor.clipId,
+          url: secureMediaUrl(String(url)),
+          startTime,
+          duration,
+          sourceOffset: videoAnchor.sourceOffsetMs / 1000,
+          type: 'audio',
+          sourceLabel: kind === 'dialogue' ? '参考对白' : kind === 'narration' ? '参考旁白' : '参考音效',
+          audioKind: kind === 'sfx' ? 'sfx' : 'voice',
+        });
+      }
     }
   }
 

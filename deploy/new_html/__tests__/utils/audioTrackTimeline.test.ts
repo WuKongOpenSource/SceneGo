@@ -71,7 +71,7 @@ describe('audioTrackTimeline', () => {
     expect(trimAudioTrackTimelineEnd(edit, 20_000, 10_000, 20_000).durationMs).toBe(8_000);
   });
 
-  it('persists BGM fades and zero volume but strips fades from SFX', () => {
+  it('persists fades for both music and effects without losing zero volume', () => {
     const bgm = track('bgm', { source: 'upload' });
     const bgmPatch = patchAudioTrackTimeline(bgm, {
       startMs: 1_000,
@@ -103,7 +103,8 @@ describe('audioTrackTimeline', () => {
       fadeInMs: 800,
       fadeOutMs: 1_200,
     });
-    expect((sfxPatch.timeline as Record<string, number>).fadeInMs).toBe(0);
-    expect((sfxPatch.timeline as Record<string, number>).fadeOutMs).toBe(0);
+    expect((sfxPatch.timeline as Record<string, number>).fadeInMs).toBe(800);
+    expect((sfxPatch.timeline as Record<string, number>).fadeOutMs).toBe(1_200);
+    expect(resolveAudioTrackTimeline({ ...track('sfx_global'), generationParams: sfxPatch }, 20000)).toMatchObject({ fadeInMs: 800, fadeOutMs: 1200 });
   });
 });

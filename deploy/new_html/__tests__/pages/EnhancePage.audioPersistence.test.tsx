@@ -31,6 +31,7 @@ vi.mock('../../components/audio/SfxModal', () => ({ SfxModal: () => null }));
 
 beforeEach(() => {
   state.items = [];
+  state.episode.audioTracks[0].trackType = 'bgm';
   state.writes = [];
   state.save.mockReset().mockImplementation(async (_id, data) => { state.items = data.items; state.writes.push(data.items); return { success: true }; });
   vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
@@ -74,4 +75,31 @@ it('serializes overlapping saves and flushes the latest edit when leaving immedi
   await act(async () => { release(); });
   await waitFor(() => expect(state.items.find(i => i.kind === 'audio')).toMatchObject({ volume: 0 }));
   expect(state.writes.map(items => items.find((i: any) => i.kind === 'audio').volume)).toEqual([0.2, 0]);
+});
+
+it('saves and restores independent sound-effect fades', async () => {
+  state.episode.audioTracks[0].trackType = 'sfx_global';
+  const view = render(<EnhancePage />);
+  fireEvent.mouseDown(await screen.findByTestId('enhance-audio-aud_track_m')); fireEvent.mouseUp(document);
+  const fadeIn = screen.getByRole('spinbutton', { name: /开头渐入/ });
+  fireEvent.change(fadeIn, { target: { value: '2' } }); fireEvent.blur(fadeIn);
+  const fadeOut = screen.getByRole('spinbutton', { name: /末尾渐出/ });
+  fireEvent.change(fadeOut, { target: { value: '3' } }); fireEvent.blur(fadeOut);
+  await waitFor(() => expect(state.items.find(i => i.kind === 'audio')).toMatchObject({ fadeInMs: 2000, fadeOutMs: 3000 }));
+  view.unmount(); render(<EnhancePage />);
+  fireEvent.mouseDown(await screen.findByTestId('enhance-audio-aud_track_m')); fireEvent.mouseUp(document);
+  expect(screen.getByRole('spinbutton', { name: /开头渐入/ })).toHaveValue(2);
+  expect(screen.getByRole('spinbutton', { name: /末尾渐出/ })).toHaveValue(3);
+});
+
+it('inserts an independent black clip and saves its editable duration', async () => {
+  render(<EnhancePage />);
+  await screen.findByTestId('enhance-audio-aud_track_m');
+  fireEvent.click(screen.getByRole('button', { name: '插入黑幕' }));
+  const duration = screen.getByRole('spinbutton', { name: /黑幕时长/ });
+  fireEvent.change(duration, { target: { value: '' } });
+  fireEvent.change(duration, { target: { value: '2.5' } }); fireEvent.blur(duration);
+  await waitFor(() => expect(state.items.find(i => i.kind === 'black')).toMatchObject({ durationMs: 2500 }));
+  fireEvent.click(screen.getByRole('button', { name: '删除黑幕' }));
+  await waitFor(() => expect(screen.queryByText('黑幕片段')).not.toBeInTheDocument());
 });

@@ -2,6 +2,14 @@ import { describe, expect, it, vi } from 'vitest';
 import { syncTimelineAudioPlayback } from '../../utils/enhanceTimelineAudio';
 
 describe('enhanceTimelineAudio', () => {
+  it('multiplies the selected volume by relative fade envelopes during playback', async () => {
+    const audio = { currentTime: 0, paused: false, volume: 1, play: vi.fn(), pause: vi.fn() };
+    const clips = [{ id: 'music', startTime: 5, duration: 10, sourceOffset: 20, volume: .4, fadeIn: 2, fadeOut: 4 }];
+    for (const [time, volume] of [[5, 0], [6, .2], [8, .4], [13, .2]]) {
+      await syncTimelineAudioPlayback({ clips, audioElements: new Map([['music', audio]]), currentTime: time, playing: true });
+      expect(audio.volume).toBeCloseTo(volume);
+    }
+  });
   it('applies timeline volume and seeks an active clip to its aligned source position', async () => {
     const audio = {
       currentTime: 0,

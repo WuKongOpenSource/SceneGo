@@ -30,6 +30,7 @@ def configured(monkeypatch):
     monkeypatch.setenv('SUBTITLE_TRANSCRIPTION_ENGINE', 'whisper')
     config = SimpleNamespace(api_key='test-key', endpoint='https://example.test/v1beta', requests_kwargs=lambda: {})
     monkeypatch.setattr(service, 'resolve_provider', lambda *a, **kw: config)
+    monkeypatch.setattr(service, 'resolve_media_file_record', AsyncMock(return_value=None))
     monkeypatch.setattr(service, 'provider_audio_or_video_reference', AsyncMock(return_value=wav_data_uri()))
     monkeypatch.setattr(service, '_extract_audio', lambda *args: (b'audio', 500))
     return config
@@ -65,6 +66,27 @@ async def test_transcription_uses_word_timestamps_without_guessing(configured, m
     assert args['data']['timestamp_granularities[]'] == ['word', 'segment']
     assert args['request_kwargs']['allow_redirects'] is False
     assert 'user1' not in service._busy_users
+
+
+async def test_large_registered_video_is_seeked_locally_without_full_file_base64(configured, monkeypatch, tmp_path):
+    path = tmp_path / 'large.mp4'
+    with path.open('wb') as output:
+        output.truncate(24_541_328)
+    monkeypatch.setattr(service, 'resolve_media_file_record', AsyncMock(return_value={'file_path': str(path)}))
+    monkeypatch.setattr(service, 'resolve_allowed_media_file', lambda *a, **kw: path)
+    extract = []
+    monkeypatch.setattr(service, '_extract_audio', lambda *args: (extract.append(args) or b'', 500))
+    assert await service.transcribe_timeline_audio([clip()], file_dao=object(), user_id='u') == []
+    assert extract == [(path, 200, 500)]
+    service.provider_audio_or_video_reference.assert_not_called()
+
+
+async def test_registered_source_outside_storage_never_falls_back_to_remote(configured, monkeypatch):
+    monkeypatch.setattr(service, 'resolve_media_file_record', AsyncMock(return_value={'file_path': '/not-media/secret'}))
+    monkeypatch.setattr(service, 'resolve_allowed_media_file', lambda *a, **kw: None)
+    with pytest.raises(service.AudioTranscriptionError, match='媒体存储'):
+        await service.transcribe_timeline_audio([clip()], file_dao=object(), user_id='u')
+    service.provider_audio_or_video_reference.assert_not_called()
 
 
 @pytest.mark.parametrize('override', [{'duration_ms': 60001}, {'duration_ms': True}, {'source_offset_ms': -1}, {'duration_ms': '500'}, {'audio_url': 'data:audio/wav;base64,AA=='}, {'audio_url': 'blob:source'}])

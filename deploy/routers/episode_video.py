@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from services.project_access_service import require_project_access
 from services.project_access_service import resolve_user_id
 from dao.creative.enhance_export import EnhanceExportDAO
+from services.enhance_media_duration_service import selected_video_duration
 from services.episode_video_service import (
     EpisodeNotFound,
     VideoSegmentCreateFailed,
@@ -101,7 +102,7 @@ def create_episode_video_router(
         if not identity:
             raise HTTPException(404, '用户不存在')
         try:
-            return await EnhanceExportDAO.export(episode_id, identity)
+            return await EnhanceExportDAO.export(episode_id, identity, resolve_duration=selected_video_duration)
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from exc
 

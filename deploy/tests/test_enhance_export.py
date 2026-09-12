@@ -62,7 +62,8 @@ async def test_export_route_checks_membership_before_reading_private_workspace(m
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('invalid', [False, True])
-async def test_export_dao_commits_selection_and_timeline_together_or_writes_nothing(monkeypatch, invalid):
+@pytest.mark.parametrize('probe', ['none', 'success', 'failure'])
+async def test_export_dao_commits_selection_and_timeline_together_or_writes_nothing(monkeypatch, invalid, probe):
     from dao.creative import enhance_export
     session, segments, files = fixture()
     if invalid: files.pop(4)
@@ -77,6 +78,7 @@ async def test_export_dao_commits_selection_and_timeline_together_or_writes_noth
             assert key == 'workspace_session_owner_ep'
             return session
         async def fetch(self, query, *_):
+            if 'FROM storyboard_items' in query: return []
             if 'SELECT * FROM video_segments' in query: return segments
             if 'SELECT f.*' in query: return files
             return [{'track_id': 'timeline', 'items': []}]
@@ -85,11 +87,17 @@ async def test_export_dao_commits_selection_and_timeline_together_or_writes_noth
     class Database:
         def acquire(self): return Context()
     monkeypatch.setattr(enhance_export, 'get_db_manager', lambda: Database())
-    if invalid:
-        with pytest.raises(ValueError): await enhance_export.EnhanceExportDAO.export('ep', 'owner')
+    async def resolve_duration(record):
+        if probe == 'failure': raise ValueError('unreadable source')
+        return 12074
+    kwargs = {} if probe == 'none' else {'resolve_duration': resolve_duration}
+    if invalid or probe == 'failure':
+        with pytest.raises(ValueError): await enhance_export.EnhanceExportDAO.export('ep', 'owner', **kwargs)
         assert writes == [] and ValueError in transactions
     else:
-        result = await enhance_export.EnhanceExportDAO.export('ep', 'owner')
+        result = await enhance_export.EnhanceExportDAO.export('ep', 'owner', **kwargs)
         assert result['segment_ids'] == ['4', '0', '1', '7', '8']
-        assert len(writes) == 11 and all(kind is None for kind in transactions)
+        assert len(writes) == (16 if probe == 'success' else 11) and all(kind is None for kind in transactions)
+        if probe == 'success':
+            assert next(w for w in writes if w[0].startswith('UPDATE files SET duration_seconds'))[2] == 12.074
         assert 'timeline_tracks' in writes[-1][0]

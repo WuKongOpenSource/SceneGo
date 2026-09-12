@@ -20,8 +20,13 @@ from services.ai_proxy_http_client import _post_form_request_async
 from services.provider_media_input_service import ProviderMediaInputError, provider_audio_or_video_reference
 from services.subtitle_word_timing import word_timestamps_to_cues
 from services.remote_content_service import RemoteContentTooLarge
+from services.media_reference_service import resolve_media_file_record
+from services.local_file_access_service import resolve_allowed_media_file
 
 MAX_CHUNK_MS = 60_000
+MAX_LOCAL_MEDIA_BYTES = 2 * 1024 * 1024 * 1024
+DEPLOY_ROOT = Path(__file__).resolve().parents[1]
+MEDIA_INPUT_OPTIONS = ['-protocol_whitelist', 'file,pipe', '-format_whitelist', 'mov,matroska,webm,wav,mp3,flac,ogg,aac,avi,asf,mpeg,mpegts,aiff']
 _busy_users: set[str] = set()
 _slots = asyncio.Semaphore(2)
 
@@ -83,21 +88,24 @@ def transcription_capability() -> dict[str, Any]:
         return {'available': False, 'reason': str(exc)}
 
 
-def _extract_audio(data_uri: str, source_offset_ms: int, duration_ms: int) -> tuple[bytes, int]:
+def _extract_audio(data_uri: str | Path, source_offset_ms: int, duration_ms: int) -> tuple[bytes, int]:
     with tempfile.TemporaryDirectory(prefix='subtitle-audio-') as directory:
-        try:
-            header, encoded = data_uri.split(',', 1)
-            source = base64.b64decode(encoded, validate=True)
-        except (ValueError, TypeError) as exc:
-            raise AudioTranscriptionError('音视频文件格式无效') from exc
-        suffix = '.mp4' if 'video/' in header.lower() else '.wav' if 'wav' in header.lower() else '.mp3'
-        source_path = Path(directory) / ('source' + suffix)
-        source_path.write_bytes(source)
+        if isinstance(data_uri, Path):
+            source_path = data_uri
+        else:
+            try:
+                header, encoded = data_uri.split(',', 1)
+                source = base64.b64decode(encoded, validate=True)
+            except (ValueError, TypeError) as exc:
+                raise AudioTranscriptionError('音视频文件格式无效') from exc
+            suffix = '.mp4' if 'video/' in header.lower() else '.wav' if 'wav' in header.lower() else '.mp3'
+            source_path = Path(directory) / ('source' + suffix)
+            source_path.write_bytes(source)
         output_path = Path(directory) / 'speech.wav'
         try:
             probe = subprocess.run([
                 'ffprobe', '-v', 'error', '-show_entries', 'format=duration:stream=codec_type',
-                '-of', 'json', str(source_path),
+                '-of', 'json', *MEDIA_INPUT_OPTIONS, str(source_path),
             ], check=True, capture_output=True, timeout=15)
             info = json.loads(probe.stdout)
             actual_ms = round(float(info['format']['duration']) * 1000)
@@ -107,7 +115,7 @@ def _extract_audio(data_uri: str, source_offset_ms: int, duration_ms: int) -> tu
                 return b'', 0
             subprocess.run([
                 'ffmpeg', '-nostdin', '-v', 'error', '-y', '-threads', '1',
-                '-ss', f'{source_offset_ms / 1000:.3f}', '-i', str(source_path),
+                '-ss', f'{source_offset_ms / 1000:.3f}', *MEDIA_INPUT_OPTIONS, '-i', str(source_path),
                 '-t', f'{duration_ms / 1000:.3f}', '-map', '0:a:0', '-vn',
                 '-ac', '1', '-ar', '16000', '-c:a', 'pcm_s16le', str(output_path),
             ], check=True, capture_output=True, timeout=45)
@@ -171,12 +179,22 @@ async def transcribe_timeline_audio(
                 if not reference or reference.startswith(('data:', 'blob:')):
                     raise AudioTranscriptionError('请选择已保存到当前项目的音视频文件')
                 try:
-                    source = await provider_audio_or_video_reference(reference, media_kind=clip.get('media_kind', 'audio'), file_dao=file_dao)
+                    record = await resolve_media_file_record(reference, file_dao)
+                    if record:
+                        # The route has already authorized the file. Seek directly
+                        # within managed storage; never base64-load the full video.
+                        source = resolve_allowed_media_file(record.get('file_path'), deploy_root=DEPLOY_ROOT)
+                        if source is None:
+                            raise AudioTranscriptionError('音视频文件不存在或不在媒体存储内')
+                        if source.stat().st_size > MAX_LOCAL_MEDIA_BYTES:
+                            raise AudioTranscriptionError('原素材超过 2 GB 读取上限，请先裁剪素材')
+                    else:
+                        source = await provider_audio_or_video_reference(reference, media_kind=clip.get('media_kind', 'audio'), file_dao=file_dao)
                 except ProviderMediaInputError as exc:
                     raise AudioTranscriptionError('音视频文件不存在或无法读取') from exc
                 except RemoteContentTooLarge as exc:
                     raise AudioTranscriptionError('原素材超过识别读取上限，请先将音轨导出为较小文件并上传') from exc
-                if not source.startswith(('data:audio/', 'data:video/')):
+                if not isinstance(source, Path) and not source.startswith(('data:audio/', 'data:video/')):
                     raise AudioTranscriptionError('请先将音视频上传并保存到当前项目')
                 content, actual_ms = await _finish_before_cancel(asyncio.to_thread(_extract_audio, source, offset, duration))
                 if content:
