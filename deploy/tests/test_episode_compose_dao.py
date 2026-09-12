@@ -33,4 +33,7 @@ async def test_list_shot_takes_falls_back_to_latest_entity_video(monkeypatch):
     assert "f.file_role = 'video'" in db.query
     assert "f.is_deleted = FALSE" in db.query
     assert "ORDER BY f.is_selected DESC, f.created_at DESC" in db.query
-    assert "COALESCE(entity_video.file_url, vs.video_url)" in db.query
+    assert "COALESCE(NULLIF(vs.video_url, ''), entity_video.file_url)" in db.query
+    assert "FROM video_segments vs" in db.query
+    assert "LEFT JOIN storyboard_items si" in db.query
+    assert "COALESCE(si.item_id, vs.segment_id) AS item_id" in db.query

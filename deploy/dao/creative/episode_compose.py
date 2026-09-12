@@ -13,20 +13,20 @@ class EpisodeComposeDAO:
         db = get_db_manager()
         rows = await db.fetch(
             """
-            SELECT si.item_id, si.sort_order,
+            SELECT COALESCE(si.item_id, vs.segment_id) AS item_id, vs.sort_order,
                    si.scene_heading, si.dialogue,
                    si.mixed_audio_url AS audio_url,
                    si.dialogue_audio_url, si.narration_audio_url, si.sfx_audio_url,
                    si.audio_segments,
                    COALESCE(si.audio_duration_ms,0) AS audio_ms,
                    vs.segment_id,
-                   COALESCE(entity_video.file_url, vs.video_url) AS video_url,
+                   COALESCE(NULLIF(vs.video_url, ''), entity_video.file_url) AS video_url,
                    COALESCE(entity_video.created_at, vs.created_at) AS created_at,
                    COALESCE(entity_video.thumbnail_url, legacy_file.thumbnail_url) AS thumbnail_url,
                    unified_take.take_id,
                    (content_selection.selected_take_id = unified_take.take_id) AS is_selected
-            FROM storyboard_items si
-            JOIN video_segments vs
+            FROM video_segments vs
+            LEFT JOIN storyboard_items si
               ON vs.episode_id = si.episode_id
              AND (
                  vs.storyboard_item_id = si.item_id
@@ -67,9 +67,9 @@ class EpisodeComposeDAO:
               ON content_selection.entity_type = 'storyboard_item'
              AND content_selection.entity_id = si.item_id
              AND content_selection.slot = 'video'
-            WHERE si.episode_id = $1
-              AND COALESCE(entity_video.file_url, vs.video_url) IS NOT NULL
-            ORDER BY si.sort_order, COALESCE(entity_video.created_at, vs.created_at) DESC
+            WHERE vs.episode_id = $1
+              AND COALESCE(NULLIF(vs.video_url, ''), entity_video.file_url) IS NOT NULL
+            ORDER BY vs.sort_order, COALESCE(entity_video.created_at, vs.created_at) DESC
             """,
             episode_id,
         )
@@ -92,7 +92,14 @@ class EpisodeComposeDAO:
             """,
             episode_id,
         )
-        return [dict(row) for row in rows]
+        if not rows:
+            return []
+        from utils.enhance_export import TIMELINE_NAME, apply_audio_edits, decode
+        items = await db.fetchval(
+            'SELECT items FROM timeline_tracks WHERE episode_id=$1 AND track_name=$2 ORDER BY created_at LIMIT 1',
+            episode_id, TIMELINE_NAME,
+        )
+        return apply_audio_edits([dict(row) for row in rows], decode(items, []))
 
     @staticmethod
     async def create_final_cut_records(

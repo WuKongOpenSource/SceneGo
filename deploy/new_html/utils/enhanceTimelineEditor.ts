@@ -31,7 +31,11 @@ export const DEFAULT_ENHANCE_SUBTITLE_STYLE: EnhanceSubtitleStyle = {
 };
 
 export interface PersistedEnhanceTimelineItem {
-  kind: 'video' | 'excluded_video' | 'subtitle' | 'subtitle_style';
+  kind: 'video' | 'excluded_video' | 'audio' | 'audio_sources' | 'subtitle' | 'subtitle_style';
+  sourceIds?: string[];
+  volume?: number;
+  fadeInMs?: number;
+  fadeOutMs?: number;
   clipId?: string;
   sourceId?: string;
   cueId?: string;
@@ -410,6 +414,7 @@ export function serializeEnhanceTimeline(
   knownVideoSourceIds: string[],
   subtitles: EnhanceSubtitleCue[] = [],
   subtitleStyle: EnhanceSubtitleStyle = DEFAULT_ENHANCE_SUBTITLE_STYLE,
+  knownAudioSourceIds: string[] = [],
 ): PersistedEnhanceTimelineItem[] {
   const videoClips = clips.filter(clip => clip.type === 'video');
   const presentSources = new Set(videoClips.map(clip => clip.sourceId || clip.id));
@@ -431,6 +436,16 @@ export function serializeEnhanceTimeline(
     ...knownVideoSourceIds
       .filter(sourceId => !presentSources.has(sourceId))
       .map(sourceId => ({ kind: 'excluded_video' as const, sourceId })),
+    { kind: 'audio_sources', sourceIds: [...new Set([
+      ...knownAudioSourceIds, ...clips.filter(c => c.type === 'audio').map(c => c.sourceId || c.id),
+    ])] },
+    ...clips.filter(c => c.type === 'audio').map(clip => ({
+      kind: 'audio' as const, clipId: clip.id, sourceId: clip.sourceId || clip.id,
+      startMs: Math.round(clip.startTime * 1000), durationMs: Math.round(clip.duration * 1000),
+      sourceOffsetMs: Math.round(clip.sourceOffset * 1000),
+      volume: clamp(finite(clip.volume, clip.audioKind === 'bgm' ? 0.35 : 1), 0, 1),
+      fadeInMs: Math.round((clip.fadeIn || 0) * 1000), fadeOutMs: Math.round((clip.fadeOut || 0) * 1000),
+    })),
     ...subtitles.flatMap(cue => {
       const normalized = normalizeEnhanceSubtitleCue(cue);
       return normalized ? [{
@@ -495,7 +510,23 @@ export function restoreEnhanceTimeline(
     restored.push({ ...source, startTime: roundTime(cursor) });
     cursor += source.duration;
   }
-  return [...layoutVideoClips(restored), ...sourceAudio];
+  const audioById = new Map(sourceAudio.map(clip => [clip.sourceId || clip.id, clip]));
+  const knownAudio = new Set(items.filter(item => item.kind === 'audio_sources').flatMap(item => item.sourceIds || []));
+  const restoredAudio = items.flatMap(item => {
+    if (item.kind !== 'audio' || !item.sourceId) return [];
+    const source = audioById.get(item.sourceId);
+    if (!source) return [];
+    knownAudio.add(item.sourceId);
+    return [{ ...source, id: item.clipId || source.id, sourceId: item.sourceId,
+      startTime: Math.max(0, finite(item.startMs) / 1000),
+      duration: Math.max(MIN_TIMELINE_CLIP_DURATION, finite(item.durationMs, source.duration * 1000) / 1000),
+      sourceOffset: Math.max(0, finite(item.sourceOffsetMs) / 1000),
+      volume: clamp(finite(item.volume, source.volume ?? 1), 0, 1),
+      fadeIn: Math.max(0, finite(item.fadeInMs) / 1000), fadeOut: Math.max(0, finite(item.fadeOutMs) / 1000),
+    }];
+  });
+  return [...layoutVideoClips(restored), ...restoredAudio,
+    ...sourceAudio.filter(clip => !knownAudio.has(clip.sourceId || clip.id))];
 }
 
 export function restoreEnhanceSubtitles(

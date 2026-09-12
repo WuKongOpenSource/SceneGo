@@ -46,7 +46,7 @@ def test_global_audio_timeline_normalizes_clip_boundaries_and_bgm_fades():
     )
 
     assert timeline == {
-        "start_ms": 2_000,
+        "start_ms": 7_000,
         "source_offset_ms": 1_000,
         "duration_ms": 6_000,
         "fade_in_ms": 1_000,

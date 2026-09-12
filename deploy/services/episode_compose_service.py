@@ -350,13 +350,9 @@ def _global_audio_timeline(
             maximum_duration_ms,
         ),
     )
-    start_ms = max(
-        0,
-        min(
-            int(_finite_number(timeline.get("startMs", timeline.get("start_ms")))),
-            max(0, episode_duration_ms - duration_ms),
-        ),
-    )
+    # A long music clip may extend beyond the film. Trim its tail in the mix,
+    # never relocate the user's chosen start back to the beginning.
+    start_ms = max(0, int(_finite_number(timeline.get("startMs", timeline.get("start_ms")))))
     is_bgm = row.get("track_type") == "bgm"
     fade_in_ms = (
         max(

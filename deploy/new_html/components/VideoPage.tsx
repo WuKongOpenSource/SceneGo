@@ -1493,6 +1493,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
     const saveSession = useCallback(async (patch?: Partial<WorkspaceSession>) => {
         if (sessionReadFailed.current) return { success: false };
+        if (!patch && beautifyApplyingKey) return { success: false };
         const cleanedStatus: Record<string, TaskStatus> = {};
         Object.entries(patch?.tasks_status ?? tasksStatus).forEach(([uuid, status]) => {
 
@@ -1533,7 +1534,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
             dashscope_params: patch?.dashscope_params ?? dashScopeParamsByUuid as any,
         } as any, sessionScope);
-    }, [taskGroups, uploadedImages, imagePrompts, tasksStatus, sessionScope, seedanceParamsForSession, timingMetadata, resolveSeedanceDurationForGroup, dashScopeParamsByUuid]);
+    }, [taskGroups, uploadedImages, imagePrompts, tasksStatus, sessionScope, seedanceParamsForSession, timingMetadata, resolveSeedanceDurationForGroup, dashScopeParamsByUuid, beautifyApplyingKey]);
 
 
 

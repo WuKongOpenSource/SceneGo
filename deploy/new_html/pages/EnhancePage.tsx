@@ -25,8 +25,7 @@ import { uploadAudio } from '@runtime/videoMediaService';
 import { startVideoPoll, attachVideoPollCallbacks, getKnownVideoTaskIds } from '../services/videoTaskPoller';
 import { apiFetch, secureApiUrl } from '../services/httpClient';
 import { syncTimelineAudioPlayback } from '../utils/enhanceTimelineAudio';
-import { resolveAudioTrackTimeline, patchAudioTrackTimeline } from '../utils/audioTrackTimeline';
-import { updateAudioTrack } from '@runtime/audioGenerationService';
+import { resolveAudioTrackTimeline } from '../utils/audioTrackTimeline';
 import { ComposeFailureNotice } from '../components/ComposeFailureNotice';
 import { SubtitlePreview } from '../components/SubtitlePreview';
 import { MusicModal } from '../components/audio/MusicModal';
@@ -73,6 +72,7 @@ import { InlineCreditEstimate } from '../components/InlineCreditEstimate';
 import { SubtitleTranscriptionModal } from '../components/SubtitleTranscriptionModal';
 import { mergeSubtitleResults, subtitleTimelineKey } from '../utils/subtitleTranscription';
 import { frameCoalesced, overlapsTimelineWindow, useLatestCallback, useTimelineViewport } from '../hooks/useTimelineViewport';
+import { registerEnhanceSave } from '../utils/enhanceTimelinePersistence';
 
 type MediaClip = EnhanceMediaClip;
 
@@ -293,6 +293,10 @@ function mergeSourceClips(prev: MediaClip[], source: MediaClip[]): MediaClip[] {
       ...clip,
       startTime: existing.startTime,
       sourceOffset: existing.sourceOffset,
+      duration: existing.duration,
+      volume: existing.volume,
+      fadeIn: existing.fadeIn,
+      fadeOut: existing.fadeOut,
       settings: existing.settings ?? clip.settings,
     };
   });
@@ -499,6 +503,8 @@ export const EnhancePage: React.FC = () => {
   const persistedTimelineItemsRef = useRef<PersistedEnhanceTimelineItem[] | null>(null);
   const timelineTrackIdRef = useRef<string | null>(null);
   const timelineSaveInFlightRef = useRef<Promise<void> | null>(null);
+  const savedRevisionRef = useRef(0);
+  const knownAudioSourcesRef = useRef<string[]>([]);
   const clipsRef = useRef<MediaClip[]>([]);
   const subtitlesRef = useRef<EnhanceSubtitleCue[]>([]);
   const subtitleStyleRef = useRef<EnhanceSubtitleStyle>(DEFAULT_ENHANCE_SUBTITLE_STYLE);
@@ -520,6 +526,7 @@ export const EnhancePage: React.FC = () => {
   useEffect(() => {
     let active = true;
     setTimelineReady(false);
+    let loaded = false;
     timelineTrackIdRef.current = null;
     setTimelineSaveState('saved');
     persistedTimelineItemsRef.current = null;
@@ -534,6 +541,7 @@ export const EnhancePage: React.FC = () => {
     getTimelineTracks(episodeId)
       .then(response => {
         if (!active) return;
+        if (response?.success === false) throw new Error('时间线读取失败');
         const tracks = Array.isArray(response?.tracks) ? response.tracks : [];
         const track = tracks.find((item: any) => (
           (item.track_name ?? item.trackName) === ENHANCE_TIMELINE_TRACK_NAME
@@ -545,13 +553,14 @@ export const EnhancePage: React.FC = () => {
             ? track.items as PersistedEnhanceTimelineItem[]
             : [];
         }
+        loaded = true;
       })
       .catch(error => {
         console.warn('[EnhancePage] timeline load failed:', error);
         setTimelineSaveState('error');
       })
       .finally(() => {
-        if (active) setTimelineReady(true);
+        if (active && loaded) setTimelineReady(true);
       });
     return () => { active = false; };
   }, [episodeId]);
@@ -592,6 +601,7 @@ export const EnhancePage: React.FC = () => {
       ...actorDubbingClips,
     ];
     const draft = persistedTimelineItemsRef.current;
+    knownAudioSourcesRef.current = sourceClips.filter(c => c.type === 'audio').map(c => c.sourceId || c.id);
     if (sourceClips.length === 0) {
       setClips([]);
       setSubtitles(draft ? restoreEnhanceSubtitles(draft) : []);
@@ -601,9 +611,8 @@ export const EnhancePage: React.FC = () => {
     setClips(prev => {
       const merged = mergeSourceClips(prev, sourceClips);
       if (!draft) return merged;
-      const restored = restoreEnhanceTimeline(sourceClips, draft);
-      const restoredVideos = restored.filter(clip => clip.type === 'video');
-      return [...restoredVideos, ...merged.filter(clip => clip.type === 'audio')];
+      const manualAudio = merged.filter(clip => clip.type === 'audio' && !sourceClips.some(source => source.id === clip.id));
+      return restoreEnhanceTimeline([...sourceClips, ...manualAudio], draft);
     });
     setSubtitles(draft ? restoreEnhanceSubtitles(draft) : []);
     setSubtitleStyle(draft ? restoreEnhanceSubtitleStyle(draft) : DEFAULT_ENHANCE_SUBTITLE_STYLE);
@@ -786,12 +795,14 @@ export const EnhancePage: React.FC = () => {
       knownVideoSourceIds,
       next.subtitles,
       normalizedStyle,
+      knownAudioSourcesRef.current,
     );
     setClips(next.clips);
     setSubtitles(next.subtitles);
     setSubtitleStyle(normalizedStyle);
     setTimelineSaveState('unsaved');
-    setTimelineRevision(revision => revision + 1);
+    timelineRevisionRef.current += 1;
+    setTimelineRevision(timelineRevisionRef.current);
   }, [knownVideoSourceIds]);
 
   const commitTimeline = useCallback((update: (current: MediaClip[]) => MediaClip[]) => {
@@ -899,20 +910,20 @@ export const EnhancePage: React.FC = () => {
 
   const saveTimelineNow = useCallback(async () => {
     if (!episodeId || !timelineReady) return;
-    if (timelineSaveInFlightRef.current) {
-      await timelineSaveInFlightRef.current;
-    }
+    const revision = timelineRevisionRef.current;
     const items = serializeEnhanceTimeline(
       clipsRef.current,
       knownVideoSourceIds,
       subtitlesRef.current,
       subtitleStyleRef.current,
+      knownAudioSourcesRef.current,
     );
     persistedTimelineItemsRef.current = items;
     setTimelineSaveState('saving');
-    const saveTask = (async () => {
+    const saveTask = (timelineSaveInFlightRef.current || Promise.resolve()).catch(() => {}).then(async () => {
       if (timelineTrackIdRef.current) {
-        await updateTimelineTrack(timelineTrackIdRef.current, { items });
+        const response = await updateTimelineTrack(timelineTrackIdRef.current, { items });
+        if (response?.success === false) throw new Error('时间线保存失败，请重试');
         return;
       }
       const response = await createTimelineTrack(episodeId, {
@@ -924,12 +935,14 @@ export const EnhancePage: React.FC = () => {
       const createdId = String(response?.track?.track_id ?? response?.track?.trackId ?? '');
       if (createdId) {
         timelineTrackIdRef.current = createdId;
-      }
-    })();
+      } else throw new Error('服务器未返回时间线记录，请重试保存');
+    });
     timelineSaveInFlightRef.current = saveTask;
+    registerEnhanceSave(episodeId, saveTask);
     try {
       await saveTask;
-      setTimelineSaveState('saved');
+      savedRevisionRef.current = revision;
+      setTimelineSaveState(revision === timelineRevisionRef.current ? 'saved' : 'unsaved');
     } catch (saveError) {
       console.warn('[EnhancePage] timeline save failed:', saveError);
       setTimelineSaveState('error');
@@ -940,6 +953,12 @@ export const EnhancePage: React.FC = () => {
       }
     }
   }, [episodeId, knownVideoSourceIds, timelineReady]);
+
+  const flushTimelineRef = useRef(saveTimelineNow);
+  flushTimelineRef.current = saveTimelineNow;
+  useEffect(() => () => {
+    if (timelineRevisionRef.current > savedRevisionRef.current) void flushTimelineRef.current().catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (timelineRevision <= 0 || !episodeId || !timelineReady) return;
@@ -1160,32 +1179,24 @@ export const EnhancePage: React.FC = () => {
   }, [commitSubtitleTimeline]);
 
   const persistAudioClip = useCallback(async (clip: MediaClip) => {
-    if (!clip.audioTrackId) return;
-    const track = audioTracks.find(item => item.trackId === clip.audioTrackId);
-    if (!track) return;
-    await updateAudioTrack(track.trackId, {
-      generation_params: patchAudioTrackTimeline(track, {
-        startMs: Math.round(clip.startTime * 1000),
-        sourceOffsetMs: Math.round(clip.sourceOffset * 1000),
-        durationMs: Math.round(clip.duration * 1000),
-        fadeInMs: Math.round((clip.fadeIn || 0) * 1000),
-        fadeOutMs: Math.round((clip.fadeOut || 0) * 1000),
-        volume: clip.volume ?? (track.trackType === 'bgm' ? 0.35 : 1),
-      }),
-    });
-  }, [audioTracks]);
+    // All audio edits share the same serialized save queue as video and subtitles.
+    // Read the current snapshot, not the potentially stale pointer-up closure.
+    if (timelineRevisionRef.current <= savedRevisionRef.current && !timelineSaveInFlightRef.current) return;
+    try { await saveTimelineNow(); }
+    catch (error) { console.warn('[EnhancePage] audio timeline save failed:', error); }
+  }, [saveTimelineNow]);
 
   const updateSelectedAudioClip = useCallback((updates: Partial<MediaClip>, persist = false) => {
     if (!selectedClipId) return;
-    const current = clips.find(clip => clip.id === selectedClipId && clip.type === 'audio');
+    const current = clipsRef.current.find(clip => clip.id === selectedClipId && clip.type === 'audio');
     if (!current) return;
     const updated = { ...current, ...updates };
-    setClips(prev => prev.map(clip => clip.id === selectedClipId ? updated : clip));
+    commitTimeline(prev => prev.map(clip => clip.id === selectedClipId ? updated : clip));
     if (persist) void persistAudioClip(updated).catch(error => {
       console.warn('[EnhancePage] audio timeline update failed:', error);
       alert(`保存音频剪辑位置失败：${error instanceof Error ? error.message : error}`);
     });
-  }, [clips, persistAudioClip, selectedClipId]);
+  }, [commitTimeline, persistAudioClip, selectedClipId]);
 
   const alignSelectedAudioToVideo = useCallback(() => {
     if (!selectedClip || selectedClip.type !== 'audio') return;
@@ -1822,6 +1833,7 @@ export const EnhancePage: React.FC = () => {
                 {group.clips.map(clip => (
                   <div
                     key={clip.id}
+                    data-testid={`enhance-audio-${clip.id}`}
                     onMouseDown={e => handleDragStartStable(e, clip)}
                     className={`absolute top-1 bottom-1 rounded border overflow-hidden ${trackState[group.key as 'voice' | 'bgm' | 'sfx'].locked ? 'cursor-not-allowed opacity-60' : 'cursor-grab active:cursor-grabbing'} ${
                       selectedClipId === clip.id
@@ -2567,10 +2579,13 @@ export const EnhancePage: React.FC = () => {
                       type="range"
                       min={0}
                       max={1}
-                      step={0.05}
+                      aria-label="音频音量"
+                      step={0.01}
                       value={Math.min(1, selectedClip.volume ?? 1)}
                       onChange={event => updateSelectedAudioClip({ volume: Number(event.target.value) })}
                       onPointerUp={() => void persistAudioClip(selectedClip)}
+                      onKeyUp={() => void persistAudioClip(selectedClip)}
+                      onBlur={() => void persistAudioClip(selectedClip)}
                       className="w-full accent-primary"
                     />
                   </label>

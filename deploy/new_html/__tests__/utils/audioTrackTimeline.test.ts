@@ -26,6 +26,10 @@ function track(
 }
 
 describe('audioTrackTimeline', () => {
+  it('keeps saved music placement when it extends beyond a shortened video', () => {
+    const music = track('bgm', { timeline: { startMs: 6500, durationMs: 10000, volume: 0 } });
+    expect(resolveAudioTrackTimeline(music, 5000)).toMatchObject({ startMs: 6500, durationMs: 10000, volume: 0 });
+  });
   it('resolves legacy tracks with sensible BGM and SFX defaults', () => {
     expect(resolveAudioTrackTimeline(track('bgm'), 20_000)).toEqual({
       startMs: 0,

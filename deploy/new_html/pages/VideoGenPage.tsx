@@ -28,6 +28,7 @@ import { listEpisodeScripts } from '../services/scriptTimelineService';
 import { estimateDurationMs } from '../utils/durationMapping';
 import { getStoryboardItems, updateStoryboardItem as apiUpdateStoryboardItem } from '../services/episodeDataService';
 import { secureApiUrl } from '../services/httpClient';
+import { exportToEnhance } from '../services/videoWorkflowService';
 import { runWhenIdle } from '../utils/idleScheduler';
 import { buildStoryboardVideoPrompt } from '../utils/storyboardVideoPrompt';
 import { buildVideoStoryboardShotLookup } from '../utils/videoTaskMerge';
@@ -158,6 +159,8 @@ export const VideoGenPage: React.FC = () => {
   }, [loadStoryboardItemsPage, loadSlicesQuiet, selectedScriptId]);
   const [showImportPanel, setShowImportPanel] = useState(true);
   const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const exportLock = useRef(false);
   const flushWorkspaceRef = useRef<(() => Promise<{ success: boolean }>) | null>(null);
   const registerWorkspaceSave = useCallback((save: (() => Promise<{ success: boolean }>) | null) => { flushWorkspaceRef.current = save; }, []);
   const [importDone, setImportDone] = useState(false);
@@ -172,6 +175,22 @@ export const VideoGenPage: React.FC = () => {
   const [changedCount, setChangedCount] = useState(0);
 
   const sessionScope = episodeId || '';
+  const handleExportToEnhance = async () => {
+    if (exportLock.current || !episodeId || !flushWorkspaceRef.current) return;
+    exportLock.current = true;
+    setExporting(true);
+    try {
+      if (!(await flushWorkspaceRef.current()).success) throw new Error('工作区保存失败，请重试');
+      await exportToEnhance(episodeId);
+      await forceReloadSlicesQuiet('videoSegments');
+      navigate(`/projects/${projectId}/ep/${episodeId}/workflow/enhance`);
+    } catch (error) {
+      setImportMsg({ kind: 'error', text: error instanceof Error ? error.message : '导出失败，请重试' });
+    } finally {
+      exportLock.current = false;
+      setExporting(false);
+    }
+  };
   const [workspaceScopeReady, setWorkspaceScopeReady] = useState(false);
 
   useEffect(() => {
@@ -786,10 +805,11 @@ export const VideoGenPage: React.FC = () => {
           )}
         </div>
         <button
-          onClick={() => navigate(`/projects/${projectId}/ep/${episodeId}/workflow/enhance`)}
+          onClick={handleExportToEnhance}
+          disabled={exporting || importing || syncing || !workspaceScopeReady}
           className="flex items-center gap-2 px-3 py-1 bg-success hover:bg-success text-white text-xs rounded-lg transition-colors"
         >
-          导出到美化 <ArrowRight size={12} />
+          {exporting ? '保存并导出中…' : '导出到美化'} <ArrowRight size={12} />
         </button>
       </div>
 

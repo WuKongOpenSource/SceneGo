@@ -1,4 +1,5 @@
 import { apiJson } from './httpClient';
+import { waitForEnhanceSaves } from '../utils/enhanceTimelinePersistence';
 import type {
   ScriptConversation,
   ScriptConversationMessage,
@@ -393,6 +394,7 @@ export async function updateScriptVersionMetadata(
 }
 
 export async function getTimelineTracks(episodeId: string) {
+  await waitForEnhanceSaves(episodeId);
   return apiJson<any>(`/api/episodes/${episodeId}/timeline-tracks`, { method: 'GET' }, 'getTimelineTracks');
 }
 

@@ -47,7 +47,7 @@ export function withEntityFileVideoFallbacks(
   fallbackVideoUrls: Record<string, string>,
 ): VideoSegment[] {
   return videoSegments.map(segment => {
-    if (!segment.segmentId) return segment;
+    if (!segment.segmentId || segment.videoUrl) return segment;
     const fallbackUrl = fallbackVideoUrls[segment.segmentId];
     return fallbackUrl ? { ...segment, videoUrl: fallbackUrl } : segment;
   });

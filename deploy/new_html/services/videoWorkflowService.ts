@@ -251,3 +251,8 @@ export async function preflightCompose(
     body: JSON.stringify({ timeline }),
   }, 'preflightCompose');
 }
+export async function exportToEnhance(episodeId: string) {
+  return apiJson<{ success: boolean; count: number }>(`/api/episodes/${episodeId}/export-enhance`, {
+    method: 'POST',
+  }, 'exportToEnhance');
+}

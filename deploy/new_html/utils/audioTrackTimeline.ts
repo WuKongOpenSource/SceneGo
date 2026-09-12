@@ -51,12 +51,9 @@ export function resolveAudioTrackTimeline(
     MIN_CLIP_DURATION_MS,
     maximumDurationMs,
   );
-  const maximumStartMs = Math.max(0, episodeDurationMs - durationMs);
-  const startMs = clamp(
-    finiteMs(params.startMs ?? params.start_ms),
-    0,
-    maximumStartMs,
-  );
+  // Saved placement is independent of the current video length. Composition
+  // trims overflow; reopening the editor must not move music to time zero.
+  const startMs = Math.max(0, finiteMs(params.startMs ?? params.start_ms));
   const fadeInMs = track.trackType === 'bgm'
     ? clamp(finiteMs(params.fadeInMs ?? params.fade_in_ms), 0, durationMs)
     : 0;

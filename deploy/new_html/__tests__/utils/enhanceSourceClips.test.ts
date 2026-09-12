@@ -28,7 +28,7 @@ describe('enhanceSourceClips', () => {
     expect(segments[0].videoUrl).toBe('/api/files/file_gpu2_video/download');
   });
 
-  it('prefers entity-file video URLs over stale legacy segment URLs for display', () => {
+  it('never replaces an explicitly selected segment video with a history fallback', () => {
     const segments = withEntityFileVideoFallbacks([
       {
         segmentId: 'seg_2',
@@ -48,7 +48,7 @@ describe('enhanceSourceClips', () => {
       seg_2: '/api/files/file_latest_video/download',
     });
 
-    expect(segments[0].videoUrl).toBe('/api/files/file_latest_video/download');
+    expect(segments[0].videoUrl).toBe('/storage/missing-old-video.mp4');
   });
 
   it('does not add empty video clips to the beautify timeline', () => {

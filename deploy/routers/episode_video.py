@@ -6,6 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
 from services.project_access_service import require_project_access
+from services.project_access_service import resolve_user_id
+from dao.creative.enhance_export import EnhanceExportDAO
 from services.episode_video_service import (
     EpisodeNotFound,
     VideoSegmentCreateFailed,
@@ -91,6 +93,17 @@ def create_episode_video_router(
         """Return all generated video takes grouped by storyboard item for composition selection."""
         await require_episode(episode_id, user_id, 'readonly')
         return await get_video_takes(episode_id)
+
+    @router.post("/api/episodes/{episode_id}/export-enhance")
+    async def export_enhance(episode_id: str, user_id: str = Depends(get_current_user)):
+        await require_episode(episode_id, user_id, 'member')
+        identity = await resolve_user_id(user_id)
+        if not identity:
+            raise HTTPException(404, '用户不存在')
+        try:
+            return await EnhanceExportDAO.export(episode_id, identity)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
 
     @router.post("/api/episodes/{episode_id}/compose")
     async def compose_episode_endpoint(episode_id: str, request: Request, user_id: str = Depends(get_current_user)):
