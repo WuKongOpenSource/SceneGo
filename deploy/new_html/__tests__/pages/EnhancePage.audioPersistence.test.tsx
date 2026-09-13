@@ -1,6 +1,6 @@
 import React from 'react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { EnhancePage } from '../../pages/EnhancePage';
 
 const state = vi.hoisted(() => ({ items: [] as any[], writes: [] as any[], save: vi.fn(), episode: {
@@ -31,15 +31,17 @@ vi.mock('../../components/audio/SfxModal', () => ({ SfxModal: () => null }));
 
 beforeEach(() => {
   state.items = [];
+  state.episode.videoSegments = [{ segmentId: 'v', videoUrl: '/v.mp4', durationMs: 10000, sortOrder: 0 }];
   state.episode.audioTracks[0].trackType = 'bgm';
   state.writes = [];
   state.save.mockReset().mockImplementation(async (_id, data) => { state.items = data.items; state.writes.push(data.items); return { success: true }; });
   vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
   vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
   vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+  vi.spyOn(HTMLMediaElement.prototype, 'readyState', 'get').mockReturnValue(3);
 });
 
-afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.useRealTimers(); });
 
 async function openSeekEditor() {
   const view = render(<EnhancePage />);
@@ -115,6 +117,60 @@ it('pauses playback when positioning the playhead and leaves it stopped', async 
   expect(HTMLMediaElement.prototype.pause).toHaveBeenCalled();
   act(() => { vi.advanceTimersByTime(1000); });
   expect(view.head.style.left).toBe('80px');
+  view.unmount();
+});
+
+it.each(['cut', 'fade', 'black'])('keeps playing across a %s transition after the old play rejects', async transition => {
+  state.episode.videoSegments = [
+    { segmentId: 'v', videoUrl: '/v.mp4', durationMs: 1000, sortOrder: 0 },
+    { segmentId: 'v2', videoUrl: '/v2.mp4', durationMs: 3000, sortOrder: 1 },
+  ];
+  state.items = [
+    { kind: 'video', sourceId: 'v', clipId: 'v', durationMs: 1000, transitionAfter: transition, transitionDurationMs: 500 },
+    { kind: 'video', sourceId: 'v2', clipId: 'v2', durationMs: 3000 },
+  ];
+  const view = await openSeekEditor();
+  const firstVideo = screen.getByLabelText('当前时间线视频预览');
+  let reject!: (error: unknown) => void;
+  vi.spyOn(firstVideo as HTMLVideoElement, 'play').mockImplementation(() => new Promise<void>((_, rej) => { reject = rej; }));
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'performance'] });
+  fireEvent.click(screen.getByTitle('播放'));
+  await act(async () => { vi.advanceTimersByTime(1100); });
+  if (transition === 'black') {
+    expect(screen.getByLabelText('黑幕转场预览')).toBeInTheDocument();
+    expect(screen.getByTitle('暂停')).toBeInTheDocument();
+  }
+  await act(async () => { reject(new DOMException('element replaced', 'AbortError')); });
+  await act(async () => { vi.advanceTimersByTime(600); });
+  expect(screen.getByLabelText('当前时间线视频预览')).toHaveAttribute('src', '/v2.mp4');
+  expect(screen.getByTitle('暂停')).toBeInTheDocument();
+  expect(parseFloat(view.head.style.left)).toBeGreaterThan(30);
+  expect(state.save).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByTitle('暂停'));
+  const position = view.head.style.left;
+  await act(async () => { vi.advanceTimersByTime(1000); });
+  expect(view.head.style.left).toBe(position);
+  view.unmount();
+});
+
+it('waits for slow video data without switching to paused or skipping timeline content', async () => {
+  const view = await openSeekEditor();
+  const video = screen.getByLabelText('当前时间线视频预览') as HTMLVideoElement;
+  const audio = document.querySelector('audio')!;
+  const pauseAudio = vi.spyOn(audio, 'pause');
+  const ready = vi.spyOn(video, 'readyState', 'get').mockReturnValue(1);
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'performance'] });
+  fireEvent.click(screen.getByTitle('播放'));
+  fireEvent.waiting(video);
+  await act(async () => { vi.advanceTimersByTime(2000); });
+  expect(view.head.style.left).toBe('0px');
+  expect(screen.getByTitle('暂停')).toBeInTheDocument();
+  expect(screen.getByText('视频缓冲中，就绪后自动继续')).toBeInTheDocument();
+  expect(pauseAudio).toHaveBeenCalled();
+  ready.mockReturnValue(3); fireEvent.canPlay(video);
+  await act(async () => { vi.advanceTimersByTime(500); });
+  expect(parseFloat(view.head.style.left)).toBeCloseTo(10);
+  expect(screen.queryByText('视频缓冲中，就绪后自动继续')).not.toBeInTheDocument();
   view.unmount();
 });
 

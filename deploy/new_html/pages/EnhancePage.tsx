@@ -25,6 +25,7 @@ import { uploadAudio } from '@runtime/videoMediaService';
 import { startVideoPoll, attachVideoPollCallbacks, getKnownVideoTaskIds } from '../services/videoTaskPoller';
 import { apiFetch, secureApiUrl } from '../services/httpClient';
 import { syncTimelineAudioPlayback } from '../utils/enhanceTimelineAudio';
+import { createTimelineVideoPlayback } from '../utils/enhanceVideoPlayback';
 import { resolveAudioTrackTimeline } from '../utils/audioTrackTimeline';
 import { ComposeFailureNotice } from '../components/ComposeFailureNotice';
 import { SubtitlePreview } from '../components/SubtitlePreview';
@@ -257,6 +258,9 @@ export const EnhancePage: React.FC = () => {
   const [selectedSubtitleId, setSelectedSubtitleId] = useState<string | null>(null);
   const [applySubtitleStyleToAll, setApplySubtitleStyleToAll] = useState(false);
   const [playing, setPlaying] = useState(false);
+  const [previewError, setPreviewError] = useState('');
+  const [previewBuffering, setPreviewBuffering] = useState(false);
+  const previewPlaybackRef = useRef<ReturnType<typeof createTimelineVideoPlayback> | null>(null);
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [snapGuide, setSnapGuide] = useState<number | null>(null);
   const [timelineReady, setTimelineReady] = useState(false);
@@ -542,6 +546,7 @@ export const EnhancePage: React.FC = () => {
   const videoUnderPlayhead = orderedVideoClips.find(
     c => currentTime >= c.startTime && currentTime < c.startTime + c.duration
   );
+  const nextPreviewVideo = orderedVideoClips.find(c => c.url && c.startTime > currentTime);
   const blackTransitionUnderPlayhead = orderedVideoClips.some((clip, index) => (
     clip.transitionAfter === 'black'
       && index < orderedVideoClips.length - 1
@@ -578,14 +583,28 @@ export const EnhancePage: React.FC = () => {
   useEffect(() => {
     const video = previewVideoRef.current;
     if (!video || !videoUnderPlayhead?.url) return;
-    const target = Math.max(0, currentTime - videoUnderPlayhead.startTime + videoUnderPlayhead.sourceOffset);
-    if (!playing || Math.abs(video.currentTime - target) > 0.75) {
-      try { video.currentTime = Number.isFinite(video.duration)
-        ? Math.min(target, Math.max(0, video.duration - 0.05)) : target; } catch {}
-    }
-    if (playing) void video.play().catch(() => setPlaying(false));
-    else video.pause();
+    const controller = createTimelineVideoPlayback(video, message => {
+      setPreviewError(message);
+      setPlaying(false);
+    });
+    previewPlaybackRef.current = controller;
+    setPreviewError('');
+    setPreviewBuffering(video.readyState < 3);
+    return () => {
+      controller.dispose();
+      if (previewPlaybackRef.current === controller) previewPlaybackRef.current = null;
+    };
+  }, [videoUnderPlayhead?.id, videoUnderPlayhead?.url]);
+
+  useEffect(() => {
+    if (!videoUnderPlayhead?.url) return;
+    previewPlaybackRef.current?.sync({
+      playing,
+      targetTime: currentTime - videoUnderPlayhead.startTime + videoUnderPlayhead.sourceOffset,
+    });
   }, [playing, currentTime, videoUnderPlayhead?.id, videoUnderPlayhead?.url, videoUnderPlayhead?.startTime, videoUnderPlayhead?.duration, videoUnderPlayhead?.sourceOffset]);
+
+  useEffect(() => { if (playing) setPreviewError(''); }, [playing]);
 
   useEffect(() => {
     void syncTimelineAudioPlayback({
@@ -601,9 +620,9 @@ export const EnhancePage: React.FC = () => {
       })),
       audioElements: audioElementRefs.current,
       currentTime,
-      playing,
+      playing: playing && !(videoUnderPlayhead?.url && previewBuffering),
     }).catch(() => {});
-  }, [audioClips, currentTime, playing, composeAudioMode]);
+  }, [audioClips, currentTime, playing, composeAudioMode, videoUnderPlayhead?.url, previewBuffering]);
 
   const videoDuration = useMemo(
     () => Math.max(0, ...videoClips.map(c => c.startTime + c.duration)),
@@ -631,6 +650,10 @@ export const EnhancePage: React.FC = () => {
       const now = performance.now();
       const elapsed = (now - previousTick) / 1000;
       previousTick = now;
+      // Hold the timeline (including overlay audio) while the active picture is loading.
+      // Black clips/transitions have no video element and must continue normally.
+      const video = previewVideoRef.current;
+      if (video && (video.readyState < 3 || video.seeking)) return;
       setCurrentTime(prev => {
         const next = prev + elapsed;
         if (next >= totalDuration) {
@@ -1922,24 +1945,18 @@ export const EnhancePage: React.FC = () => {
                   ref={previewVideoRef}
                   src={videoUnderPlayhead.url}
                   poster={enhanceVideoPosterUrl(videoUnderPlayhead.url)}
-                  preload="metadata"
+                  preload="auto"
                   controls={false}
                   muted={composeAudioMode === 'reference_dubbing'}
                   aria-label="当前时间线视频预览"
+                  onWaiting={() => setPreviewBuffering(true)}
+                  onSeeking={() => setPreviewBuffering(true)}
+                  onSeeked={event => setPreviewBuffering(event.currentTarget.readyState < 3)}
+                  onCanPlay={() => setPreviewBuffering(false)}
+                  onPlaying={() => setPreviewBuffering(false)}
                   onLoadedMetadata={event => {
                     const video = event.currentTarget;
                     setPreviewSourceSize({ width: video.videoWidth, height: video.videoHeight });
-                    const target = Math.max(
-                      0,
-                      currentTime - videoUnderPlayhead.startTime + videoUnderPlayhead.sourceOffset,
-                    );
-                    try {
-                      video.currentTime = Math.min(
-                        target,
-                        Number.isFinite(video.duration) ? Math.max(0, video.duration - 0.05) : target,
-                      );
-                    } catch {}
-                    if (playing) void video.play().catch(() => setPlaying(false));
                   }}
                   className="w-full h-full object-contain"
                   style={{ opacity: videoTransitionOpacity }}
@@ -1952,6 +1969,20 @@ export const EnhancePage: React.FC = () => {
                   <span className="text-sm">
                     {clips.length === 0 ? '暂无视频片段，请先在「视频」中生成' : '当前时间点无视频'}
                   </span>
+                </div>
+              )}
+              {nextPreviewVideo && (
+                <video key={`preload-${nextPreviewVideo.id}`} src={nextPreviewVideo.url}
+                  preload="auto" muted playsInline hidden aria-hidden="true" />
+              )}
+              {previewError && (
+                <div role="alert" className="absolute inset-x-4 top-4 rounded-lg bg-black/80 p-3 text-xs text-white">
+                  {previewError}
+                </div>
+              )}
+              {playing && videoUnderPlayhead?.url && previewBuffering && !previewError && (
+                <div role="status" className="absolute right-3 top-3 flex items-center gap-2 rounded bg-black/70 px-3 py-2 text-xs text-white">
+                  <Loader size={12} className="animate-spin" /> 视频缓冲中，就绪后自动继续
                 </div>
               )}
               <SubtitlePreview
