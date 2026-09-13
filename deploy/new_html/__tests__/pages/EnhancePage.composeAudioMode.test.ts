@@ -107,7 +107,7 @@ describe('EnhancePage compose audio mode', () => {
 
   it('requires opt-in for batch styling, resets scope per episode, and keeps changes undoable', () => {
     expect(source).toContain('const [applySubtitleStyleToAll, setApplySubtitleStyleToAll] = useState(false)');
-    expect(source).toContain("const scope = episodeId || '';\n    setApplySubtitleStyleToAll(false)");
+    expect(source).toMatch(/const scope = episodeId \|\| '';\r?\n\s+setApplySubtitleStyleToAll\(false\)/);
     expect(source).toContain('checked={applySubtitleStyleToAll}');
     expect(source).toContain('onChange={event => setApplySubtitleStyleToAll(event.target.checked)}');
     expect(source).toContain('同步修改所有字幕样式');
