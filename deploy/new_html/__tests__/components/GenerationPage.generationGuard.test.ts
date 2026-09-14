@@ -146,6 +146,16 @@ describe('GenerationPage external reference persistence', () => {
 });
 
 describe('GenerationPage reference actions', () => {
+  it('validates exact submitted references before progress, credits, or provider calls', () => {
+    const execute = source.slice(source.indexOf('const executeGenerationForShot'), source.indexOf('const generateForShot'));
+    expect(execute.indexOf('await validateImageReferences(submittedReferences')).toBeGreaterThan(execute.indexOf('storyboardSubmissionReferences('));
+    expect(execute.indexOf('await validateImageReferences(submittedReferences')).toBeLessThan(execute.indexOf('await assertEnoughCredits('));
+    expect(execute.indexOf('await validateImageReferences(submittedReferences')).toBeLessThan(execute.indexOf('beginShotProgress('));
+    expect(source).toContain('onError={() => markReferenceAvailability(ref.url, false)}');
+    expect(source).toContain('onLoad={() => markReferenceAvailability(ref.url, true)}');
+    expect(source).toContain('素材不可用，请重新选择');
+    expect(source).toContain('不会自动忽略这些参考图');
+  });
   it('keeps the submitted reference list independent from material bindings', () => {
     expect(source).toContain('handleDeleteReference(ref)');
     expect(source).toContain('从当前镜头删除参考图片');

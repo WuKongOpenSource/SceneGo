@@ -19,6 +19,7 @@ from schemas.generation import (
     GeminiImageRequest,
     GeminiTextRequest,
     GptImageRequest,
+    ImageReferenceValidationRequest,
     MinimaxChatRequest,
 )
 from services.ai_proxy_deepseek_service import (
@@ -95,13 +96,32 @@ def create_ai_proxy_router(
                 file_dao=file_dao,
             )
         except GenerationAccessDenied as exc:
-            raise HTTPException(status_code=404, detail="Studio scope or source not found") from exc
+            raise HTTPException(status_code=404, detail="项目或参考素材不可用，可能已删除或无权访问。请刷新页面并重新选择参考图。") from exc
 
     async def _registered_reference_paths(references: list[str]):
         try:
             return await resolve_registered_reference_paths(references, file_dao=file_dao)
         except ReferenceImageError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @router.post("/api/ai/image-references/validate")
+    async def validate_image_references(request: ImageReferenceValidationRequest, username: str = Depends(require_auth_dependency)):
+        # Authorize the target before reporting indexes; never return source paths
+        # or distinguish another user's file from a missing file.
+        await _authorize_generation_request(request, username, [])
+        invalid_indexes = []
+        for index, reference in enumerate(request.references):
+            if not reference.strip():
+                invalid_indexes.append(index)
+                continue
+            try:
+                await _authorize_generation_request(request, username, [reference])
+                await _registered_reference_paths([reference])
+            except HTTPException as exc:
+                if exc.status_code not in (400, 404):
+                    raise
+                invalid_indexes.append(index)
+        return {"invalid_indexes": invalid_indexes}
 
     text_operation_names = {
         "storyboard_script_generate": "分镜脚本生成",

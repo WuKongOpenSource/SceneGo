@@ -8,6 +8,7 @@ import { ProjectFile, StoryboardItem, MaterialLibrary, GenerationReference, Refe
 import { LayoutDashboard, Image as ImageIcon, Sparkles, Upload, X, ChevronLeft, ChevronRight, Wand2, Users, MapPin, Box, Zap, User, Play, CheckCircle2, CircleDashed, CheckSquare, Square, Trash2, ArrowRight, Save, History, Clock, RefreshCw, ZoomIn, Eye, FolderInput, GripVertical, Camera, Pencil, Type, MoveRight, Eraser, RotateCcw, Download, Layers, Scissors, Grid3X3, Clapperboard, AlertTriangle, Library, Search, Check, FlipHorizontal2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { generateFinalIllustrationResult } from '../services/geminiImageGenerationService';
+import { InvalidImageReferencesError, validateImageReferences } from '../services/imageReferenceValidation';
 import {
   generateImageWithPreferredFallback,
   IMAGE_FALLBACK_REASON,
@@ -280,6 +281,15 @@ export const GenerationPage: React.FC<GenerationPageProps> = ({
 
   const [prompt, setPrompt] = useState<string>('');
   const [references, setReferences] = useState<GenerationReference[]>([]);
+  const [unavailableReferenceUrls, setUnavailableReferenceUrls] = useState<Set<string>>(new Set());
+  const markReferenceAvailability = (url: string, available: boolean) => {
+    setUnavailableReferenceUrls(previous => {
+      if (previous.has(url) === !available) return previous;
+      const next = new Set(previous);
+      if (available) next.delete(url); else next.add(url);
+      return next;
+    });
+  };
   const referencesRef = useRef<GenerationReference[]>([]);
   const activeReferenceShotIdRef = useRef<string | null>(null);
   const visibleStoryboardItems = useMemo(
@@ -1467,6 +1477,15 @@ export const GenerationPage: React.FC<GenerationPageProps> = ({
           throw new Error(imageGenerationCapabilities.seedance_portrait.reason || 'Seedance 人像原图模式当前不可用。');
       }
       const submittedReferences = storyboardSubmissionReferences(shot, plan.references, portraitMode);
+      try {
+          await validateImageReferences(submittedReferences, { projectId, episodeId, shotId: shot.id });
+          submittedReferences.forEach(reference => markReferenceAvailability(reference.url, true));
+      } catch (error) {
+          if (error instanceof InvalidImageReferencesError) {
+              error.urls.forEach(url => markReferenceAvailability(url, false));
+          }
+          throw error;
+      }
       const creditParams = { image_count: 1, model: modelToUse };
       await assertEnoughCredits(STORYBOARD_IMAGE_CREDIT_FEATURE, creditParams);
       beginShotProgress(shot.id, modelToUse);
@@ -3333,6 +3352,12 @@ export const GenerationPage: React.FC<GenerationPageProps> = ({
                       )}
 
                       {/* Reference Grid */}
+                      {references.some(ref => unavailableReferenceUrls.has(ref.url)) && (
+                        <div role="alert" className="mb-3 text-xs leading-relaxed text-danger">
+                          参考素材不可用或加载失败：{references.filter(ref => unavailableReferenceUrls.has(ref.url)).map(ref => ref.name || '参考图').join('、')}。
+                          请在「项目素材」中重新选择有效图片；不会自动忽略这些参考图。
+                        </div>
+                      )}
                       <div className="grid grid-cols-3 gap-2 mb-4">
                           {references.map((ref) => (
                               <div
@@ -3344,9 +3369,16 @@ export const GenerationPage: React.FC<GenerationPageProps> = ({
                                   loading="lazy"
                                   decoding="async"
                                   alt=""
+                                  onError={() => markReferenceAvailability(ref.url, false)}
+                                  onLoad={() => markReferenceAvailability(ref.url, true)}
                                   className="w-full h-full object-cover cursor-pointer"
                                   onClick={() => setImageEditorData({ imageUrl: ref.url, referenceId: ref.id })}
                                 />
+                                {unavailableReferenceUrls.has(ref.url) && (
+                                  <span className="pointer-events-none absolute inset-x-0 top-1/2 bg-danger/90 px-1 py-1 text-center text-[10px] text-white">
+                                    素材不可用，请重新选择
+                                  </span>
+                                )}
 
                                 {/* Action Buttons */}
                                 <div
