@@ -12,15 +12,16 @@ from routers.frontend_pages import create_frontend_pages_router
 DEPLOY_DIR = Path(__file__).resolve().parents[1]
 
 
-def test_release_metadata_has_a_valid_version_and_bounded_recent_history():
+def test_release_metadata_has_a_valid_version_and_complete_chronological_history():
     release = json.loads((DEPLOY_DIR / "static/platform-release.json").read_text(encoding="utf-8"))
     assert release["schemaVersion"] == 1
     assert re.fullmatch(r"\d{4}\.\d{1,2}\.\d{1,2}(?:\.\d+)?", release["version"])
     start, end = (date.fromisoformat(release["period"][key]) for key in ("from", "to"))
-    assert (end - start).days == 6
+    assert start <= end
     assert date.fromisoformat(release["updatedAt"]) == end
     dates = [date.fromisoformat(record["date"]) for record in release["records"]]
     assert dates and dates == sorted(set(dates), reverse=True)
+    assert start == min(dates) and end == max(dates)
     for record, recorded_on in zip(release["records"], dates):
         assert start <= recorded_on <= end
         assert record["title"] and record["changes"]

@@ -30,6 +30,19 @@
 .platform-release-version { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; color: #5b49f0; }
 .platform-release-overview p { margin: 7px 0 4px; color: #4a4a54; font-size: 12px; }
 .platform-release-overview small { color: #6a6a74; font-size: 11px; }
+.platform-release-week { margin-bottom: 12px; border-bottom: 1px solid #eeeeeb; }
+.platform-release-week:last-child { border-bottom: 0; }
+.platform-release-week > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 12px 0; color: #4a4a54; font-size: 12px; list-style: none; cursor: pointer; }
+.platform-release-week > summary::-webkit-details-marker { display: none; }
+.platform-release-week > summary::before { content: '›'; width: 12px; color: #6a6a74; font-size: 19px; line-height: 1; text-align: center; transition: transform .15s; }
+.platform-release-week[open] > summary::before { transform: rotate(90deg); }
+.platform-release-week > summary:hover, .platform-release-week[open] .platform-release-week-label { color: #5b49f0; }
+.platform-release-week > summary:focus-visible { outline: 2px solid #5b49f0; outline-offset: 2px; }
+.platform-release-week-label { font-weight: 650; }
+.platform-release-week-range { font-variant-numeric: tabular-nums; }
+.platform-release-week-count { margin-left: auto; color: #6a6a74; font-size: 11px; }
+.platform-release-week .platform-release-timeline { padding-top: 12px; }
+.platform-release-week-empty { padding-bottom: 18px; color: #6a6a74; font-size: 12px; }
 .platform-release-entry { position: relative; margin-left: 4px; padding: 0 0 26px 23px; border-left: 1px solid #e5e5e0; }
 .platform-release-entry::before { content: ''; position: absolute; left: -4px; top: 5px; width: 7px; height: 7px; border-radius: 50%; background: #b0a5f9; box-shadow: 0 0 0 4px #fff; }
 .platform-release-entry:first-child::before { background: #5b49f0; }

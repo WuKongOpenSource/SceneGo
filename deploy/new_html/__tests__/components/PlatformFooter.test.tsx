@@ -5,6 +5,8 @@ import release from '../../../static/platform-release.json';
 
 describe('PlatformFooter', () => {
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(`${release.updatedAt}T12:00:00+08:00`));
     Object.defineProperty(HTMLDialogElement.prototype, 'showModal', {
       configurable: true,
       value: vi.fn(function (this: HTMLDialogElement) { this.open = true; }),
@@ -14,7 +16,7 @@ describe('PlatformFooter', () => {
       value: vi.fn(function (this: HTMLDialogElement) { this.open = false; }),
     });
   });
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
 
   it('shows the build version in the footer and opens a named changelog dialog', () => {
     render(<PlatformFooter />);
@@ -63,6 +65,7 @@ describe('PlatformFooter', () => {
   it('renders every documented change in reverse chronological order', () => {
     const { container } = render(<ReleaseNotesContent />);
     expect([...container.querySelectorAll('time')].map(time => time.dateTime)).toEqual(release.records.map(record => record.date));
+    container.querySelectorAll('details:not([open]) > summary').forEach(summary => fireEvent.click(summary));
     for (const record of release.records) {
       for (const change of record.changes) expect(screen.getByText(change.text)).toBeVisible();
     }

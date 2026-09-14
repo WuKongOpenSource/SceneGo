@@ -1,35 +1,62 @@
-import React, { useId, useRef } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { History } from 'lucide-react';
 import release from '../../static/platform-release.json';
+import { getReleaseCalendarDate, groupReleaseNotesByWeek } from '../utils/releaseWeeks';
 import '../styles/platform-release.css';
 
 const changeLabels: Record<string, string> = { new: '新增', improvement: '优化', fix: '修复' };
 
 export function ReleaseNotesContent() {
+  const [today, setToday] = useState(getReleaseCalendarDate);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const refresh = () => {
+      clearTimeout(timer);
+      const now = new Date();
+      const date = getReleaseCalendarDate(now);
+      setToday(date);
+      const nextMidnight = Date.parse(`${date}T00:00:00+08:00`) + 24 * 60 * 60 * 1000;
+      timer = setTimeout(refresh, Math.max(1, nextMidnight - now.getTime()));
+    };
+    refresh();
+    window.addEventListener('focus', refresh);
+    return () => { clearTimeout(timer); window.removeEventListener('focus', refresh); };
+  }, []);
+  const weeks = groupReleaseNotesByWeek(release.records, today);
   return (
     <div className="platform-release-content">
       <div className="platform-release-overview">
         <span className="platform-release-version">v{release.version}</span>
-        <p>最近一周 · {release.period.from} — {release.period.to}</p>
+        <p>按自然周整理（周一至周日） · 本周默认展开，历史周可点击展开</p>
         <small>按代码更新日期整理，未为历史更新补编版本号。</small>
       </div>
-      <div className="platform-release-timeline">
-        {release.records.map(record => (
-          <article key={record.date} className="platform-release-entry">
-            <time dateTime={record.date}>{record.date}</time>
-            <h3>{record.title}</h3>
-            <ul>
-              {record.changes.map(change => (
-                <li key={change.text}>
-                  <span className={`platform-release-tag platform-release-tag-${change.kind}`}>{changeLabels[change.kind]}</span>
-                  <span>{change.text}</span>
-                </li>
-              ))}
-            </ul>
-          </article>
-        ))}
-      </div>
+      {weeks.map(week => (
+        <details key={week.start} className="platform-release-week" open={week.isCurrent}>
+          <summary>
+            <span className="platform-release-week-label">{week.isCurrent ? '本周' : '更新记录'}</span>
+            <span className="platform-release-week-range">{week.start} — {week.end}</span>
+            <span className="platform-release-week-count">{week.records.length} 天更新</span>
+          </summary>
+          <div className="platform-release-timeline">
+            {week.records.length === 0 && <p className="platform-release-week-empty">本周暂无更新记录</p>}
+            {week.records.map(record => (
+              <article key={record.date} className="platform-release-entry">
+                <time dateTime={record.date}>{record.date}</time>
+                <h3>{record.title}</h3>
+                <ul>
+                  {record.changes.map(change => (
+                    <li key={change.text}>
+                      <span className={`platform-release-tag platform-release-tag-${change.kind}`}>{changeLabels[change.kind]}</span>
+                      <span>{change.text}</span>
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            ))}
+          </div>
+        </details>
+      ))}
     </div>
   );
 }
