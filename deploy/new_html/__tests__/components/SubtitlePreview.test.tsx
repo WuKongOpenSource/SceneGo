@@ -27,11 +27,11 @@ describe('subtitle positioning', () => {
         sourceWidth={width} sourceHeight={height} onChange={() => {}} onSelect={() => {}} />);
       const subtitle = screen.getByRole('button');
       const scale = Math.min(1000 / width, 600 / height);
-      expect(parseFloat(subtitle.style.fontSize)).toBeCloseTo(42 * scale);
-      expect(parseFloat(subtitle.style.fontSize) / (height * scale)).toBeCloseTo(42 / height);
+      expect(parseFloat(subtitle.style.fontSize)).toBeCloseTo(50 * scale);
+      expect(parseFloat(subtitle.style.fontSize) / (height * scale)).toBeCloseTo(50 / height);
       rerender(<SubtitlePreview cues={[{ id: 'cue', text: '请问有桂花乌龙吗？', startTime: 0, duration: 3 }]}
         sourceWidth={width * 2} sourceHeight={height * 2} onChange={() => {}} onSelect={() => {}} />);
-      expect(parseFloat(subtitle.style.fontSize)).toBeCloseTo(42 * scale / 2);
+      expect(parseFloat(subtitle.style.fontSize)).toBeCloseTo(50 * scale / 2);
     },
   );
   it('previews synchronized opacity and moves the batch without copying the selected font size', () => {
@@ -49,11 +49,11 @@ describe('subtitle positioning', () => {
     const title = screen.getByRole('button', { name: '移动字幕：标题' });
     const dialogue = screen.getByRole('button', { name: '移动字幕：对白' });
     expect(title).toHaveStyle({ backgroundColor: 'rgba(0, 0, 0, 0)', top: '50%', fontSize: '70px' });
-    expect(dialogue).toHaveStyle({ backgroundColor: 'rgba(0, 0, 0, 0)', top: '94%', fontSize: '42px' });
+    expect(dialogue).toHaveStyle({ backgroundColor: 'rgba(0, 0, 0, 0)', top: '94%', fontSize: '50px' });
     fireEvent.keyDown(title, { key: 'ArrowUp' });
     rerender(view());
     expect(title).toHaveStyle({ top: '49%', fontSize: '70px' });
-    expect(dialogue).toHaveStyle({ top: '49%', fontSize: '42px' });
+    expect(dialogue).toHaveStyle({ top: '49%', fontSize: '50px' });
   });
 
   it('drags against actual picture dimensions excluding letterboxing, saving once', () => {
@@ -89,7 +89,7 @@ describe('subtitle positioning', () => {
     fireEvent.pointerMove(title, { clientX: 500, clientY: 280 });
     expect(title.style.top).toBe('50%');
     expect(dialogue.style.top).toBe('94%');
-    expect(dialogue.style.fontSize).toBe('42px');
+    expect(dialogue.style.fontSize).toBe('50px');
     fireEvent.pointerUp(title);
     cues = [...cues, { id: 'c', text: '新字幕', startTime: 0, duration: 3 }];
     rerender(view());
@@ -98,7 +98,7 @@ describe('subtitle positioning', () => {
     expect(dialogue.style.top).toBe('94%');
     const added = screen.getByRole('button', { name: '移动字幕：新字幕' });
     expect(added.style.top).toBe('94%');
-    expect(added.style.fontSize).toBe('42px');
+    expect(added.style.fontSize).toBe('50px');
     fireEvent.keyDown(dialogue, { key: 'ArrowLeft' });
     expect(onChange).toHaveBeenLastCalledWith('b', { positionX: 49, positionY: 94 });
   });

@@ -25,7 +25,7 @@ export interface EnhanceSubtitleStyle {
 }
 
 export const DEFAULT_ENHANCE_SUBTITLE_STYLE: EnhanceSubtitleStyle = {
-  fontSize: 42,
+  fontSize: 50,
   textColor: '#FFFFFF',
   backgroundColor: '#000000',
   backgroundOpacity: 0.55,

@@ -177,7 +177,7 @@ describe('enhance timeline editor', () => {
       { kind: 'subtitle', cueId: 'b', text: '对白', startMs: 1000, durationMs: 1000 },
       { kind: 'subtitle_style', position: 'center', positionY: 52.2, fontSize: 90 },
     ]);
-    expect(initial.every(cue => cue.style?.position === 'bottom' && cue.style.fontSize === 42)).toBe(true);
+    expect(initial.every(cue => cue.style?.position === 'bottom' && cue.style.fontSize === 50)).toBe(true);
     const updated = updateSubtitleCueStyle(initial, 'a', { positionY: 50, fontSize: 72 });
     expect(updated[1]).toBe(initial[1]);
     expect(initial[0].style).toEqual(DEFAULT_ENHANCE_SUBTITLE_STYLE);
@@ -187,7 +187,7 @@ describe('enhance timeline editor', () => {
       { ...composeSubtitleStyle(DEFAULT_ENHANCE_SUBTITLE_STYLE), position_y: 50, font_size: 72 },
       composeSubtitleStyle(DEFAULT_ENHANCE_SUBTITLE_STYLE),
     ]);
-    const reset = updateSubtitleCueStyle(updated, 'a', { position: 'bottom', positionX: undefined, positionY: undefined, fontSize: 42 });
+    const reset = updateSubtitleCueStyle(updated, 'a', { position: 'bottom', positionX: undefined, positionY: undefined, fontSize: 50 });
     expect(reset[0].style).toEqual(DEFAULT_ENHANCE_SUBTITLE_STYLE);
     expect(updated[0].style?.positionY).toBe(50);
   });
@@ -242,7 +242,7 @@ describe('opt-in subtitle batch styling', () => {
     const newCue = { id: 'new', text: '新增字幕', startTime: 10, duration: 1 };
     expect(restoreEnhanceSubtitles(serializeEnhanceTimeline([], [], [...selectedOnly, newCue])).at(-1)?.style)
       .toEqual(DEFAULT_ENHANCE_SUBTITLE_STYLE);
-    expect(DEFAULT_ENHANCE_SUBTITLE_STYLE).toMatchObject({ position: 'bottom', fontSize: 42, backgroundOpacity: 0.55 });
+    expect(DEFAULT_ENHANCE_SUBTITLE_STYLE).toMatchObject({ position: 'bottom', fontSize: 50, backgroundOpacity: 0.55 });
   });
 
   it('does not batch edit from a stale selection and bounds invalid opacity', () => {

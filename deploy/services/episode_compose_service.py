@@ -176,7 +176,7 @@ def _normalize_subtitle_style(value: Any) -> Dict[str, Any]:
         return fallback
 
     return {
-        "font_size": max(16, min(int(_finite_number(raw.get("font_size"), 42)), 96)),
+        "font_size": max(16, min(int(_finite_number(raw.get("font_size"), 50)), 96)),
         **({"font_size_unit": "source_em"} if raw.get("font_size_unit") == "source_em" else {}),
         "text_color": color("text_color", "#FFFFFF"),
         "background_color": color("background_color", "#000000"),

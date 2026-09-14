@@ -230,7 +230,7 @@ async def test_cue_styles_export_independently_without_global_position_or_font_l
     title = next(line.split(',') for line in lines if line.startswith('Style: Cue0,'))
     dialogue = next(line.split(',') for line in lines if line.startswith('Style: Cue1,'))
     assert (title[2], title[18]) == ('72', '5')
-    assert (dialogue[2], dialogue[18]) == ('42', '2')
+    assert (dialogue[2], dialogue[18]) == ('50', '2')
     events = [line for line in lines if line.startswith('Dialogue:')]
     assert f"Cue0,,0,0,0,,{{\\an5\\pos({dimensions[0] * .25:.3f},{dimensions[1] * .5:.3f})}}Title" in events[0]
     assert events[1].endswith('Cue1,,0,0,0,,Dialogue')

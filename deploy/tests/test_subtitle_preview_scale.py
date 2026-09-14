@@ -16,6 +16,12 @@ def cue(**style):
     }], 2000)[0]
 
 
+def test_larger_default_preserves_explicit_historical_and_title_sizes():
+    assert compose._normalize_subtitle_style({})['font_size'] == 50
+    assert compose._normalize_subtitle_style({'font_size': 42})['font_size'] == 42
+    assert compose._normalize_subtitle_style({'font_size': 70})['font_size'] == 70
+
+
 @pytest.mark.parametrize('source,output', [
     ((1280, 720), (1920, 1080)), ((1920, 1080), (3840, 2160)),
     ((3840, 2160), (1920, 1080)), ((720, 1280), (1080, 1920)),
