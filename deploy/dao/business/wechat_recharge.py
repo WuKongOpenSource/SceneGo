@@ -12,6 +12,7 @@ from typing import Any, Callable, Dict, Mapping, Optional
 
 from db_manager import get_db_manager
 from dao.business.credit import CreationPointDAO, _get_or_create_account_for_update
+from utils.recharge_order_policy import RECHARGE_TIMEOUT_REASON
 
 
 class RechargeOrderNotFound(Exception):
@@ -32,6 +33,33 @@ class RechargeOrderStateError(Exception):
 
 class WechatRechargeDAO:
     """Database operations for WeChat Native creation-point recharge."""
+
+    @staticmethod
+    async def fail_overdue_orders(
+        *, cutoff: datetime, user_id: str = '', out_trade_no: str = '', limit: int = 500,
+    ) -> int:
+        """Claim bounded unpaid rows atomically; never touch an existing credit."""
+        db = get_db_manager()
+        rows = await db.fetch(
+            """
+            WITH overdue AS (
+                SELECT o.payment_order_id FROM wechat_creation_point_orders o
+                WHERE o.status IN ('pending', 'expired') AND o.created_at <= $1
+                  AND o.paid_at IS NULL AND o.transaction_id IS NULL
+                  AND ($3::text = '' OR o.user_id = $3)
+                  AND ($4::text = '' OR o.out_trade_no = $4)
+                  AND NOT EXISTS (SELECT 1 FROM credit_transactions t WHERE t.payment_order_id=o.payment_order_id)
+                ORDER BY o.created_at, o.payment_order_id
+                LIMIT $5 FOR UPDATE OF o SKIP LOCKED
+            )
+            UPDATE wechat_creation_point_orders o
+            SET status='failed', failure_reason=$2, updated_at=CURRENT_TIMESTAMP
+            FROM overdue WHERE o.payment_order_id=overdue.payment_order_id
+            RETURNING o.payment_order_id
+            """,
+            cutoff, RECHARGE_TIMEOUT_REASON, user_id, out_trade_no, min(max(limit, 1), 500),
+        )
+        return len(rows)
 
     @staticmethod
     async def find_reusable_order(
@@ -114,7 +142,7 @@ class WechatRechargeDAO:
             """
             UPDATE wechat_creation_point_orders
             SET status='failed', failure_reason=$2, updated_at=CURRENT_TIMESTAMP
-            WHERE payment_order_id=$1
+            WHERE payment_order_id=$1 AND status IN ('pending', 'expired') AND paid_at IS NULL
             """,
             payment_order_id,
             failure_reason,
@@ -149,7 +177,8 @@ class WechatRechargeDAO:
             SET status=$3, failure_reason=$4, request_id=COALESCE($5, request_id),
                 closed_at=CASE WHEN $3='closed' THEN CURRENT_TIMESTAMP ELSE closed_at END,
                 last_checked_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP
-            WHERE user_id=$1 AND out_trade_no=$2 RETURNING *
+            WHERE user_id=$1 AND out_trade_no=$2
+              AND status IN ('pending', 'expired') AND paid_at IS NULL RETURNING *
             """,
             user_id,
             out_trade_no,
@@ -157,7 +186,7 @@ class WechatRechargeDAO:
             failure_reason,
             request_id,
         )
-        return dict(row)
+        return dict(row) if row else await WechatRechargeDAO.get_user_order(user_id, out_trade_no)
 
     @staticmethod
     async def mark_checked(
@@ -228,7 +257,9 @@ class WechatRechargeDAO:
                     if str(order.get('transaction_id') or '') != transaction_id:
                         raise RechargeTransactionConflict(out_trade_no)
                     return order
-                if order['status'] not in ('pending', 'expired'):
+                timed_out = order['status'] == 'failed' and order.get('failure_reason') == RECHARGE_TIMEOUT_REASON
+                # Only the local timeout is reversible by an authenticated payment.
+                if order['status'] not in ('pending', 'expired') and not timed_out:
                     raise RechargeOrderStateError(str(order['status']))
 
                 account = await _get_or_create_account_for_update(conn, 'user', order['user_id'])

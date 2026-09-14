@@ -254,6 +254,14 @@ class EntityFileDAO:
 
         async with db.pool.acquire() as conn:
             async with conn.transaction():
+                is_video_source = entity_type == 'video_segment' and file_role == 'video'
+                if is_video_source:
+                    # Serialize source changes before locking individual versions.
+                    segment = await conn.fetchrow(
+                        'SELECT segment_id FROM video_segments WHERE segment_id=$1 FOR UPDATE', entity_id,
+                    )
+                    if not segment:
+                        return None
                 target = await conn.fetchrow(
                     """SELECT * FROM files
                        WHERE file_id = $1
@@ -266,6 +274,16 @@ class EntityFileDAO:
                 )
                 if not target:
                     return None
+
+                if is_video_source:
+                    if target['file_type'] != 'video' or not target['file_url']:
+                        return None
+                    # Selection and the URL consumed by preview/compose commit together.
+                    # Source switching must never rewrite editorial timings.
+                    await conn.execute(
+                        'UPDATE video_segments SET video_url=$2, thumbnail_url=$3 WHERE segment_id=$1',
+                        entity_id, target['file_url'], target.get('thumbnail_url'),
+                    )
 
                 await conn.execute(
                     """UPDATE files SET is_selected = FALSE
@@ -447,11 +465,11 @@ class EntityFileDAO:
             """
             WITH ranked AS (
                 SELECT f.file_id, f.file_url, f.file_type, f.file_role,
-                       f.is_selected, f.created_at, f.entity_id,
+                       f.is_selected, f.created_at, f.entity_id, f.metadata, f.duration_seconds,
                        ROW_NUMBER() OVER (
                            PARTITION BY f.entity_id, f.file_role
-                           ORDER BY CASE WHEN f.file_role = 'video' AND f.is_selected
-                                         THEN 0 ELSE 1 END,
+                           ORDER BY CASE WHEN f.file_role = 'video' AND f.file_url = s.video_url THEN 0
+                                         WHEN f.file_role = 'video' AND f.is_selected THEN 1 ELSE 2 END,
                                     f.created_at DESC, f.file_id DESC
                        ) AS position
                 FROM files f
@@ -462,14 +480,21 @@ class EntityFileDAO:
                   AND COALESCE(f.file_url, '') <> ''
             )
             SELECT file_id, file_url, file_type, file_role, is_selected,
-                   created_at, entity_id
+                   created_at, entity_id, metadata, duration_seconds
             FROM ranked
             WHERE position <= CASE WHEN file_role = 'video' THEN 1 ELSE 50 END
             ORDER BY entity_id, file_role, position
             """,
             episode_id,
         )
-        return [dict(row) for row in rows]
+        from utils.video_enhancement_labels import video_enhancement_kinds
+        items = []
+        for row in rows:
+            item = dict(row)
+            metadata = item.pop('metadata', None)
+            item['enhancement_kinds'] = video_enhancement_kinds(metadata) if item['file_role'] == 'video' else []
+            items.append(item)
+        return items
 
     @staticmethod
     async def get_files_for_entities(

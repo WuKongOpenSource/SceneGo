@@ -984,6 +984,23 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         });
     }, [defaultMiniMaxVideoModel, getDashScopeParams, getSeedanceParams]);
 
+    const getGroupSelectedSeconds = (group: TaskGroup): number => {
+        if (isMiniMaxH3Model(group.model) && group.h3LongVideo && group.mergedFrom?.length) {
+            return group.mergedFrom.reduce((sum, shot) => sum + Number(shot.duration || 5), 0);
+        }
+        if (isDashScopeVideoModel(group.model)) {
+            const params = getDashScopeParams(group.uuid, group.model);
+            return group.model === 'HappyHorse'
+                ? params.hh_duration ?? params.duration ?? 5
+                : params.duration ?? 5;
+        }
+        // Fixed-duration providers do not submit the legacy card duration.
+        if (group.model === 'Sora2' || group.model === 'Veo') {
+            return Number(getVideoCreditEstimateParams(group.model).duration_seconds);
+        }
+        return Number(getGroupVideoCreditEstimateParams(group).duration_seconds);
+    };
+
     const getGroupVideoCreditFallbackCost = useCallback((group: TaskGroup): number => {
         return getVideoCreditFallbackCost(group.model, {
             h3_upscale_720p: isMiniMaxH3Model(group.model) && group.h3Upscale720p === true,
@@ -4312,7 +4329,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 onDragStart={(e) => handleDragStart(e, index)}
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDragDrop(e, index)}
-                className={`bg-n0 rounded-lg border px-3 flex items-center gap-3 transition-all hover:border-n40 mb-2 h-16 ${
+                className={`bg-n0 rounded-lg border px-3 py-2 flex flex-wrap items-center gap-x-3 gap-y-1 transition-all hover:border-n40 mb-2 min-h-16 ${
                     status.selected ? 'border-primary ring-1 ring-primary/30' : 'border-n40'
                 }`}
             >
@@ -4587,6 +4604,9 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                         <X className="w-3 h-3" />
                     </button>
                 </div>
+                <div className="w-full min-w-0">
+                    <VideoTimingSummary timing={getGroupTiming(group)} selectedSeconds={getGroupSelectedSeconds(group)} />
+                </div>
             </div>
         );
     };
@@ -4841,7 +4861,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 })()}
 
 
-                {isSeedanceModel(group.model) && <VideoTimingSummary timing={getGroupTiming(group)} selectedSeconds={resolveSeedanceDurationForGroup(group)} />}
+                <VideoTimingSummary timing={getGroupTiming(group)} selectedSeconds={getGroupSelectedSeconds(group)} />
                 <div className={`${CARD_BODY_SCROLL_CLASS} flex flex-col`}>
                     {isPlaceholderCard ? (
                         <textarea
@@ -6089,12 +6109,14 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                     <div className="flex items-center bg-n0 rounded-lg p-1">
                         <button
                             onClick={() => setViewMode('card')}
+                            aria-label="卡片视图"
                             className={`p-1.5 rounded ${viewMode === 'card' ? 'bg-primary text-white' : 'text-n300'}`}
                         >
                             <LayoutGrid className="w-4 h-4" />
                         </button>
                         <button
                             onClick={() => setViewMode('list')}
+                            aria-label="列表视图"
                             className={`p-1.5 rounded ${viewMode === 'list' ? 'bg-primary text-white' : 'text-n300'}`}
                         >
                             <List className="w-4 h-4" />

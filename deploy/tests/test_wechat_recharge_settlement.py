@@ -6,6 +6,7 @@ import pytest
 from services import wechat_recharge_service as service
 from services.wechat_pay_config import WechatPayConfig
 from dao.business import wechat_recharge as recharge_dao
+from utils.recharge_order_policy import RECHARGE_TIMEOUT_REASON
 
 
 class FakeConnection:
@@ -92,8 +93,12 @@ def transaction():
 
 
 @pytest.mark.asyncio
-async def test_settlement_credits_permanent_points_exactly_once(monkeypatch):
+@pytest.mark.parametrize('initial_status', ['pending', 'expired', 'failed'])
+async def test_settlement_credits_permanent_points_exactly_once(monkeypatch, initial_status):
     conn = FakeConnection()
+    conn.order['status'] = initial_status
+    if initial_status == 'failed':
+        conn.order['failure_reason'] = RECHARGE_TIMEOUT_REASON
     monkeypatch.setattr(recharge_dao, "get_db_manager", lambda: FakeDB(conn))
 
     async def account_for_update(_conn, _owner_type, _owner_id):
@@ -131,4 +136,15 @@ async def test_settlement_rejects_amount_mismatch_before_credit(monkeypatch):
     with pytest.raises(service.WechatRechargeError, match="不一致"):
         await service.settle_recharge(payload, config=config())
 
+    assert conn.executed == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('status,reason', [('failed', 'provider rejection'), ('closed', None)])
+async def test_real_rejection_and_closed_orders_cannot_be_reopened(monkeypatch, status, reason):
+    conn = FakeConnection()
+    conn.order.update(status=status, failure_reason=reason)
+    monkeypatch.setattr(recharge_dao, 'get_db_manager', lambda: FakeDB(conn))
+    with pytest.raises(service.WechatRechargeError, match='不允许确认支付'):
+        await service.settle_recharge(transaction(), config=config())
     assert conn.executed == []

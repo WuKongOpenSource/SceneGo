@@ -216,7 +216,7 @@ export const orderConversationMessages = (
   versions: ScriptStoryboardVersion[],
   fallbackInitialContent = '',
 ): ScriptConversationMessage[] => {
-  if (messages.length <= 1) return [...messages];
+  if (!messages.length && !versions.length) return [];
 
   const sourceOrder = new Map(messages.map((message, index) => [message.id, index]));
   const messagesById = new Map(messages.map(message => [message.id, message]));
@@ -249,8 +249,14 @@ export const orderConversationMessages = (
     : undefined;
 
 
+  // Imported history may start with an AI reply and omit the original user row.
+  // Project source text is a read-only reference, never a new persisted message.
+  const sourceReference: ScriptConversationMessage | undefined = normalizedInitialContent && !matchingInitialMessage ? {
+    id: 'original-script-content', role: 'user', status: 'completed', content: fallbackInitialContent,
+    createdAt: 0, updatedAt: 0, metadata: { sourceReference: true },
+  } : undefined;
   append(
-    matchingInitialMessage
+    matchingInitialMessage || sourceReference
       || (firstVersionRequest?.role === 'user' ? firstVersionRequest : undefined)
       || messages.find(message => message.role === 'user'),
   );
@@ -756,7 +762,7 @@ export const ScriptConversationPane: React.FC<ScriptConversationPaneProps> = ({
                     {isCollapsed ? '展开内容' : '折叠内容'}
                   </button>
                 )}
-                <span className="text-[10px] text-n100">{formatTime(message.createdAt)}</span>
+                <span className="text-[10px] text-n100">{message.metadata?.sourceReference ? '原始文件内容' : formatTime(message.createdAt)}</span>
               </span>
             </div>
             {version?.status === 'draft' && <ScriptPatchPreview version={version} />}

@@ -13,6 +13,8 @@ export interface EntityFile {
   metadata?: Record<string, unknown>;
   entityType?: string;
   entityId?: string;
+  durationSeconds?: number;
+  enhancementKinds?: string[];
 }
 
 function normalize(row: any): EntityFile {
@@ -29,6 +31,8 @@ function normalize(row: any): EntityFile {
     metadata: row.metadata,
     entityType: row.entity_type ?? row.entityType,
     entityId: row.entity_id ?? row.entityId,
+    durationSeconds: Number(row.duration_seconds ?? row.durationSeconds) || undefined,
+    enhancementKinds: row.enhancement_kinds ?? row.enhancementKinds,
   };
 }
 
@@ -36,9 +40,12 @@ export async function fetchEntityFiles(
   entityType: string,
   entityId: string,
   fileRole?: string,
+  offset = 0,
 ): Promise<{ items: EntityFile[]; total: number }> {
   const params = new URLSearchParams({ entity_type: entityType, entity_id: entityId });
   if (fileRole) params.set('file_role', fileRole);
+  params.set('limit', '50');
+  params.set('offset', String(offset));
   const data = await apiJson<{ items?: any[]; total?: number }>(
     `/api/entity-files?${params}`,
     { method: 'GET' },

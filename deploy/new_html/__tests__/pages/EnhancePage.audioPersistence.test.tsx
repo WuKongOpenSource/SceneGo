@@ -3,7 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { EnhancePage } from '../../pages/EnhancePage';
 
-const state = vi.hoisted(() => ({ items: [] as any[], writes: [] as any[], save: vi.fn(), episode: {
+const state = vi.hoisted(() => ({ items: [] as any[], writes: [] as any[], files: [] as any[], select: vi.fn(), save: vi.fn(), episode: {
   projectId: 'p', episodeId: 'ep', selectedScriptId: '', isLoading: false, error: null,
   loadSlices: vi.fn(), forceReloadSlicesQuiet: vi.fn(), reload: vi.fn(),
   videoSegments: [{ segmentId: 'v', videoUrl: '/v.mp4', durationMs: 10000, sortOrder: 0 }],
@@ -14,7 +14,9 @@ vi.mock('../../services/scriptTimelineService', () => ({
   getTimelineTracks: async () => ({ tracks: [{ track_id: 't', track_name: '优化合成时间线', items: state.items }] }),
   updateTimelineTrack: (...args: any[]) => state.save(...args), createTimelineTrack: vi.fn(),
 }));
-vi.mock('../../services/entityFileService', () => ({ fetchEpisodeEnhanceFiles: async () => [], uploadEntityFile: vi.fn() }));
+vi.mock('../../services/entityFileService', () => ({ fetchEpisodeEnhanceFiles: async () => state.files.filter(f => f.isSelected),
+  fetchEntityFiles: async () => ({ items: state.files, total: state.files.length }),
+  selectEntityFile: (...args: any[]) => state.select(...args), uploadEntityFile: vi.fn() }));
 vi.mock('../../services/episodeDataService', () => ({ getStoryboardItems: async () => ({ success: true, items: [] }) }));
 vi.mock('../../services/videoWorkflowService', () => ({ DEFAULT_COMPOSE_AUDIO_MODE: 'video_original',
   getComposeStatus: async () => ({ status: 'idle' }), startCompose: vi.fn(), preflightCompose: vi.fn(), updateVideoSegment: vi.fn() }));
@@ -31,6 +33,13 @@ vi.mock('../../components/audio/SfxModal', () => ({ SfxModal: () => null }));
 
 beforeEach(() => {
   state.items = [];
+  state.files = [];
+  state.select.mockReset().mockImplementation(async (id: string) => {
+    const file = state.files.find(f => f.fileId === id);
+    state.files = state.files.map(f => ({ ...f, isSelected: f.fileId === id }));
+    state.episode.videoSegments = state.episode.videoSegments.map(s => ({ ...s, videoUrl: file.fileUrl }));
+    return file;
+  });
   state.episode.videoSegments = [{ segmentId: 'v', videoUrl: '/v.mp4', durationMs: 10000, sortOrder: 0 }];
   state.episode.audioTracks[0].trackType = 'bgm';
   state.writes = [];
@@ -271,4 +280,115 @@ it('inserts an independent black clip and saves its editable duration', async ()
   await waitFor(() => expect(state.items.find(i => i.kind === 'black')).toMatchObject({ durationMs: 2500 }));
   fireEvent.click(screen.getByRole('button', { name: '删除黑幕' }));
   await waitFor(() => expect(screen.queryByText('黑幕片段')).not.toBeInTheDocument());
+});
+
+function sourceVersionsFixture() {
+  state.files = [
+    { fileId: 'hd', fileUrl: '/v.mp4', fileType: 'video', fileRole: 'video', entityId: 'v', isSelected: true,
+      createdAt: '2026-01-02T12:00:00Z', durationSeconds: 12, enhancementKinds: ['upscale'], metadata: { model: 'upscale' } },
+    { fileId: 'original', fileUrl: '/original.mp4', fileType: 'video', fileRole: 'video', entityId: 'v', isSelected: false,
+      createdAt: '2026-01-01T12:00:00Z', durationSeconds: 12, metadata: { model: 'Seedance' } },
+  ];
+  state.items = [
+    { kind: 'video', sourceId: 'v', clipId: 'cut1', startMs: 0, durationMs: 3000, sourceOffsetMs: 1000,
+      transitionAfter: 'fade', transitionDurationMs: 500, settings: { upscale: false } },
+    { kind: 'video', sourceId: 'v', clipId: 'cut2', startMs: 3000, durationMs: 2000, sourceOffsetMs: 8000 },
+    { kind: 'audio', sourceId: 'aud_track_m', clipId: 'aud_track_m', startMs: 1000, durationMs: 4000,
+      sourceOffsetMs: 2000, volume: .2, fadeOutMs: 1000 },
+    { kind: 'subtitle', cueId: 'sub', startMs: 2000, durationMs: 1000, text: '保留字幕' },
+  ];
+}
+
+async function pickOriginal(duration = 12) {
+  fireEvent.click(await screen.findByRole('button', { name: '恢复原素材' }));
+  const versions = await screen.findAllByRole('radio');
+  fireEvent.click(versions[1]);
+  const preview = screen.getByLabelText('待恢复素材预览');
+  Object.defineProperty(preview, 'duration', { configurable: true, value: duration });
+  fireEvent.loadedMetadata(preview);
+}
+
+it('shows real HD labels and restores the source for all cuts without shifting edits after remount', async () => {
+  sourceVersionsFixture();
+  const view = render(<EnhancePage />);
+  await screen.findByRole('button', { name: '恢复原素材' });
+  expect(screen.getByTestId('enhance-track-video').querySelectorAll('[title="已高清化"]')).toHaveLength(2);
+  await pickOriginal();
+  expect(state.select).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: '确认使用此素材' }));
+  await waitFor(() => expect(screen.queryByRole('dialog', { name: '恢复原素材' })).not.toBeInTheDocument());
+  expect(state.select).toHaveBeenCalledExactlyOnceWith('original', 'video_segment', 'v', 'video');
+  expect(screen.getByLabelText('当前时间线视频预览')).toHaveAttribute('src', '/original.mp4');
+  const video = state.items.filter(i => i.kind === 'video');
+  expect(video[0]).toMatchObject({ startMs: 0, durationMs: 3000, sourceOffsetMs: 1000, transitionAfter: 'fade', sourceUrl: '/original.mp4' });
+  expect(video[1]).toMatchObject({ startMs: 3000, durationMs: 2000, sourceOffsetMs: 8000, sourceUrl: '/original.mp4' });
+  expect(state.items.find(i => i.kind === 'audio')).toMatchObject({ startMs: 1000, durationMs: 4000, sourceOffsetMs: 2000, volume: .2, fadeOutMs: 1000 });
+  expect(state.items.find(i => i.kind === 'subtitle')).toMatchObject({ startMs: 2000, durationMs: 1000, text: '保留字幕' });
+  view.unmount(); render(<EnhancePage />);
+  await screen.findByRole('button', { name: '切换素材版本' });
+  expect(screen.getByLabelText('当前时间线视频预览')).toHaveAttribute('src', '/original.mp4');
+  expect(screen.getByTestId('enhance-track-video')).not.toHaveTextContent('已高清化');
+  expect(state.files).toHaveLength(2);
+});
+
+it.each([6, 9.98])('does not change material until confirmation, and refuses a %s second source shorter than the last cut', async duration => {
+  sourceVersionsFixture(); render(<EnhancePage />);
+  await pickOriginal(duration);
+  expect(screen.getByRole('alert')).toHaveTextContent('不足以覆盖当前剪辑');
+  expect(screen.getByRole('button', { name: '确认使用此素材' })).toBeDisabled();
+  fireEvent.click(screen.getByRole('button', { name: '取消' }));
+  expect(state.select).not.toHaveBeenCalled();
+  expect(state.save).not.toHaveBeenCalled();
+  expect(screen.getByLabelText('当前时间线视频预览')).toHaveAttribute('src', '/v.mp4');
+});
+
+it('keeps the active HD source when selection fails and never displays server paths', async () => {
+  sourceVersionsFixture(); state.select.mockRejectedValue(new Error('/private/server/path failed'));
+  render(<EnhancePage />); await pickOriginal();
+  fireEvent.click(screen.getByRole('button', { name: '确认使用此素材' }));
+  await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('切换未完成'));
+  expect(screen.getByLabelText('当前时间线视频预览')).toHaveAttribute('src', '/v.mp4');
+  expect(screen.getByRole('alert')).not.toHaveTextContent('/private');
+  expect(state.files[0].isSelected).toBe(true);
+});
+
+it('does not switch the source when flushing the current timeline fails', async () => {
+  sourceVersionsFixture(); state.save.mockRejectedValue(new Error('/private/save/path failed'));
+  render(<EnhancePage />); await pickOriginal();
+  fireEvent.click(screen.getByRole('button', { name: '确认使用此素材' }));
+  await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('切换未完成'));
+  expect(state.select).not.toHaveBeenCalled();
+  expect(screen.getByLabelText('当前时间线视频预览')).toHaveAttribute('src', '/v.mp4');
+  expect(screen.getByRole('alert')).not.toHaveTextContent('/private');
+});
+
+it('reloads an unreadable version and requires a fresh duration check before confirmation', async () => {
+  sourceVersionsFixture(); render(<EnhancePage />); await pickOriginal();
+  const firstPreview = screen.getByLabelText('待恢复素材预览');
+  fireEvent.error(firstPreview);
+  expect(screen.getByRole('button', { name: '确认使用此素材' })).toBeDisabled();
+  fireEvent.click(screen.getByRole('button', { name: '重新读取' }));
+  const nextPreview = screen.getByLabelText('待恢复素材预览');
+  expect(nextPreview).not.toBe(firstPreview);
+  expect(screen.getByRole('button', { name: '确认使用此素材' })).toBeDisabled();
+  Object.defineProperty(nextPreview, 'duration', { configurable: true, value: 12 });
+  fireEvent.loadedMetadata(nextPreview);
+  await waitFor(() => expect(screen.getByRole('button', { name: '确认使用此素材' })).toBeEnabled());
+  expect(state.select).not.toHaveBeenCalled();
+});
+
+it('keeps the switched source visible and allows retry when saving its timeline identity fails', async () => {
+  sourceVersionsFixture();
+  state.save.mockImplementationOnce(async (_id, data) => { state.items = data.items; return { success: true }; })
+    .mockRejectedValueOnce(new Error('/private/save/path failed'));
+  render(<EnhancePage />); await pickOriginal();
+  fireEvent.click(screen.getByRole('button', { name: '确认使用此素材' }));
+  await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('切换未完成'));
+  expect(state.select).toHaveBeenCalledTimes(1);
+  expect(screen.getByLabelText('当前时间线视频预览')).toHaveAttribute('src', '/original.mp4');
+  expect(screen.getByRole('alert')).not.toHaveTextContent('/private');
+  fireEvent.click(screen.getByRole('button', { name: '确认使用此素材' }));
+  await waitFor(() => expect(screen.queryByRole('dialog', { name: '恢复原素材' })).not.toBeInTheDocument());
+  expect(state.items.find(i => i.clipId === 'cut2')).toMatchObject({ durationMs: 2000, sourceOffsetMs: 8000, sourceUrl: '/original.mp4' });
+  expect(state.files).toHaveLength(2);
 });

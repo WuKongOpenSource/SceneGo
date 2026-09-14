@@ -160,11 +160,14 @@ async def select_entity_file(
     if not row:
         raise EntityFileNotFound("File not found or not linked to entity")
 
-    try:
-        await entity_file_dao.sync_legacy_url(entity_type, entity_id, file_role, row["file_url"])
-    except Exception as exc:
-        if logger:
-            logger.warning("同步旧URL字段失败: %s", exc)
+    # Video source selection updates the legacy URL in the same DAO transaction.
+    # A later best-effort write could overwrite a newer concurrent selection.
+    if not (entity_type == 'video_segment' and file_role == 'video'):
+        try:
+            await entity_file_dao.sync_legacy_url(entity_type, entity_id, file_role, row["file_url"])
+        except Exception as exc:
+            if logger:
+                logger.warning("同步旧URL字段失败: %s", exc)
 
     # Keep old file selection and the new type-agnostic selection in one user
     # action.  During a rolling migration this remains best-effort.

@@ -27,6 +27,7 @@ export interface EnhanceMediaClip {
   sourceOffset: number;
   type: 'video' | 'audio';
   settings?: { upscale: boolean; interpolate: boolean; lipSync: boolean };
+  enhancement?: { upscale: boolean; interpolate: boolean; lipSync: boolean };
 }
 
 type UrlResolver = (url: string) => string;

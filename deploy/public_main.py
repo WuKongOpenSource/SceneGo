@@ -78,6 +78,7 @@ from services.api_provider_health_monitor import (
 from services.auth_rate_limit_service import validate_auth_rate_limit_configuration
 from services.captcha_service import validate_captcha_configuration
 from services.email_delivery_service import email_outbox_worker_loop
+from services.wechat_recharge_service import recharge_order_expiry_loop
 from services.online_provider_task_service import OnlineProviderTaskService
 from services.private_media_access_service import PrivateMediaAccessMiddleware
 from services.public_feedback_rate_limit_service import validate_public_feedback_rate_limit_configuration
@@ -216,6 +217,7 @@ async def lifespan(application: FastAPI):
                 online_workers.append(worker)
                 worker_tasks.append(asyncio.create_task(worker.start(), name=f"online-provider:{index + 1}"))
             background_tasks.append(asyncio.create_task(email_outbox_worker_loop(), name="email-outbox"))
+            background_tasks.append(asyncio.create_task(recharge_order_expiry_loop(), name="recharge-order-expiry"))
             background_tasks.append(
                 asyncio.create_task(provider_health_monitor_loop(redis_client), name="provider-health")
             )

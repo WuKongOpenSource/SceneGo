@@ -20,7 +20,7 @@ import {
   type ComposeStatus,
 } from '../services/videoWorkflowService';
 import { getStoryboardItems } from '../services/episodeDataService';
-import { fetchEpisodeEnhanceFiles, uploadEntityFile, type EntityFile } from '../services/entityFileService';
+import { fetchEpisodeEnhanceFiles, selectEntityFile, uploadEntityFile, type EntityFile } from '../services/entityFileService';
 import { uploadAudio } from '@runtime/videoMediaService';
 import { startVideoPoll, attachVideoPollCallbacks, getKnownVideoTaskIds } from '../services/videoTaskPoller';
 import { apiFetch, secureApiUrl } from '../services/httpClient';
@@ -34,6 +34,8 @@ import { SfxModal } from '../components/audio/SfxModal';
 import { buildEnhanceSourceClips as buildCanonicalEnhanceSourceClips, withEntityFileVideoFallbacks, type EnhanceMediaClip } from '../utils/enhanceSourceClips';
 import { AudioFadeControls } from '../components/audio/AudioFadeControls';
 import { BlackClipControls } from '../components/BlackClipControls';
+import { VideoSourceControls } from '../components/VideoSourceControls';
+import { applyVideoSource, videoSourceLabels, videoSourceSettings } from '../utils/videoSourceVersions';
 import { reanchorLinkedAudio } from '../utils/enhanceAudioAnchors';
 import {
   DEFAULT_ENHANCE_SUBTITLE_STYLE,
@@ -458,7 +460,12 @@ export const EnhancePage: React.FC = () => {
   useEffect(() => {
     if (!storyboardAudioLoaded || !timelineReady || !segmentFilesReady) return;
     const draft = persistedTimelineItemsRef.current;
-    const sourceClips = buildEnhanceSourceClips(enhanceVideoSegments, storyboardAudioItems, audioTracks, draft || undefined);
+    const sourceClips = buildEnhanceSourceClips(enhanceVideoSegments, storyboardAudioItems, audioTracks, draft || undefined).map(clip => {
+      if (clip.type !== 'video' || clip.isBlack) return clip;
+      const file = segmentFiles.find(item => item.fileRole === 'video' && item.entityId === (clip.sourceId || clip.id)
+        && secureMediaUrl(item.fileUrl) === clip.url);
+      return { ...clip, enhancement: videoSourceSettings(file), sourceDuration: file?.durationSeconds || clip.sourceDuration };
+    });
     const activeCuts = (draft ? restoreEnhanceTimeline(sourceClips, draft) : sourceClips).filter(c => c.type === 'video' && !c.isBlack);
     for (const file of segmentFiles.filter(f => f.fileRole === 'actor_dubbing')) {
       activeCuts.filter(c => (c.sourceId || c.id) === file.entityId).forEach((cut, index) => {
@@ -857,6 +864,34 @@ export const EnhancePage: React.FC = () => {
     }, 800);
     return () => window.clearTimeout(timer);
   }, [episodeId, saveTimelineNow, timelineReady, timelineRevision]);
+
+  const changeVideoSource = useCallback(async (sourceId: string, file: EntityFile) => {
+    const scope = episodeId;
+    if (!scope || processing || trackState.video.locked) throw new Error('Source change unavailable');
+    const linked = clipsRef.current.filter(clip => clip.type === 'video' && (clip.sourceId || clip.id) === sourceId);
+    const required = Math.max(...linked.map(clip => clip.sourceOffset + clip.duration));
+    if (!linked.length || !file.durationSeconds || file.durationSeconds + 0.001 < required) throw new Error('Source is too short');
+    setPlaying(false);
+    // Flush edits before replacing the shared source, then serialize its identity.
+    await saveTimelineNow();
+    if (composeScopeRef.current !== scope) return;
+    const currentCuts = clipsRef.current.filter(clip => clip.type === 'video' && (clip.sourceId || clip.id) === sourceId);
+    if (!currentCuts.length || currentCuts.some(clip => clip.sourceOffset + clip.duration > file.durationSeconds! + 0.001)) {
+      throw new Error('Timeline changed while saving');
+    }
+    await selectEntityFile(file.fileId, 'video_segment', sourceId, 'video');
+    if (composeScopeRef.current !== scope) return;
+    const replace = (items: MediaClip[]) => applyVideoSource(items, sourceId, file, secureMediaUrl(file.fileUrl));
+    // Undo/redo changes edits, not the shared version selected in the database.
+    undoStackRef.current = undoStackRef.current.map(state => ({ ...state, clips: replace(state.clips) }));
+    redoStackRef.current = redoStackRef.current.map(state => ({ ...state, clips: replace(state.clips) }));
+    markTimelineChanged({ clips: replace(clipsRef.current), subtitles: subtitlesRef.current, subtitleStyle: subtitleStyleRef.current });
+    await saveTimelineNow();
+    if (composeScopeRef.current !== scope) return;
+    reloadEnhanceData();
+    setEnhanceError('');
+    setEnhanceNotice('素材已切换，剪辑、字幕和音轨位置保持不变。原有版本仍保留。');
+  }, [episodeId, processing, trackState.video.locked, saveTimelineNow, markTimelineChanged, reloadEnhanceData]);
 
   const handleCompose = useCallback(async () => {
     if (!episodeId) { alert('未找到当前集'); return; }
@@ -1625,7 +1660,7 @@ export const EnhancePage: React.FC = () => {
             setEnhanceNotice('视频放大处理完成，结果已更新。');
             window.setTimeout(() => { setProcessing(false); setProcessProgress(0); setProcessStage('处理中'); }, 800);
 
-            reload();
+            reloadEnhanceData();
           },
           onFail: (err) => {
             setProcessing(false);
@@ -1732,9 +1767,8 @@ export const EnhancePage: React.FC = () => {
                       {clip.duration.toFixed(1)}s
                     </div>
                     <div className="absolute bottom-0.5 left-1 flex gap-0.5 z-10">
-                      {clip.settings?.upscale && <MonitorPlay size={10} className="text-primary" />}
-                      {clip.settings?.interpolate && <Zap size={10} className="text-warning" />}
-                      {clip.settings?.lipSync && <Mic2 size={10} className="text-success" />}
+                      {videoSourceLabels(clip.enhancement).map(label => <span key={label} title={label}
+                        className="max-w-full truncate whitespace-nowrap rounded bg-primary px-1 text-[9px] leading-4 text-white">{label}</span>)}
                       {clip.transitionAfter === 'fade' && <span className="rounded bg-black/60 px-1 text-[8px] text-white">淡变</span>}
                       {clip.transitionAfter === 'black' && <span className="rounded bg-black px-1 text-[8px] text-white">黑幕</span>}
                     </div>
@@ -2175,6 +2209,11 @@ export const EnhancePage: React.FC = () => {
                     <span className="text-xs font-semibold text-n700">视频剪辑</span>
                     <span className="font-mono text-[10px] tabular-nums text-n300">{formatTimelineTime(selectedClip.startTime)} → {formatTimelineTime(selectedClip.startTime + selectedClip.duration)}</span>
                   </div>
+                  <VideoSourceControls sourceId={selectedClip.sourceId || selectedClip.id} currentUrl={selectedClip.url}
+                    labels={videoSourceLabels(selectedClip.enhancement)} disabled={processing || !timelineReady || trackState.video.locked}
+                    requiredDuration={Math.max(...videoClips.filter(clip => (clip.sourceId || clip.id) === (selectedClip.sourceId || selectedClip.id))
+                      .map(clip => clip.sourceOffset + clip.duration))}
+                    onSelect={file => changeVideoSource(selectedClip.sourceId || selectedClip.id, file)} />
                   <div className="grid grid-cols-2 gap-2">
                     <label className="space-y-1">
                       <span className="text-[11px] text-n300">源片入点（秒）</span>

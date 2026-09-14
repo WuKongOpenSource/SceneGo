@@ -5,6 +5,7 @@ import { VideoPage } from '../../components/VideoPage';
 import { loadWorkspaceSession, saveWorkspaceSession, type WorkspaceSession } from '../../services/videoWorkspaceService';
 import { importVideoResult, readUploadedVideoDuration, readVideoResultDuration } from '../../services/videoUploadService';
 import { __resetVideoTaskPollerForTesting } from '../../services/videoTaskPoller';
+import { ALL_MODELS, makeDefaultDashScopeParams } from '../../services/videoModelService';
 
 vi.mock('../../hooks/useSeedanceCandidates', () => ({ useSeedanceCandidates: () => ({ candidates: [], isLoading: false }) }));
 vi.mock('../../components/video/CapabilityVideoPanel', () => ({ CapabilityVideoPanel: () => null }));
@@ -48,6 +49,58 @@ async function uploadToPage() {
 }
 
 describe('VideoPage external video persistence', () => {
+  it.each(ALL_MODELS)('shows timing for %s in card and list views using its own selected duration', async model => {
+    vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: {
+      ...emptySession,
+      task_groups: [{ uuid: 'card', ids: ['i'], model, duration: 2, videoParams: { duration: 9 },
+        minimaxParams: { model: 'MiniMax-Hailuo-2.3', resolution: '768P', duration: 10, promptOptimizer: true } }],
+      uploaded_images: [{ id: 'i', storyboardItemId: 's', url: '/first.png', filename: '', uploadTime: 0 }],
+      storyboard_meta: { s: { plannedDurationMs: 10000, audioDurationMs: 10200 } },
+      dashscope_params: model === 'Kling' || model === 'Vidu' || model === 'HappyHorse'
+        ? { card: { ...makeDefaultDashScopeParams(model), duration: 7, hh_duration: 13 } } : {},
+    } });
+    render(<VideoPage sessionScope="ep-1" episodeId="ep-1" />);
+    const seconds = model.startsWith('Seedance') ? 11 : model === 'MINI' ? 10
+      : model === 'HappyHorse' ? 13 : model === 'Kling' || model === 'Vidu' ? 7
+      : model === 'Sora2' ? 15 : model === 'Veo' ? 8 : 9;
+    const expected = `脚本 10秒 · 配音 10.2秒 · 校准 10.7秒 · 选用 ${seconds}秒`;
+    expect(await screen.findByTestId('video-timing-summary')).toHaveTextContent(expected);
+    fireEvent.click(screen.getByRole('button', { name: '列表视图' }));
+    const summary = screen.getByTestId('video-timing-summary');
+    expect(summary).toHaveTextContent(expected);
+    expect(summary).toHaveTextContent('镜头1：脚本 10秒 / 配音 10.2秒 / 校准 10.7秒');
+    expect(summary).toHaveTextContent('当前模型设置为准');
+    expect(summary.textContent?.includes('时长不足')).toBe(seconds < 10.7);
+    expect(fetchMock.mock.calls.some(([url, options]) => options?.method === 'POST' && String(url).endsWith('/api/generate'))).toBe(false);
+  });
+
+  it('keeps the timing explanation visible for a model with no script or voice timing yet', async () => {
+    vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: {
+      ...emptySession, task_groups: [{ uuid: 'card', ids: ['i'], model: 'MINI' }],
+      uploaded_images: [{ id: 'i', url: '/first.png', filename: '', uploadTime: 0 }],
+    } });
+    render(<VideoPage sessionScope="ep-1" />);
+    const summary = await screen.findByTestId('video-timing-summary');
+    expect(summary).toHaveTextContent('脚本 未提供 · 配音 未生成 · 校准 未提供 · 选用 6秒');
+    expect(summary).not.toHaveTextContent('时长不足');
+    fireEvent.change(screen.getByRole('option', { name: '10 秒' }).closest('select')!, { target: { value: '10' } });
+    expect(summary).toHaveTextContent('选用 10秒');
+  });
+
+  it('shows the sum of H3 Director shot durations rather than the single-clip setting', async () => {
+    vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: {
+      ...emptySession, task_groups: [{ uuid: 'card', ids: ['a', 'b'], model: 'MiniMaxH3', h3LongVideo: true,
+        videoParams: { duration: 5 }, mergedFrom: [
+          { uuid: 'a', ids: ['a'], model: 'MiniMaxH3', duration: 6, prompt: '推门' },
+          { uuid: 'b', ids: ['b'], model: 'MiniMaxH3', duration: 8, prompt: '入座' },
+        ] }],
+      uploaded_images: ['a', 'b'].map(id => ({ id, storyboardItemId: id, url: `/${id}.png`, filename: '', uploadTime: 0 })),
+      storyboard_meta: { a: { plannedDurationMs: 6000 }, b: { plannedDurationMs: 8000 } },
+    } });
+    render(<VideoPage sessionScope="ep-1" />);
+    expect(await screen.findByTestId('video-timing-summary')).toHaveTextContent('脚本 14秒 · 配音 未生成 · 校准 14秒 · 选用 14秒');
+  });
+
   it.each([false, true])('asks before a short generation and submits only on confirmation=%s', async accepted => {
     const confirm = vi.fn(() => accepted);
     vi.stubGlobal('confirm', confirm);

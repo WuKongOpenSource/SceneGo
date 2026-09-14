@@ -204,6 +204,20 @@ async def test_select_entity_file_keeps_success_when_legacy_sync_fails():
     logger.warning.assert_called_once()
 
 
+async def test_video_selection_does_not_repeat_the_atomic_legacy_url_update():
+    result = await entity_file_service.select_entity_file(
+        file_id="file_1",
+        entity_type="video_segment",
+        entity_id="segment_1",
+        file_role="video",
+        entity_file_dao=FakeEntityFileDAO,
+    )
+
+    assert result["success"] is True
+    assert FakeEntityFileDAO.selected == ("file_1", "video_segment", "segment_1", "video")
+    assert FakeEntityFileDAO.synced == []
+
+
 async def test_upload_entity_file_saves_and_syncs_media_library():
     saved_calls = []
     media_calls = []

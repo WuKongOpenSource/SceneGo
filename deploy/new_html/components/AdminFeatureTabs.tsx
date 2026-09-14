@@ -14,6 +14,7 @@
 
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { rechargeOrderStatus } from '../utils/rechargeOrderStatus';
 import {
   Users, FolderTree, Coins, ScrollText, Image as ImageIcon,
   ShieldCheck, RefreshCw, Plus, Trash2, ToggleLeft, ToggleRight, KeyRound,
@@ -1029,10 +1030,6 @@ const RechargeOrdersTab: React.FC = () => {
 
   useEffect(() => { void reload(); }, [reload]);
 
-  const statusText: Record<string, string> = {
-    pending: '待支付', paid: '已支付', closed: '已关闭', expired: '已过期', failed: '失败',
-  };
-  const statusType = (status: string) => status === 'paid' ? 'success' : status === 'pending' ? 'warning' : 'default';
   const formatFen = (value: number) => `¥${(Number(value || 0) / 100).toFixed(2)}`;
   const pageRows = orders.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
@@ -1080,7 +1077,10 @@ const RechargeOrdersTab: React.FC = () => {
             <td className="p-2.5 text-right font-mono text-n300">{formatFen(order.base_amount_fen)}</td>
             <td className="p-2.5 text-right font-mono text-success">{formatFen(order.amount_fen)}</td>
             <td className="p-2.5 text-right font-mono text-n700">{Number(order.discount_bps) / 100}%</td>
-            <td className="p-2.5"><CrmTag type={statusType(order.status)}>{statusText[order.status] || order.status}</CrmTag></td>
+            <td className="p-2.5">
+              <CrmTag type={rechargeOrderStatus(order.status).type}>{rechargeOrderStatus(order.status).label}</CrmTag>
+              {order.failure_reason && <div className="mt-1 max-w-48 text-[10px] text-n300">{order.failure_reason}</div>}
+            </td>
             <td className="max-w-40 truncate p-2.5 font-mono text-[10px] text-n300" title={order.transaction_id || ''}>{order.transaction_id || '-'}</td>
             <td className="p-2.5 text-[10px] text-n300">{order.paid_at ? new Date(order.paid_at).toLocaleString('zh-CN') : '-'}</td>
           </tr>

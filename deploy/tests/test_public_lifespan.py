@@ -62,6 +62,7 @@ async def runtime(monkeypatch):
     monkeypatch.setattr(public_main, "OnlineProviderWorker", worker)
     monkeypatch.setattr(public_main, "OnlineProviderTaskService", service)
     monkeypatch.setattr(public_main, "email_outbox_worker_loop", background)
+    monkeypatch.setattr(public_main, "recharge_order_expiry_loop", background)
     monkeypatch.setattr(public_main, "provider_health_monitor_loop", background)
     try:
         yield state
@@ -108,7 +109,7 @@ async def test_successful_start_and_shutdown_clear_resources(runtime):
         await asyncio.sleep(0)
         assert runtime.app.state.redis_client is runtime.clients[0]
         assert len(public_main.online_workers) == 2
-        assert len(runtime.running) == 4
+        assert len(runtime.running) == 5
         runtime.db.disconnect.assert_not_awaited()
     assert_released(runtime)
 

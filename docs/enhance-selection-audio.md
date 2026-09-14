@@ -45,3 +45,20 @@ base64-loading the original video through the remote-input size limit. Only the
 requested audio range is extracted as mono 16 kHz WAV, bounded to 60 seconds and
 2 MB. Media protocol/format allowlists, timeouts, project access and concurrency
 limits still apply. Black clips are silence and are skipped during recognition.
+
+Processed video clips show explicit **HD enhanced**, **Frame interpolated** or
+**Lip-synced** labels based on the current file's persisted provenance. Checking a
+processing option does not mark a file as processed. The episode media query
+returns only these safe labels and duration, never raw task metadata or server paths.
+
+Use **Restore original material** in the selected video's editing panel to review
+its retained versions, preview one and confirm the switch. Merely opening or
+selecting a version does not write anything. Source history is loaded on demand
+in pages, and the chosen video's readable duration must cover every active cut.
+Missing, deleted or too-short sources cannot replace the current version.
+
+All cuts referencing that segment switch together; their start times, in-points,
+durations, transitions, subtitles and independent audio edits stay unchanged.
+The selected-file flags and canonical video URL commit in one database transaction.
+No source bytes or retained HD versions are deleted. Edit undo/redo continues to
+use the current source; change the material version again to switch sources back.

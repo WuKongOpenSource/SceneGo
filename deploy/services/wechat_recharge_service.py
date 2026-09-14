@@ -5,6 +5,7 @@ one service so the browser can never choose the payable amount or credit grant.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import secrets
@@ -34,8 +35,28 @@ from services.wechat_pay_crypto import (
     decrypt_wechat_pay_resource,
     verify_wechat_pay_signature,
 )
+from utils.recharge_order_policy import RECHARGE_TIMEOUT_HOURS, RECHARGE_TIMEOUT_REASON
 
 logger = logging.getLogger(__name__)
+
+
+async def expire_overdue_recharge_orders(*, user_id: str = '', out_trade_no: str = '') -> int:
+    return await WechatRechargeDAO.fail_overdue_orders(
+        cutoff=datetime.now(timezone.utc) - timedelta(hours=RECHARGE_TIMEOUT_HOURS),
+        user_id=user_id, out_trade_no=out_trade_no,
+    )
+
+
+async def recharge_order_expiry_loop() -> None:
+    """Sweep on startup and each minute, even with no browser polling orders."""
+    while True:
+        try:
+            count = await expire_overdue_recharge_orders()
+            if count:
+                logger.info('Marked %s unpaid recharge orders as timed out', count)
+        except Exception:
+            logger.warning('Recharge timeout sweep failed; will retry', exc_info=True)
+        await asyncio.sleep(60)
 
 
 class WechatRechargeError(RuntimeError):
@@ -312,6 +333,7 @@ async def settle_recharge(
 
 
 async def get_recharge_order(user_id: str, out_trade_no: str) -> Optional[Dict[str, Any]]:
+    await expire_overdue_recharge_orders(user_id=user_id, out_trade_no=out_trade_no)
     row = await WechatRechargeDAO.get_user_order(user_id, out_trade_no)
     if not row:
         return None
@@ -319,7 +341,9 @@ async def get_recharge_order(user_id: str, out_trade_no: str) -> Optional[Dict[s
     now = datetime.now(timezone.utc)
     last_checked = order.get('last_checked_at')
     should_query = (
-        order['status'] == 'pending'
+        (order['status'] == 'pending' or (
+            order['status'] == 'failed' and order.get('failure_reason') == RECHARGE_TIMEOUT_REASON
+        ))
         and (not last_checked or (now - _utc(last_checked)).total_seconds() >= 8)
     )
     if should_query:
@@ -340,7 +364,8 @@ async def get_recharge_order(user_id: str, out_trade_no: str) -> Optional[Dict[s
                     failure_reason=str(payload.get('trade_state_desc') or state)[:500],
                     request_id=request_id or None,
                 )
-                order = dict(row)
+                if row:
+                    order = dict(row)
             else:
                 row = await WechatRechargeDAO.mark_checked(
                     user_id,
@@ -359,6 +384,8 @@ async def get_recharge_order(user_id: str, out_trade_no: str) -> Optional[Dict[s
         except Exception:
             logger.info('WeChat close order deferred out_trade_no=%s', out_trade_no, exc_info=True)
         row = await WechatRechargeDAO.mark_expired(user_id, out_trade_no)
+        if not row:
+            row = await WechatRechargeDAO.get_user_order(user_id, out_trade_no)
         if row:
             order = dict(row)
     return _serialize_order(order)
@@ -416,6 +443,7 @@ async def list_recharge_orders(
     limit: int = 100,
     offset: int = 0,
 ) -> list[Dict[str, Any]]:
+    await expire_overdue_recharge_orders(user_id=user_id)
     rows = await WechatRechargeDAO.list_orders(
         user_id=user_id,
         status=status,

@@ -18,6 +18,50 @@ import {
 afterEach(cleanup);
 
 describe('ScriptConversationPane legacy history', () => {
+  it('restores the retained file source before an assistant-only first version and later revision requests', () => {
+    const original = '标题：月球茶馆开张\n场景一：月球穹顶外，林舟打开茶馆门牌。';
+    const messages: ScriptConversation['messages'] = [
+      { id: 'v1', role: 'assistant', content: '第一版分镜', status: 'completed', createdAt: 1, updatedAt: 1 },
+      { id: 'revision', role: 'user', content: '需要重新估算镜头时间', status: 'completed', createdAt: 10, updatedAt: 10 },
+      { id: 'v2', role: 'assistant', content: '第二版分镜', replyToMessageId: 'revision', status: 'completed', createdAt: 11, updatedAt: 11 },
+    ];
+    const versions: ScriptStoryboardVersion[] = [1, 2].map(n => ({
+      id: `ver-${n}`, scriptId: 'script', messageId: `v${n}`, versionNo: n, content: `第${n}版分镜`,
+      storyboardItems: [], source: 'ai', status: 'ready', createdAt: n, updatedAt: n,
+    }));
+    const before = JSON.stringify({ messages, versions });
+    const ordered = orderConversationMessages(messages, versions, original);
+    expect(ordered.map(m => m.id)).toEqual(['original-script-content', 'v1', 'revision', 'v2']);
+    expect(ordered[0]).toMatchObject({ content: original, metadata: { sourceReference: true } });
+    expect(buildConversationTurns(ordered, versions, original)[0].preview).toContain('月球茶馆开张');
+    expect(JSON.stringify({ messages, versions })).toBe(before);
+    render(<ScriptConversationPane selectedFile={{ id: 'script', name: '分集剧本', originalContent: original,
+      scriptContent: '第二版分镜', storyboard: null, extractedCharacters: [], extractedScenes: [], status: FileStatus.Completed,
+      lastUpdated: 11, versions: [] }} conversation={{ scriptId: 'script', messages, versions }} aiModel={AiModel.DeepseekChat}
+      isWorkflowScript isLoading={false} isSending={false} onChangeModel={() => undefined} onSend={async () => undefined}
+      onGenerateDesign={() => undefined} onEditVersion={async () => undefined} onExportVersion={() => undefined}
+      onOpenStoryboard={() => undefined} storyboardItemCount={0} />);
+    const initial = screen.getByText('输入文字剧本').closest('article')!;
+    expect(initial).toHaveTextContent('月球茶馆开张');
+    expect(initial).toHaveTextContent('原始文件内容');
+    expect(initial).not.toHaveTextContent('需要重新估算');
+    expect(screen.getByText('修改要求').closest('article')).toHaveTextContent('需要重新估算镜头时间');
+  });
+
+  it('handles single-message imported history without fabricating a request for an empty conversation', () => {
+    const assistant: ScriptConversation['messages'][number] = {
+      id: 'v1', role: 'assistant', content: '分镜', status: 'completed', createdAt: 1, updatedAt: 1,
+    };
+    expect(orderConversationMessages([assistant], [], '原始内容').map(m => m.content)).toEqual(['原始内容', '分镜']);
+    expect(orderConversationMessages([], [], '尚未提交的草稿')).toEqual([]);
+  });
+
+  it('does not duplicate an existing original message when line endings differ', () => {
+    const messages: ScriptConversation['messages'] = [{ id: 'original', role: 'user', content: '原始\r\n内容',
+      status: 'completed', createdAt: 1, updatedAt: 1 }];
+    expect(orderConversationMessages(messages, [], '原始\n内容')).toEqual(messages);
+  });
+
   it('renders the initial script before V1 even when migrated timestamps are reversed', () => {
     const messages: ScriptConversation['messages'] = [
       { id: 'msg-v1', role: 'assistant', content: 'V1 分镜脚本', status: 'completed', replyToMessageId: 'msg-initial', createdAt: 1, updatedAt: 1 },

@@ -63,6 +63,11 @@ async def test_batch_query_preserves_selected_original_and_deleted_scope_boundar
     ]
     rows += [(f"voice{i}", f"/voice/{i}.wav", "audio", "actor_dubbing", False, i, "s1", "video_segment", False) for i in range(65)]
     db.executemany("INSERT INTO files VALUES (?,?,?,?,?,?,?,?,?)", rows)
+    db.execute("ALTER TABLE video_segments ADD COLUMN video_url TEXT")
+    db.execute("ALTER TABLE files ADD COLUMN metadata TEXT")
+    db.execute("ALTER TABLE files ADD COLUMN duration_seconds REAL")
+    db.execute('UPDATE files SET metadata=?, duration_seconds=12 WHERE file_id=?',
+               ('{"model":"upscale","file_path":"/private/not-for-response"}', 'selected'))
     calls = []
 
     class Database:
@@ -76,6 +81,11 @@ async def test_batch_query_preserves_selected_original_and_deleted_scope_boundar
     assert {r["file_id"] for r in result if r["file_role"] == "video"} == {"selected", "fallback"}
     assert len([r for r in result if r["file_role"] == "actor_dubbing"]) == 50
     assert not any("file_path" in r or "metadata" in r for r in result)
+    assert next(r for r in result if r['file_id'] == 'selected')['enhancement_kinds'] == ['upscale']
+    assert next(r for r in result if r['file_id'] == 'selected')['duration_seconds'] == 12
+    db.execute("UPDATE video_segments SET video_url='/original/99.mp4' WHERE segment_id='s1'")
+    actual = await dao_module.EntityFileDAO.get_episode_enhance_files('ep1')
+    assert {r['file_id'] for r in actual if r['file_role'] == 'video'} == {'history99', 'fallback'}
     db.close()
 
 
