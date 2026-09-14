@@ -615,7 +615,11 @@ export const ImageUpscalePage: React.FC = () => {
                       {publicError && <div className="mt-1 text-[11px] text-danger">{publicError}</div>}
                       {billingNote && <div className="mt-1 text-[11px] text-n300">{billingNote}</div>}
                     </div>
-                    <div className="text-xs text-n300">{localDelivery ? '结果已保存到本机' : normalizedStatus === 'completed' ? deletionTime : active ? '等待本地节点处理' : ''}</div>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-n300">
+                      {normalizedStatus === 'completed' && <span>{deletionTime || '过期时间未知（结果保留 30 天）'}</span>}
+                      {localDelivery && <span>结果已保存到本机</span>}
+                      {!localDelivery && active && <span>等待本地节点处理</span>}
+                    </div>
                     <button
                       type="button"
                       onClick={() => { void downloadHistoryResult(task); }}
