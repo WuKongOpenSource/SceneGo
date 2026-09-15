@@ -422,6 +422,38 @@ async def test_mix_storyboard_audio_delegates_to_injected_mixer():
     assert captured["mix_input"].dialogue_gain_db == 1.5
 
 
+async def test_sync_preserves_ids_and_media_while_reconciling_split_order():
+    FakeStoryboardDAO.episode_rows = [
+        {"item_id": "retained-a", "sort_order": 416, "script_segment_id": "segment-1", "source_video_shot_no": "1-1", "generated_image_url": "/original.png"},
+        {"item_id": "retained-b", "sort_order": 417, "script_segment_id": "segment-2", "source_video_shot_no": "2-1"},
+    ]
+    result = await storyboard_service.sync_storyboard_items(
+        "ep_1", script_id="script_1", storyboard_dao=FakeStoryboardDAO,
+        items=[
+            {"item_id": "retained-a", "sort_order": 0},
+            {"item_id": "new-split", "sort_order": 1, "script_segment_id": "segment-2", "source_video_shot_no": "2-1"},
+            {"item_id": "retained-b", "sort_order": 2},
+        ],
+    )
+    assert result["created"] == 1
+    assert result["updated"] == 2
+    assert FakeStoryboardDAO.updates == [
+        {"item_id": "retained-a", "sort_order": 0},
+        {"item_id": "retained-b", "sort_order": 2},
+    ]
+    assert FakeStoryboardDAO.created["sort_order"] == 1
+    assert FakeStoryboardDAO.deleted == []
+
+
+async def test_audio_only_sync_does_not_change_order_when_omitted():
+    FakeStoryboardDAO.episode_rows = [{"item_id": "retained", "sort_order": 416, "dialogue": "old"}]
+    await storyboard_service.sync_storyboard_items(
+        "ep_1", items=[{"item_id": "retained", "dialogue": "new"}],
+        script_id="script_1", storyboard_dao=FakeStoryboardDAO,
+    )
+    assert FakeStoryboardDAO.updates == [{"item_id": "retained", "dialogue": "new"}]
+
+
 async def test_sync_storyboard_items_updates_existing_audio_without_creating():
     FakeStoryboardDAO.episode_rows = [
         {

@@ -12,6 +12,7 @@ from services.project_access_service import ProjectAccessDenied
 SUPPORTED_STORYBOARD_FIELDS = {"audio", "video", "audio_stage", "materials"}
 
 SYNC_UPDATE_FIELDS = (
+    ("sort_order", ("sort_order", "sortOrder")),
     ("dialogue", ("dialogue",)),
     ("dialogue_audio_url", ("dialogue_audio_url", "dialogueAudioUrl")),
     ("narration_audio_url", ("narration_audio_url", "narrationAudioUrl")),
@@ -666,6 +667,12 @@ async def sync_storyboard_items(
     skipped_count = 0
     synced_items: list[Dict[str, Any]] = []
     used_item_ids: set[str] = set()
+    # An inserted shot must not consume the identity of a retained later shot
+    # merely because its new position or source-shot label happens to match.
+    retained_item_ids = {
+        str(_row_value(item, "item_id", "itemId")) for item in items
+        if str(_row_value(item, "item_id", "itemId")) in by_item_id
+    }
 
     for raw_item in items:
         item = dict(raw_item or {})
@@ -674,7 +681,7 @@ async def sync_storyboard_items(
             by_item_id=by_item_id,
             by_segment=by_segment,
             by_sort_order=by_sort_order,
-            used_item_ids=used_item_ids,
+            used_item_ids=used_item_ids | (retained_item_ids - {str(_row_value(item, "item_id", "itemId"))}),
         )
 
         if matched:

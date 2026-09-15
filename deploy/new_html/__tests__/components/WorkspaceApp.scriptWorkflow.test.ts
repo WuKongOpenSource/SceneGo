@@ -10,6 +10,16 @@ const storyboardColumnSource = readFileSync(resolve(__dirname, '../../components
   .replace(/\r\n/g, '\n');
 
 describe('WorkspaceApp script workflow persistence', () => {
+  it('saves split and retained shots in one order without classifying UUIDs as new', () => {
+    const save = source.slice(source.indexOf('const realItems = file.storyboard.items.filter'), source.indexOf('const handleExportProject'));
+    expect(save).toContain('realItems.map((item: StoryboardItem, idx: number)');
+    expect(save).toContain('item_id: item.id');
+    expect(save).toContain('sort_order: idx');
+    expect(save).toContain('await syncStoryboardItems(propEpisodeId, dbItems, file.id)');
+    expect(save).not.toContain("startsWith('sb_')");
+    expect(save).not.toContain('persistedItemCount + idx');
+    expect(save).toContain('createdIds.get(it.id)');
+  });
   it('protects the final script file without silently clearing its content', () => {
     expect(source).toContain('if (files.length <= 1)');
     expect(source).toContain('每个分集至少需要保留一个剧本文件，最后一个剧本不能删除。请先新建或上传另一个剧本。');

@@ -1054,20 +1054,20 @@ const WorkspaceApp: React.FC<WorkspaceAppProps> = ({
         if (!file.storyboard?.items?.length) continue;
 
         const realItems = file.storyboard.items.filter(i => !i.isPlaceholder);
-        const newItems = realItems.filter(i => !i.id || !i.id.startsWith('sb_'));
-        if (newItems.length === 0) continue;
+        if (realItems.length === 0) continue;
         const persistedItemCount = Math.max(
           storyboardTotalsByFileId[file.id] ?? 0,
-          realItems.length - newItems.length,
+          realItems.length,
         );
 
-        const dbItems = newItems.map((item: StoryboardItem, idx: number) => {
+        const dbItems = realItems.map((item: StoryboardItem, idx: number) => {
 
           const rawImg = ((item as any).generatedImage || (item as any).generated_image_url || '').toString();
           const cleanImg = rawImg.split('?')[0];
           const persistImg = (cleanImg.startsWith('http') || cleanImg.startsWith('/')) ? cleanImg : '';
           return ({
-          sort_order: persistedItemCount + idx,
+          item_id: item.id,
+          sort_order: idx,
           scene_heading: item.originalText || item.scene || '',
           action_text: item.scriptSegment || '',
           dialogue: item.dialogue || '',
@@ -1085,15 +1085,17 @@ const WorkspaceApp: React.FC<WorkspaceAppProps> = ({
         });
         });
 
-        const result: any = await batchCreateStoryboardItems(propEpisodeId, dbItems, file.id);
+        // Reconcile by persisted identity; UUID-shaped ids can already exist.
+        // Sync the full loaded sequence so split children and retained shots share one order.
+        const result: any = await syncStoryboardItems(propEpisodeId, dbItems, file.id);
         if (result?.success && Array.isArray(result.items)) {
           const newIds: string[] = result.items.map((r: any) => r.item_id ?? r.itemId);
           const applyCreatedIds = (sourceFiles: ProjectFile[]) => sourceFiles.map(f => {
             if (f.id !== file.id || !f.storyboard) return f;
-            let realIdx = 0;
+            const createdIds = new Map(realItems.map((item, index) => [item.id, newIds[index]]));
             const updatedItems = f.storyboard.items.map(it => {
-              if (it.isPlaceholder || (it.id && it.id.startsWith('sb_'))) return it;
-              const newId = newIds[realIdx++];
+              if (it.isPlaceholder) return it;
+              const newId = createdIds.get(it.id);
               return newId ? { ...it, id: newId } : it;
             });
             return { ...f, storyboard: { ...f.storyboard, items: updatedItems } };
@@ -1102,7 +1104,7 @@ const WorkspaceApp: React.FC<WorkspaceAppProps> = ({
           filesRef.current = applyCreatedIds(filesRef.current);
           setStoryboardTotalsByFileId(prev => ({
             ...prev,
-            [file.id]: Math.max(prev[file.id] ?? 0, persistedItemCount) + newIds.length,
+            [file.id]: Math.max(prev[file.id] ?? 0, persistedItemCount, newIds.length),
           }));
         }
       }
