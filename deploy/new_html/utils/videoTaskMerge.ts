@@ -1,4 +1,4 @@
-import type { MergedCardSnapshot, TaskGroup, TaskStatus } from '../services/videoTaskTypes';
+import type { MergedCardSnapshot, TaskGroup, TaskStatus, UploadedImage } from '../services/videoTaskTypes';
 
 const normalizeSegmentKey = (key: string | null | undefined): string => String(key || '').trim();
 
@@ -36,6 +36,36 @@ export interface VideoStoryboardShotInfo {
   localShotNo: number;
   label: string;
   isFirstInSegment: boolean;
+}
+
+/** Resolve by persistent identity; imported labels are only an offline fallback. */
+export function resolveVideoStoryboardShotInfo(
+  imageId: string,
+  image: UploadedImage | undefined,
+  current: ReadonlyMap<string, VideoStoryboardShotInfo>,
+): VideoStoryboardShotInfo | null {
+  const itemId = String(image?.storyboardItemId || imageId || '').trim();
+  const live = current.get(itemId);
+  if (live) return live;
+  const label = String(image?.storyboardShotLabel || '').trim();
+  if (label && image?.storyboardSegmentNo && image.storyboardLocalShotNo) {
+    return {
+      itemId,
+      segmentKey: image.storyboardSegmentKey || `storyboard-segment-${image.storyboardSegmentNo}`,
+      segmentNo: image.storyboardSegmentNo,
+      localShotNo: image.storyboardLocalShotNo,
+      label,
+      isFirstInSegment: Boolean(image.isStoryboardSegmentStart),
+    };
+  }
+  if (image?.storyboardItemId && image.sortOrder != null) {
+    return {
+      itemId, segmentKey: 'storyboard-segment-unassigned', segmentNo: 1,
+      localShotNo: image.sortOrder + 1, label: `镜头1-${image.sortOrder + 1}`,
+      isFirstInSegment: image.sortOrder === 0,
+    };
+  }
+  return null;
 }
 
 /**

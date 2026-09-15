@@ -121,6 +121,7 @@ import { captureVideoPromptHistory, getVideoResultPrompt } from '../utils/videoP
 import {
     buildDownwardMergePlan,
     buildVideoStoryboardShotLookup,
+    resolveVideoStoryboardShotInfo,
     canCreateFirstLastPair,
     getTaskStatusHistoryDelta,
     mergeTaskStatusHistories,
@@ -633,31 +634,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
     const getImageShotInfo = useCallback((imageId: string): VideoStoryboardShotInfo | null => {
         const image = uploadedImages.find(candidate => candidate.id === imageId);
-        const itemId = String(image?.storyboardItemId || imageId || '').trim();
-        const persistedLabel = String(image?.storyboardShotLabel || '').trim();
-        if (persistedLabel && image?.storyboardSegmentNo && image?.storyboardLocalShotNo) {
-            return {
-                itemId,
-                segmentKey: image.storyboardSegmentKey || `storyboard-segment-${image.storyboardSegmentNo}`,
-                segmentNo: image.storyboardSegmentNo,
-                localShotNo: image.storyboardLocalShotNo,
-                label: persistedLabel,
-                isFirstInSegment: Boolean(image.isStoryboardSegmentStart),
-            };
-        }
-        const current = storyboardShotInfoByItemId.get(itemId);
-        if (current) return current;
-        if (image?.storyboardItemId && image.sortOrder != null) {
-            return {
-                itemId,
-                segmentKey: 'storyboard-segment-unassigned',
-                segmentNo: 1,
-                localShotNo: image.sortOrder + 1,
-                label: `镜头1-${image.sortOrder + 1}`,
-                isFirstInSegment: image.sortOrder === 0,
-            };
-        }
-        return null;
+        return resolveVideoStoryboardShotInfo(imageId, image, storyboardShotInfoByItemId);
     }, [storyboardShotInfoByItemId, uploadedImages]);
 
     const getGroupShotRange = useCallback((group: TaskGroup, index: number) => {
@@ -2131,10 +2108,10 @@ export const VideoPage: React.FC<VideoPageProps> = ({
     const getGroupSegmentKey = useCallback((group: TaskGroup): string | null => {
         const firstImageId = group.ids?.[0] || '';
         const image = uploadedImages.find(candidate => candidate.id === firstImageId);
-        if (image?.storyboardSegmentKey) return image.storyboardSegmentKey;
         const itemId = getStoryboardItemIdForImageId(firstImageId);
         const segmentKey = storyboardSegmentKeyByItemId.get(itemId);
         if (segmentKey) return segmentKey;
+        if (image?.storyboardSegmentKey) return image.storyboardSegmentKey;
 
         const looksLikeStoryboardCard = Boolean(
             image?.storyboardItemId

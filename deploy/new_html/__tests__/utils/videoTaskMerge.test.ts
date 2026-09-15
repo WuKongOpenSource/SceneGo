@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import type { MergedCardSnapshot, TaskGroup } from '../../services/videoTaskTypes';
+import type { MergedCardSnapshot, TaskGroup, UploadedImage } from '../../services/videoTaskTypes';
 import {
   buildDownwardMergePlan,
   buildVideoStoryboardShotLookup,
+  resolveVideoStoryboardShotInfo,
   canCreateFirstLastPair,
   canMergeAdjacentGroups,
   getTaskStatusHistoryDelta,
@@ -30,6 +31,39 @@ const mergeOptions = (
 });
 
 describe('video storyboard shot labels', () => {
+  const staleImage: UploadedImage = {
+    id: 'imported-image', storyboardItemId: 'persistent-shot', url: '/original.png',
+    filename: 'original.png', uploadTime: 1, sortOrder: 8,
+    storyboardSegmentKey: 'old-segment', storyboardSegmentNo: 1,
+    storyboardLocalShotNo: 3, storyboardShotLabel: '镜头1-3', isStoryboardSegmentStart: false,
+  };
+
+  it('uses current identity-based labels after reorder without mutating imported media', () => {
+    const image = Object.freeze({ ...staleImage });
+    const lookup = buildVideoStoryboardShotLookup([
+      { item_id: 'persistent-shot', sort_order: 7, script_segment_id: 'segment-4', source_video_shot_no: '分镜4-1' },
+    ]);
+    expect(resolveVideoStoryboardShotInfo(image.id, image, lookup)).toMatchObject({
+      label: '镜头4-1', segmentKey: 'segment-4', isFirstInSegment: true,
+    });
+    expect(image).toEqual(staleImage);
+  });
+
+  it('falls back to the snapshot only while the source is unavailable', () => {
+    expect(resolveVideoStoryboardShotInfo(staleImage.id, staleImage, new Map())).toMatchObject({ label: '镜头1-3' });
+    const lookup = buildVideoStoryboardShotLookup([{ item_id: 'persistent-shot', sort_order: 0 }]);
+    expect(resolveVideoStoryboardShotInfo(staleImage.id, staleImage, lookup)?.label).toBe('镜头1-1');
+  });
+
+  it('resolves legacy source IDs but does not label unrelated external uploads', () => {
+    const lookup = buildVideoStoryboardShotLookup([{ item_id: 'persistent-shot', sort_order: 0 }]);
+    expect(resolveVideoStoryboardShotInfo('persistent-shot', undefined, lookup)?.label).toBe('镜头1-1');
+    expect(resolveVideoStoryboardShotInfo('external', undefined, lookup)).toBeNull();
+    expect(resolveVideoStoryboardShotInfo('legacy', {
+      id: 'legacy', storyboardItemId: 'removed', sortOrder: 2, url: '/legacy.png', filename: 'legacy.png', uploadTime: 0,
+    }, lookup)?.label).toBe('镜头1-3');
+  });
+
   it('numbers shots locally inside ordered script segments for snake and camel case rows', () => {
     const lookup = buildVideoStoryboardShotLookup([
       { item_id: 'b', sort_order: 2, script_segment_id: 'segment-a' },
