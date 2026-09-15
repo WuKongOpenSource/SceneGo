@@ -61,7 +61,7 @@ def _content_security_policy(path: str, admin_entry_path: str) -> str:
         "img-src 'self' data: blob: https:",
         "media-src 'self' data: blob: https:",
         "font-src 'self' data:",
-        "connect-src 'self' https: wss:",
+        "connect-src 'self' https: wss: blob: data:",
         "worker-src 'self' blob:",
     ]
     if path in AUTH_PAGE_PATHS:

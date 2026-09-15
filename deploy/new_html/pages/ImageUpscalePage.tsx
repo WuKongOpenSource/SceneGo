@@ -240,13 +240,15 @@ export const ImageUpscalePage: React.FC = () => {
   }, [previewUrl]);
 
   const startUpscale = useCallback(async () => {
-    if (!file || !previewUrl || busy) return;
+    if (!file || busy) return;
     setStatus('uploading');
     setProgress(0);
     setError('');
     setResultUrl('');
+    let phase = '上传图片';
     try {
-      const upload = await uploadImageToComfyUI(previewUrl, { standalone: !projectId });
+      const upload = await uploadImageToComfyUI(file, { standalone: !projectId });
+      phase = '提交放大任务';
       setStatus('queued');
       const submitted = await processMaterial(upload.filename, 'image_upscale', {
         fileRole: 'upscaled_image',
@@ -263,6 +265,7 @@ export const ImageUpscalePage: React.FC = () => {
       });
       setTaskId(submitted.task_id);
       setStatus('running');
+      phase = '读取任务进度';
       void loadHistory();
       const url = await waitForComfyUITask(
         submitted.task_id,
@@ -287,9 +290,12 @@ export const ImageUpscalePage: React.FC = () => {
       window.dispatchEvent(new CustomEvent('credits:updated'));
     } catch (caught: any) {
       setStatus('failed');
-      setError(caught?.message || '图片放大失败，请稍后重试。');
+      const message = String(caught?.message || '');
+      setError(/failed to fetch|networkerror|load failed/i.test(message)
+        ? `${phase}时网络连接失败，请检查网络后重试；若任务已提交，可在放大历史中查看，勿重复提交。`
+        : message || '图片放大失败，请稍后重试。');
     }
-  }, [busy, dpi, episodeId, file, loadHistory, previewUrl, projectId, targetLongEdge, textClarity]);
+  }, [busy, dpi, episodeId, file, loadHistory, projectId, targetLongEdge, textClarity]);
 
   const downloadUpscaleOutput = useCallback(async (url: string, filename: string) => {
     const nodeOutputMatch = url.match(/^\/api\/node-outputs\/[^/]+\/[^/]+\/download(?:\?.*)?$/);

@@ -30,7 +30,7 @@ export interface PublicLocalMaterialTaskResult {
 }
 
 export async function uploadImageToComfyUI(
-  imageUrlOrDataUrl: string,
+  imageUrlOrDataUrl: string | Blob,
   options?: { standalone?: boolean },
 ): Promise<PublicLocalUploadResult> {
   return invokePublicLocalRuntime<PublicLocalUploadResult>('media.upload', [imageUrlOrDataUrl, options]);

@@ -68,6 +68,20 @@ async def test_spa_security_headers_disallow_inline_scripts(monkeypatch) -> None
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("path", ["/image-upscale", "/projects", "/studio/", "/login"])
+async def test_local_media_can_be_read_without_relaxing_script_or_frame_sources(path) -> None:
+    async with AsyncClient(transport=ASGITransport(app=app()), base_url="https://tv.example") as client:
+        response = await client.get(path)
+    directives = dict(part.strip().split(" ", 1) for part in response.headers["Content-Security-Policy"].split(";") if " " in part.strip())
+    assert directives["connect-src"] == "'self' https: wss: blob: data:"
+    for directive in ("script-src", "frame-src"):
+        effective = directives.get(directive, directives["default-src"])
+        assert "blob:" not in effective
+        assert "data:" not in effective
+        assert "unsafe-eval" not in effective
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("path", ["/login", "/legacy-login", "/register", "/bind-phone", "/password-reset"])
 async def test_login_csp_uses_only_local_verification_assets(monkeypatch, path) -> None:
     monkeypatch.setenv("OSTORY_RUNTIME_ENV", "production")
