@@ -1079,7 +1079,7 @@ const RechargeOrdersTab: React.FC = () => {
             <td className="p-2.5 text-right font-mono text-n700">{Number(order.discount_bps) / 100}%</td>
             <td className="p-2.5">
               <CrmTag type={rechargeOrderStatus(order.status).type}>{rechargeOrderStatus(order.status).label}</CrmTag>
-              {order.failure_reason && <div className="mt-1 max-w-48 text-[10px] text-n300">{order.failure_reason}</div>}
+              {order.failure_reason && <div className="mt-1 max-w-48 truncate text-[10px] text-n300" title={order.failure_reason}>{order.failure_reason}</div>}
             </td>
             <td className="max-w-40 truncate p-2.5 font-mono text-[10px] text-n300" title={order.transaction_id || ''}>{order.transaction_id || '-'}</td>
             <td className="p-2.5 text-[10px] text-n300">{order.paid_at ? new Date(order.paid_at).toLocaleString('zh-CN') : '-'}</td>

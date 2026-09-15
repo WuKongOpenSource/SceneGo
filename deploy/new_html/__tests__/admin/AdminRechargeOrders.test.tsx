@@ -15,6 +15,9 @@ it('shows the uppercase API failure as a failed ledger row with its timeout reas
   expect(row).toHaveTextContent('失败');
   expect(row).toHaveTextContent('超过12小时未确认到账');
   expect(row).not.toHaveTextContent('FAILED');
+  const reason = screen.getByTitle('超过12小时未确认到账，订单自动标记为失败');
+  expect(reason).toHaveClass('truncate', 'max-w-48');
+  expect(reason).toHaveTextContent('超过12小时未确认到账，订单自动标记为失败');
   fireEvent.change(screen.getByRole('combobox'), { target: { value: 'failed' } });
   await waitFor(() => expect(mocks.api).toHaveBeenCalledWith(
     expect.stringContaining('status=failed'), { method: 'GET' }, 'Admin API',
