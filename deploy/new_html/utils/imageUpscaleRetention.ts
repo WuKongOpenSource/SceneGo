@@ -32,3 +32,8 @@ export function formatImageUpscaleDeletionTime(
 
   return `预计于 ${parts.year}年${parts.month}月${parts.day}日 ${parts.hour}时${parts.minute}分删除`;
 }
+
+export function isImageUpscaleExpired(expiresAt?: string | null, now = Date.now()): boolean {
+  const expiry = parseDate(expiresAt);
+  return expiry !== null && expiry.getTime() <= now;
+}

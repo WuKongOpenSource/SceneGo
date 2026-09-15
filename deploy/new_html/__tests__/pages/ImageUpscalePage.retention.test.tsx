@@ -63,6 +63,15 @@ describe('image upscale history retention', () => {
     expect(screen.getByText('过期时间未知（结果保留 30 天）')).toBeInTheDocument();
   });
 
+  it('disables expired output downloads without submitting or requesting a ticket', async () => {
+    await openHistory({ result: { images: [{ url: '/api/node-outputs/t/o/download', expires_at: '2000-01-01T00:00:00Z' }] } });
+    const button = screen.getByRole('button', { name: '已过期' });
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(apiJson).toHaveBeenCalledTimes(1);
+    expect(processMaterial).not.toHaveBeenCalled();
+  });
+
   it.each(['running', 'failed'])('does not show completed-result expiry for %s tasks', async status => {
     vi.mocked(apiJson).mockResolvedValue({ tasks: [{ ...completedTask, status, completed_at: null }] });
     render(<ImageUpscalePage />);

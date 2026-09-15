@@ -7,6 +7,7 @@ and safely buffers size-unknown upload bodies to a spooled temporary file.
 from __future__ import annotations
 
 import os
+import re
 import tempfile
 from typing import Any
 
@@ -31,10 +32,17 @@ def configured_request_body_limit() -> int:
 class RequestBodyLimitMiddleware:
     """Reject request bodies beyond an exact byte count before route parsing."""
 
-    def __init__(self, app, *, max_bytes: int | None = None, spool_memory_bytes: int = 1024 * 1024):
+    def __init__(self, app, *, max_bytes: int | None = None, spool_memory_bytes: int = 1024 * 1024,
+                 streaming_limits: dict[str, int] | None = None):
         self.app = app
         self.max_bytes = max_bytes or configured_request_body_limit()
         self.spool_memory_bytes = max(64 * 1024, int(spool_memory_bytes))
+        # Opt-in routes must authenticate before reading and enforce their own
+        # expected byte count. Known-length transfers never spool to disk.
+        self.streaming_limits = [(re.compile(pattern), int(limit))
+                                 for pattern, limit in (streaming_limits or {}).items()]
+        if any(limit <= 0 for _, limit in self.streaming_limits):
+            raise ValueError("Streaming body limits must be positive")
 
     async def _reject(self, scope, receive, send) -> None:
         response = JSONResponse(
@@ -50,18 +58,27 @@ class RequestBodyLimitMiddleware:
             return
 
         headers = {name.lower(): value for name, value in scope.get("headers") or []}
+        streaming_limit = next((limit for pattern, limit in self.streaming_limits
+                                if scope.get("method") == "POST"
+                                and pattern.fullmatch(scope.get("path", ""))), None)
+        limit = streaming_limit or self.max_bytes
         raw_length = headers.get(b"content-length")
         if raw_length is not None:
             try:
                 declared = int(raw_length)
             except (TypeError, ValueError):
                 declared = -1
-            if declared > self.max_bytes:
+            if declared > limit:
                 await self._reject(scope, receive, send)
                 return
-            if 0 <= declared <= self.max_bytes:
+            if 0 <= declared <= limit:
                 await self.app(scope, receive, send)
                 return
+
+        if streaming_limit is not None:
+            response = JSONResponse({"detail": "文件传输需要有效的 Content-Length"}, status_code=411)
+            await response(scope, receive, send)
+            return
 
         spool = tempfile.SpooledTemporaryFile(max_size=self.spool_memory_bytes)
         total = 0

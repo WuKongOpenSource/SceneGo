@@ -18,7 +18,7 @@ import { processMaterial, uploadImageToComfyUI } from '@runtime/comfyuiBridgeSer
 import { waitForComfyUITask } from '@runtime/comfyuiTaskWaitService';
 import { estimateCredits } from '../services/creditService';
 import { apiBlob, apiJson } from '../services/httpClient';
-import { formatImageUpscaleDeletionTime } from '../utils/imageUpscaleRetention';
+import { formatImageUpscaleDeletionTime, isImageUpscaleExpired } from '../utils/imageUpscaleRetention';
 import {
   getImageUpscaleBillingNote,
   getImageUpscaleHistoryError,
@@ -586,6 +586,7 @@ export const ImageUpscalePage: React.FC = () => {
                 const publicError = getImageUpscaleHistoryError(task);
                 const billingNote = getImageUpscaleBillingNote(task);
                 const localDelivery = isLocalImageUpscaleDelivery(task);
+                const expired = isImageUpscaleExpired(upscaleResultExpiresAt(task));
                 const active = ['pending', 'queued', 'processing', 'running'].includes(normalizedStatus);
                 const deletionTime = normalizedStatus === 'completed'
                   ? formatImageUpscaleDeletionTime(
@@ -629,11 +630,11 @@ export const ImageUpscalePage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => { void downloadHistoryResult(task); }}
-                      disabled={!result || historyDownloadId === task.task_id}
+                      disabled={!result || expired || historyDownloadId === task.task_id}
                       className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-primary px-3 text-xs font-semibold text-primary hover:bg-primary-light disabled:cursor-not-allowed disabled:border-n60 disabled:text-n200"
                     >
                       {historyDownloadId === task.task_id ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-                      {result ? '重新下载' : localDelivery ? '本机文件' : '暂无结果'}
+                      {expired ? '已过期' : result ? '重新下载' : localDelivery ? '本机文件' : '暂无结果'}
                     </button>
                   </div>
                 );
