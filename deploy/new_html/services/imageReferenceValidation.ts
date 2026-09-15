@@ -1,4 +1,5 @@
 import { apiJson } from './httpClient';
+import type { GenerationReference, MaterialLibrary } from '../types';
 
 interface ImageReference { url: string; name?: string }
 interface ImageReferenceScope { projectId?: string; episodeId?: string; shotId: string }
@@ -29,5 +30,34 @@ export async function validateImageReferences(references: readonly ImageReferenc
   }
   if (response.invalid_indexes.length) {
     throw new InvalidImageReferencesError(response.invalid_indexes.map(index => references[index]));
+  }
+}
+
+/** Repair only server-rejected bindings with one unambiguous same-asset original. */
+export async function validateAndRecoverImageReferences(
+  references: GenerationReference[],
+  library: MaterialLibrary,
+  scope: ImageReferenceScope,
+): Promise<GenerationReference[]> {
+  try {
+    await validateImageReferences(references, scope);
+    return references;
+  } catch (error) {
+    if (!(error instanceof InvalidImageReferencesError)) throw error;
+    const invalid = new Set(error.urls);
+    const repaired = references.map(reference => {
+      if (!invalid.has(reference.url) || !reference.assetId) return reference;
+      const candidates = new Map(Object.values(library).flat()
+        .filter(material => material.assetId === reference.assetId && material.fileId
+          && material.fileId !== reference.fileId && material.url && material.url !== reference.url)
+        .map(material => [material.fileId!, material]));
+      if (candidates.size !== 1) return reference;
+      const material = [...candidates.values()][0];
+      return { ...reference, fileId: material.fileId, url: material.url };
+    });
+    // Never silently drop missing/ambiguous inputs or retry the paid provider.
+    if (repaired.some(reference => invalid.has(reference.url))) throw error;
+    await validateImageReferences(repaired, scope);
+    return repaired;
   }
 }

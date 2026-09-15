@@ -148,9 +148,11 @@ describe('GenerationPage external reference persistence', () => {
 describe('GenerationPage reference actions', () => {
   it('validates exact submitted references before progress, credits, or provider calls', () => {
     const execute = source.slice(source.indexOf('const executeGenerationForShot'), source.indexOf('const generateForShot'));
-    expect(execute.indexOf('await validateImageReferences(submittedReferences')).toBeGreaterThan(execute.indexOf('storyboardSubmissionReferences('));
-    expect(execute.indexOf('await validateImageReferences(submittedReferences')).toBeLessThan(execute.indexOf('await assertEnoughCredits('));
-    expect(execute.indexOf('await validateImageReferences(submittedReferences')).toBeLessThan(execute.indexOf('beginShotProgress('));
+    expect(execute.indexOf('await validateAndRecoverImageReferences(')).toBeGreaterThan(execute.indexOf('storyboardSubmissionReferences('));
+    expect(execute.indexOf('await validateAndRecoverImageReferences(')).toBeLessThan(execute.indexOf('await assertEnoughCredits('));
+    expect(execute.indexOf('await validateAndRecoverImageReferences(')).toBeLessThan(execute.indexOf('beginShotProgress('));
+    expect(execute).toContain('updateCurrentShotReferences(updateBindings)');
+    expect(execute).toContain('configuredReferences: updateBindings(shot.configuredReferences || originalReferences)');
     expect(source).toContain('onError={() => markReferenceAvailability(ref.url, false)}');
     expect(source).toContain('onLoad={() => markReferenceAvailability(ref.url, true)}');
     expect(source).toContain('素材不可用，请重新选择');

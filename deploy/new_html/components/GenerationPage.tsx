@@ -8,7 +8,7 @@ import { ProjectFile, StoryboardItem, MaterialLibrary, GenerationReference, Refe
 import { LayoutDashboard, Image as ImageIcon, Sparkles, Upload, X, ChevronLeft, ChevronRight, Wand2, Users, MapPin, Box, Zap, User, Play, CheckCircle2, CircleDashed, CheckSquare, Square, Trash2, ArrowRight, Save, History, Clock, RefreshCw, ZoomIn, Eye, FolderInput, GripVertical, Camera, Pencil, Type, MoveRight, Eraser, RotateCcw, Download, Layers, Scissors, Grid3X3, Clapperboard, AlertTriangle, Library, Search, Check, FlipHorizontal2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { generateFinalIllustrationResult } from '../services/geminiImageGenerationService';
-import { InvalidImageReferencesError, validateImageReferences } from '../services/imageReferenceValidation';
+import { InvalidImageReferencesError, validateAndRecoverImageReferences } from '../services/imageReferenceValidation';
 import {
   generateImageWithPreferredFallback,
   IMAGE_FALLBACK_REASON,
@@ -1476,9 +1476,29 @@ export const GenerationPage: React.FC<GenerationPageProps> = ({
       if (portraitMode && imageGenerationCapabilities?.seedance_portrait.available === false) {
           throw new Error(imageGenerationCapabilities.seedance_portrait.reason || 'Seedance 人像原图模式当前不可用。');
       }
-      const submittedReferences = storyboardSubmissionReferences(shot, plan.references, portraitMode);
+      let submittedReferences = storyboardSubmissionReferences(shot, plan.references, portraitMode);
       try {
-          await validateImageReferences(submittedReferences, { projectId, episodeId, shotId: shot.id });
+          const originalReferences = submittedReferences;
+          submittedReferences = await validateAndRecoverImageReferences(
+              originalReferences, materialLibrary, { projectId, episodeId, shotId: shot.id },
+          );
+          if (submittedReferences !== originalReferences) {
+              const replacements = new Map(originalReferences.map((reference, index) => [reference.url, submittedReferences[index]]));
+              const updateBindings = (refs: GenerationReference[]) => refs.map(reference => {
+                  const replacement = replacements.get(reference.url);
+                  return replacement ? { ...reference, fileId: replacement.fileId, url: replacement.url } : reference;
+              });
+              plan.references = updateBindings(plan.references);
+              if (activeReferenceShotIdRef.current === shot.id) {
+                  updateCurrentShotReferences(updateBindings);
+              } else {
+                  onUpdateStoryboardItem(shot.id, {
+                      configuredReferences: updateBindings(shot.configuredReferences || originalReferences),
+                      referenceConfigInitialized: true,
+                  });
+              }
+              crmMessage.info('失效参考图已重新绑定到同一素材的新图');
+          }
           submittedReferences.forEach(reference => markReferenceAvailability(reference.url, true));
       } catch (error) {
           if (error instanceof InvalidImageReferencesError) {
