@@ -23,7 +23,8 @@
 .platform-release-header { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; gap: 16px; padding: 24px 28px 20px; border-bottom: 1px solid #eeeeeb; }
 .platform-release-eyebrow { color: #6b59e9; font-size: 10px; font-weight: 700; letter-spacing: .15em; }
 .platform-release-header h2 { margin: 4px 0 0; font-size: 20px; line-height: 1.4; font-weight: 700; }
-.platform-release-close { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 9px; background: #f4f4f1; color: #6a6a74; font-size: 24px; cursor: pointer; }
+.platform-release-close { display: flex; flex-shrink: 0; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 9px; background: #f4f4f1; color: #6a6a74; line-height: 1; cursor: pointer; }
+.platform-release-close > svg { display: block; flex-shrink: 0; }
 .platform-release-close:hover { background: #ece9ff; color: #5b49f0; }
 .platform-release-content { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 22px 28px 8px; }
 .platform-release-overview { margin-bottom: 26px; border-radius: 12px; background: #f6f4ff; padding: 16px 18px; }

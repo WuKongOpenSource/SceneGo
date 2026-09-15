@@ -12,6 +12,16 @@ from routers.frontend_pages import create_frontend_pages_router
 DEPLOY_DIR = Path(__file__).resolve().parents[1]
 
 
+def test_public_release_payload_excludes_internal_admin_and_operations_changes():
+    # This JSON is public even outside the modal. Internal fixes belong in commits,
+    # not hidden entries or client-side filters. See docs/platform-versioning.md.
+    release = (DEPLOY_DIR / "static/platform-release.json").read_text(encoding="utf-8")
+    assert not re.search(
+        r"充值订单|幂等入账|点数管理接口|前后台|后台节点|管理员鉴权|数据库连接|"
+        r"服务启动|连接回收|工作流 JSON|节点堆栈|不同 Key", release
+    )
+
+
 def test_release_metadata_has_a_valid_version_and_complete_chronological_history():
     release = json.loads((DEPLOY_DIR / "static/platform-release.json").read_text(encoding="utf-8"))
     assert release["schemaVersion"] == 1

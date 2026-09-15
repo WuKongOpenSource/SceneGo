@@ -1,10 +1,11 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { expect, it, vi } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
 import { AdminFeatureTabs } from '../../components/AdminFeatureTabs';
 
 const mocks = vi.hoisted(() => ({ api: vi.fn() }));
 vi.mock('../../services/httpClient', () => ({ apiJson: mocks.api }));
+afterEach(() => vi.clearAllMocks());
 
 it('shows the uppercase API failure as a failed ledger row with its timeout reason', async () => {
   mocks.api.mockResolvedValue({ orders: [{ payment_order_id: 'expired', out_trade_no: 'CJ-test', user_id: 'user',
@@ -16,10 +17,26 @@ it('shows the uppercase API failure as a failed ledger row with its timeout reas
   expect(row).toHaveTextContent('超过12小时未确认到账');
   expect(row).not.toHaveTextContent('FAILED');
   const reason = screen.getByTitle('超过12小时未确认到账，订单自动标记为失败');
-  expect(reason).toHaveClass('truncate', 'max-w-48');
+  const statusLine = reason.parentElement!;
+  expect(statusLine).toHaveClass('inline-flex', 'items-center', 'gap-2', 'whitespace-nowrap');
+  expect(statusLine.firstElementChild).toHaveTextContent('失败');
+  expect(reason.tagName).toBe('SPAN');
+  expect(reason).not.toHaveClass('truncate', 'max-w-48', 'mt-1');
   expect(reason).toHaveTextContent('超过12小时未确认到账，订单自动标记为失败');
   fireEvent.change(screen.getByRole('combobox'), { target: { value: 'failed' } });
   await waitFor(() => expect(mocks.api).toHaveBeenCalledWith(
     expect.stringContaining('status=failed'), { method: 'GET' }, 'Admin API',
   ));
+});
+
+it.each([['PENDING', '待支付'], ['PAID', '已支付'], ['FAILED', '失败']])('keeps %s without a reason compact', async (status, label) => {
+  mocks.api.mockResolvedValue({ orders: [{ payment_order_id: 'no-reason', out_trade_no: 'CJ-no-reason', user_id: 'user',
+    point_amount: 102, base_amount_fen: 1020, amount_fen: 1000, discount_bps: 9800,
+    created_at: '2026-01-01T00:00:00Z', status, failure_reason: null }] });
+  render(<AdminFeatureTabs embedTab="recharge_orders" />);
+  const row = (await screen.findByText('CJ-no-reason')).closest('tr')!;
+  const line = row.querySelector('td:nth-child(8) > div')!;
+  expect(line).toHaveClass('inline-flex', 'whitespace-nowrap');
+  expect(line).toHaveTextContent(label);
+  expect(line.children).toHaveLength(1);
 });

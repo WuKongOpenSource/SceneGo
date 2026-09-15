@@ -26,7 +26,11 @@ describe('PlatformFooter', () => {
     fireEvent.click(within(footer).getByRole('button', { name: /更新记录/ }));
     const dialog = screen.getByRole('dialog', { name: '更新记录' });
     expect(within(dialog).getByText(release.records[0].title)).toBeVisible();
-    fireEvent.click(within(dialog).getByRole('button', { name: '关闭更新记录' }));
+    const close = within(dialog).getByRole('button', { name: '关闭更新记录' });
+    expect(close).not.toHaveTextContent('×');
+    expect(close.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+    expect(close.querySelector('svg')).toHaveAttribute('width', '20');
+    fireEvent.click(close);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
@@ -70,5 +74,15 @@ describe('PlatformFooter', () => {
       for (const change of record.changes) expect(screen.getByText(change.text)).toBeVisible();
     }
     expect(screen.getByText(/未为历史更新补编版本号/)).toBeVisible();
+  });
+
+  it('publishes creator-facing notes without internal administration or maintenance entries', () => {
+    const { container } = render(<ReleaseNotesContent />);
+    const forbidden = /充值订单|幂等入账|点数管理接口|前后台|后台节点|管理员鉴权|数据库连接|服务启动|连接回收|工作流 JSON|节点堆栈|不同 Key/;
+    // Check the static payload too: collapsed or hidden entries are still public.
+    expect(JSON.stringify(release)).not.toMatch(forbidden);
+    expect(container.textContent).not.toMatch(forbidden);
+    expect(container.textContent).toContain('最新成品和历史版本均支持确认后删除');
+    expect(container.textContent).toContain('支持创建、重命名和管理分组');
   });
 });

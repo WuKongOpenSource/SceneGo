@@ -1,6 +1,6 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { History } from 'lucide-react';
+import { History, X } from 'lucide-react';
 import release from '../../static/platform-release.json';
 import { getReleaseCalendarDate, groupReleaseNotesByWeek } from '../utils/releaseWeeks';
 import '../styles/platform-release.css';
@@ -103,7 +103,9 @@ export function PlatformFooter({ placement = 'footer', collapsed = false }: {
         <div className="platform-release-panel">
           <header className="platform-release-header">
             <div><span className="platform-release-eyebrow">WHAT’S NEW</span><h2 id={titleId}>更新记录</h2></div>
-            <button type="button" className="platform-release-close" onClick={() => dialog.current?.close()} aria-label="关闭更新记录" autoFocus>×</button>
+            <button type="button" className="platform-release-close" onClick={() => dialog.current?.close()} aria-label="关闭更新记录" autoFocus>
+              <X size={20} aria-hidden="true" focusable="false" />
+            </button>
           </header>
           <ReleaseNotesContent />
           <div className="platform-release-bottom">持续打磨，让每一步创作更顺手。</div>

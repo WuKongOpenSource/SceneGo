@@ -277,8 +277,8 @@ export const CrmPagination: React.FC<{
 };
 
 
-export const CrmTable: React.FC<{ headers: React.ReactNode; children: React.ReactNode }> = ({ headers, children }) => (
-  <div className="border border-n40 rounded-md overflow-hidden">
+export const CrmTable: React.FC<{ headers: React.ReactNode; children: React.ReactNode; scrollable?: boolean }> = ({ headers, children, scrollable = false }) => (
+  <div className={`border border-n40 rounded-md ${scrollable ? 'overflow-x-auto' : 'overflow-hidden'}`}>
     <table className="w-full text-xs">
       <thead className="bg-n20 text-n300 border-b border-n40">{headers}</thead>
       <tbody className="divide-y divide-n40">{children}</tbody>

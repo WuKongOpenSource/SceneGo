@@ -840,6 +840,7 @@ const CreditAccountsTab: React.FC = () => {
       <CrmTable headers={
         <tr>
           <th className="text-left font-medium p-2.5">账户</th>
+          <th className="text-left font-medium p-2.5">用户名</th>
           <th className="text-left font-medium p-2.5">归属</th>
           <th className="text-right font-medium p-2.5">可用</th>
           <th className="text-right font-medium p-2.5">账户点数</th>
@@ -852,6 +853,7 @@ const CreditAccountsTab: React.FC = () => {
         {pageRows.map(a => (
           <tr key={a.account_id} className="hover:bg-n10">
             <td className="p-2.5 font-mono text-[10px]">{a.account_id}</td>
+            <td className="p-2.5 text-n800">{a.owner_type === 'user' && a.owner_username?.trim() ? a.owner_username : '—'}</td>
             <td className="p-2.5 text-n800">{a.owner_type}/{a.owner_id}</td>
             <td className="p-2.5 text-right font-mono text-success">{a.available_credits}</td>
             <td className="p-2.5 text-right font-mono text-n700">{a.account_credits ?? a.available_credits}</td>
@@ -867,7 +869,7 @@ const CreditAccountsTab: React.FC = () => {
             </td>
           </tr>
         ))}
-        {!pageRows.length && <tr><td colSpan={8} className="text-center py-8 text-n100">{loading ? '加载中…' : '暂无账户'}</td></tr>}
+        {!pageRows.length && <tr><td colSpan={9} className="text-center py-8 text-n100">{loading ? '加载中…' : '暂无账户'}</td></tr>}
       </CrmTable>
 
       <CrmPagination total={accounts.length} page={page} pageSize={PAGE_SIZE} onChange={setPage} />
@@ -1054,7 +1056,7 @@ const RechargeOrdersTab: React.FC = () => {
         }
         actions={<button type="button" onClick={() => void reload()} className="rounded border border-n40 bg-n0 p-1.5 hover:bg-n20"><RefreshCw size={13} className={loading ? 'animate-spin text-primary' : 'text-n300'} /></button>}
       />
-      <CrmTable headers={
+      <CrmTable scrollable headers={
         <tr>
           <th className="p-2.5 text-left font-medium">创建时间</th>
           <th className="p-2.5 text-left font-medium">商户订单号</th>
@@ -1078,8 +1080,10 @@ const RechargeOrdersTab: React.FC = () => {
             <td className="p-2.5 text-right font-mono text-success">{formatFen(order.amount_fen)}</td>
             <td className="p-2.5 text-right font-mono text-n700">{Number(order.discount_bps) / 100}%</td>
             <td className="p-2.5">
-              <CrmTag type={rechargeOrderStatus(order.status).type}>{rechargeOrderStatus(order.status).label}</CrmTag>
-              {order.failure_reason && <div className="mt-1 max-w-48 truncate text-[10px] text-n300" title={order.failure_reason}>{order.failure_reason}</div>}
+              <div className="inline-flex items-center gap-2 whitespace-nowrap">
+                <CrmTag type={rechargeOrderStatus(order.status).type}>{rechargeOrderStatus(order.status).label}</CrmTag>
+                {order.failure_reason && <span className="text-[10px] text-n300" title={order.failure_reason}>{order.failure_reason}</span>}
+              </div>
             </td>
             <td className="max-w-40 truncate p-2.5 font-mono text-[10px] text-n300" title={order.transaction_id || ''}>{order.transaction_id || '-'}</td>
             <td className="p-2.5 text-[10px] text-n300">{order.paid_at ? new Date(order.paid_at).toLocaleString('zh-CN') : '-'}</td>
