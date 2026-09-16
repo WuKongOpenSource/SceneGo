@@ -617,7 +617,7 @@ export const EpisodeHubPage: React.FC = () => {
                   >
                   <div className="relative aspect-video overflow-visible bg-gradient-to-br from-n30 via-n20 to-primary-light">
                     {ep.coverUrl ? (
-                      <img draggable={false} src={coverImageSrc(ep.coverUrl)} alt={`${ep.episodeName || '未命名分集'} 封面`} className="h-full w-full object-cover object-center transition-transform duration-300 group-hover:scale-[1.02]" />
+                      <><img draggable={false} src={coverImageSrc(ep.coverUrl)} alt={`${ep.episodeName || '未命名分集'} 封面`} className="h-full w-full object-cover object-center transition-transform duration-300 group-hover:scale-[1.02]" /><ImageSourceBadgeOverlay reference={ep.coverUrl} /></>
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
                         <BrandLogo variant="mark" className="h-24 w-24 opacity-[0.08]" alt="" />
@@ -753,3 +753,4 @@ export const EpisodeHubPage: React.FC = () => {
     </div>
   );
 };
+import { ImageSourceBadgeOverlay } from '../components/SeedreamSourceBadge';

@@ -40,6 +40,17 @@ describe('preferred image generation fallback', () => {
     expect(generateGeminiImageVariant).not.toHaveBeenCalled();
   });
 
+  it.each(['character_four_view', 'pure_background'])('never falls back for %s', async referencePurpose => {
+    generateDoubaoImages.mockRejectedValue(Object.assign(new Error('unavailable'), { status: 503 }));
+    await expect(generateImageWithPreferredFallback(options({ doubao: { prompt: 'text only', referencePurpose } }))).rejects.toThrow('unavailable');
+    expect(generateGeminiImageVariant).not.toHaveBeenCalled();
+  });
+
+  it('retains the model identity returned by the server', async () => {
+    generateDoubaoImages.mockResolvedValue([{ url: 'original.png', fileId: 'file_original', actualModel: 'doubao-seedream-5-0-pro-260628' }]);
+    expect((await generateImageWithPreferredFallback(options())).actualModel).toBe('doubao-seedream-5-0-pro-260628');
+  });
+
   it('falls back exactly once to Gemini 3.1 on a definitive unavailable response', async () => {
     generateDoubaoImages.mockRejectedValue(Object.assign(new Error('unavailable'), { status: 503 }));
     generateGeminiImageVariant.mockResolvedValue([{ url: 'gemini.png' }]);

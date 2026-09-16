@@ -434,6 +434,7 @@ export const ImageUpscalePage: React.FC = () => {
             ) : (
               <div className="relative flex min-h-[500px] items-center justify-center bg-[linear-gradient(45deg,#f5f5f5_25%,transparent_25%),linear-gradient(-45deg,#f5f5f5_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#f5f5f5_75%),linear-gradient(-45deg,transparent_75%,#f5f5f5_75%)] bg-[length:20px_20px] bg-[position:0_0,0_10px,10px_-10px,-10px_0px] p-6">
                 <img src={previewUrl} alt="待放大原图预览" className="max-h-[620px] max-w-full rounded-xl object-contain shadow-bottom" />
+                <div className="absolute top-4 left-4 rounded bg-white/95 px-2 py-1"><SeedreamSourceBadge reference={previewUrl} /></div>
                 <span className="absolute bottom-4 left-4 rounded-lg bg-n900/85 px-3 py-2 font-mono text-xs text-n0 backdrop-blur">
                   {resultUrl && estimatedOutput
                     ? `结果 ${formatPixels(estimatedOutput.width)} × ${formatPixels(estimatedOutput.height)} · ${dpi} DPI`
@@ -649,3 +650,4 @@ export const ImageUpscalePage: React.FC = () => {
 };
 
 export default ImageUpscalePage;
+import { SeedreamSourceBadge } from '../components/SeedreamSourceBadge';

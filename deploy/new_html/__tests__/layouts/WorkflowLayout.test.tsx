@@ -117,7 +117,8 @@ describe('WorkflowLayout template pipeline shell', () => {
     expect(source).toContain("label: '生成历史'");
     expect(source).toContain("label: '回收站'");
     expect(source).toContain("label: '专业画布'");
-    expect(sidebarSource).toContain('const visibleTools = tools ?? defaultTools');
+    expect(sidebarSource).toContain('...(tools ?? defaultTools)');
+    expect(sidebarSource).toContain("label: '帮助文档中心'");
     expect(sidebarSource).toContain("label: '图片高清放大'");
     expect(sidebarSource).toContain("label: '专业画布'");
     expect(sidebarSource).toContain('/episodes`');

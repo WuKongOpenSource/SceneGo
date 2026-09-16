@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { SeedreamSourceBadge } from './SeedreamSourceBadge';
 import { createPortal } from 'react-dom';
 import { AlertCircle, Film, ImagePlus, Info, Loader2, Maximize2, Plus, Settings2, Upload, Volume2, X } from 'lucide-react';
 import { uploadAudio, uploadImage, uploadVideoFile } from '@runtime/videoMediaService';
@@ -150,6 +151,7 @@ export const SeedanceMultimodalPanel: React.FC<Props> = ({
         <div className="relative h-[80px] w-[64px] shrink-0 overflow-hidden rounded-xl border border-n40 bg-n20/60">
             {media ? <>
                 <button type="button" title={`预览${label}`} onClick={() => onPreviewMedia?.(media.url, 'image')} className="h-full w-full"><img src={media.url} alt={label} className="h-full w-full object-cover" /></button>
+                <span className="pointer-events-none absolute inset-x-0 top-0 bg-white/95 px-0.5"><SeedreamSourceBadge reference={media.file_id || media.url} /></span>
                 <button type="button" disabled={disabled || uploadBusy} onClick={() => { setTargetFrame(label === '首帧' ? 'first_frame' : 'last_frame'); setPickerOpen(true); }} className="absolute inset-x-0 bottom-0 bg-n0/95 py-1 text-[9px] text-n700">{label} · 替换</button>
                 <button type="button" aria-label={`删除${label}`} disabled={disabled} onClick={() => remove(value.media_inputs.indexOf(media))} className="absolute right-1 top-1 rounded-full bg-n900/65 text-white"><X size={12} /></button>
             </> : <button type="button" title={`添加${label}`} disabled={disabled || uploadBusy} onClick={() => { setTargetFrame(label === '首帧' ? 'first_frame' : 'last_frame'); setPickerOpen(true); }} className="flex h-full w-full flex-col items-center justify-center gap-1 text-n100 hover:text-primary"><ImagePlus size={18} /><span className="text-[10px]">+ {label}</span></button>}
@@ -161,6 +163,7 @@ export const SeedanceMultimodalPanel: React.FC<Props> = ({
                 {item.kind === 'image' ? <img src={item.url} alt="" className="h-full w-full object-cover" /> : item.kind === 'video' ? <Film size={14} /> : <Volume2 size={14} />}
             </button>
             <span className="min-w-0 flex-1 truncate" title={item.url}>{item.url.split('/').pop() || '参考素材'}</span>
+            {item.kind === 'image' && <SeedreamSourceBadge reference={item.file_id || item.url} />}
             <button type="button" aria-label={`移除素材 ${index + 1}`} disabled={disabled} onClick={() => remove(index)} className="rounded p-1 text-n100 hover:text-danger"><X size={13} /></button>
         </div>)}
     </div>;
@@ -194,6 +197,13 @@ export const SeedanceMultimodalPanel: React.FC<Props> = ({
                 </div>
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{editor()}</div>
             </div>
+            {(value.sub_model === 'standard' && mode === 'reference' || value.portrait_reference_mode) && <label className="shrink-0 text-[11px] leading-5 text-n300">
+                <input type="checkbox" className="mr-1" checked={!!value.portrait_reference_mode} disabled={disabled}
+                    onChange={event => patch({ portrait_reference_mode: event.target.checked ? 'character_background' : undefined,
+                        ...(event.target.checked ? { reference_mode: 'reference' } : {}) })} />
+                真人文生图参考（人物四视图 + 纯背景）
+                {value.portrait_reference_mode && <span className="block text-[10px]">仅限标准版全能参考；从素材库选取 30 天内专用入口生成的原图。图生图、上传图和参考视频不可用，已有素材不会被自动替换。</span>}
+            </label>}
             {mode === 'reference' && value.media_inputs.length > 0 && <div className="flex h-12 min-h-12 w-full shrink-0 flex-nowrap items-center gap-1.5 overflow-x-auto overflow-y-hidden pb-1" data-testid="seedance-reference-strip" aria-label="已选参考素材">
                 {value.media_inputs.map((item, index) => <div key={`${item.url}-${index}`} className="flex h-10 shrink-0 items-center gap-1 overflow-hidden rounded-lg border border-n40 bg-n20/50 px-1 py-0.5 text-[9px]">
                     <button type="button" title={`预览素材 ${index + 1}`} onClick={() => onPreviewMedia?.(item.url, item.kind)} className="flex min-w-0 items-center gap-1">

@@ -76,6 +76,7 @@ describe('AppSidebar public tools', () => {
     expect(screen.getByRole('link', { name: '生成历史' })).toHaveAttribute('href', '/tools/history');
     expect(screen.getByRole('link', { name: '回收站' })).toHaveAttribute('href', '/tools/recycle-bin');
     expect(screen.getByRole('link', { name: '图片高清放大' })).toHaveAttribute('href', '/tools/image-upscale');
+    expect(screen.getByRole('link', { name: '帮助文档中心' })).toHaveAttribute('href', '/tools/help');
     expect(
       screen.getByText('图片高清放大').compareDocumentPosition(screen.getByText('生成历史'))
       & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -104,6 +105,15 @@ describe('AppSidebar public tools', () => {
       expect(screen.getByTestId('location')).toHaveTextContent('/tools/image-upscale');
     });
     expect(apiJson).not.toHaveBeenCalledWith('/api/projects/proj_1/episodes', {}, '最近分集');
+  });
+
+  it('keeps help available in scoped workflows and collapsed navigation', async () => {
+    render(<MemoryRouter><AppSidebar tools={[]} /><LocationProbe /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: '收起左侧导航' }));
+    fireEvent.click(screen.getByRole('link', { name: '帮助文档中心' }));
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/tools/help'));
+    expect(apiJson).toHaveBeenCalledWith('/api/projects', {}, '最近项目');
+    expect(apiJson).not.toHaveBeenCalledWith(expect.stringContaining('/episodes'), expect.anything(), expect.anything());
   });
 
   it('opens my assets in the global tool shell', async () => {

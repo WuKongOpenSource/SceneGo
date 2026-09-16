@@ -762,7 +762,8 @@ export const VideoGenPage: React.FC = () => {
                   ?? (item as any).generated_image_url
                   ?? (item as any).generatedImageUrl;
                 return (
-                  <div key={(item as any).item_id ?? (item as any).itemId ?? idx} className="shrink-0 w-16 h-10 rounded overflow-hidden border border-n40">
+                  <div key={(item as any).item_id ?? (item as any).itemId ?? idx} className="relative shrink-0 w-16 h-10 rounded overflow-hidden border border-n40">
+                    <ImageSourceBadgeOverlay reference={url} />
                     <img
                       src={secureMediaUrl(url)!}
                       alt={`分镜 ${idx + 1}`}
@@ -853,3 +854,4 @@ export const VideoGenPage: React.FC = () => {
     </div>
   );
 };
+import { ImageSourceBadgeOverlay } from '../components/SeedreamSourceBadge';

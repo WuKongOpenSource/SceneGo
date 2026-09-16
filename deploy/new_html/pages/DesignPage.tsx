@@ -1,4 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
+import { SeedreamPurposeControl, type SeedreamPurpose } from '../components/SeedreamPurposeControl';
+import { ImageSourceBadgeOverlay, SeedreamSourceBadge } from '../components/SeedreamSourceBadge';
 import { useNavigate } from 'react-router-dom';
 import { buildHorizontalCameraOrbitInstruction, CAMERA_ORBIT_HELP } from '../utils/cameraAnglePrompt';
 import {
@@ -275,6 +277,7 @@ const AssetImageRow: React.FC<{
           >
             <X size={10} />
           </button>
+          <div className="absolute bottom-0 inset-x-0 bg-white/95"><SeedreamSourceBadge reference={img.fileId || img.rawUrl} /></div>
         </div>
       ))}
     </div>
@@ -600,7 +603,7 @@ export const DesignPage: React.FC = () => {
   const handleAIGeneration = useCallback(async (payload: {
     assetId: string; engine: MaterialAIEngine; geminiModel: string; prompt: string;
     references: string[]; aspectRatio: string; resolution: '1K' | '2K' | '4K';
-    sequential: string; count: number;
+    sequential: string; count: number; referencePurpose?: SeedreamPurpose;
   }) => {
     const generationModel = findDesignImageModel(payload.engine, payload.geminiModel);
     const requestedImageCount = payload.engine === 'doubao' && payload.sequential === 'auto'
@@ -634,6 +637,7 @@ export const DesignPage: React.FC = () => {
         billingModel: generationModel.billingModel,
         count: requestedImageCount,
         doubao: {
+          referencePurpose: payload.referencePurpose,
           prompt: payload.prompt,
           references: payload.references,
           size: recommendDoubaoImageSize(payload.aspectRatio, payload.resolution),
@@ -1429,7 +1433,7 @@ const SyncExistingDesignModal: React.FC<{
 
 const UnifiedAIModal: React.FC<{
   asset: AssetItem; assets: AssetItem[]; scriptText: string; modelOptions: readonly ScriptModelOption[]; projectId?: string | null; episodeId?: string | null; onClose: () => void;
-  onSubmit: (p: { assetId: string; engine: MaterialAIEngine; geminiModel: string; prompt: string; references: string[]; aspectRatio: string; resolution: '1K' | '2K' | '4K'; sequential: string; count: number }) => void;
+  onSubmit: (p: { assetId: string; engine: MaterialAIEngine; geminiModel: string; prompt: string; references: string[]; aspectRatio: string; resolution: '1K' | '2K' | '4K'; sequential: string; count: number; referencePurpose?: SeedreamPurpose }) => void;
 }> = ({ asset, assets, scriptText, modelOptions, projectId, episodeId, onClose, onSubmit }) => {
   const { forceReloadSlices } = useEpisode();
   const { project } = useProject();
@@ -1461,6 +1465,8 @@ const UnifiedAIModal: React.FC<{
   ));
   const [selectedRefs, setSelectedRefs] = useState<Set<string>>(new Set());
   const [sequential, setSequential] = useState<'disabled' | 'auto'>('disabled');
+  const [purpose, setPurpose] = useState<SeedreamPurpose>();
+  const referencePurpose = engine === 'doubao' ? purpose : undefined;
   const [count, setCount] = useState(1);
   const [activeStyle, setActiveStyle] = useState(
     () => detectImageStylePreset(storedPrompt) || savedStyle(),
@@ -1530,7 +1536,7 @@ const UnifiedAIModal: React.FC<{
     getScriptModelBillingKey(refinementModel),
   );
   const maxRefs = generationModel.maxReferences;
-  const imageToImageEnabled = canUseDesignImageReferences(
+  const imageToImageEnabled = !referencePurpose && canUseDesignImageReferences(
     generationModel,
     sequential === 'auto',
   );
@@ -1758,9 +1764,10 @@ const UnifiedAIModal: React.FC<{
     persistPrompt(basePrompt);
     onSubmit({
       assetId: asset.assetId,
+      referencePurpose,
       engine,
       geminiModel,
-      prompt: withStandardTurnaround(styledPrompt, asset.assetType, standardTurnaround),
+      prompt: referencePurpose ? styledPrompt : withStandardTurnaround(styledPrompt, asset.assetType, standardTurnaround),
       references: imageToImageEnabled
         ? materials.filter(material => selectedRefs.has(material.id)).map(material => material.url)
         : [],
@@ -1807,6 +1814,7 @@ const UnifiedAIModal: React.FC<{
                   loading="lazy"
                   className="h-full w-full object-cover"
                 />
+                <ImageSourceBadgeOverlay reference={material.url} />
                 {material.sourceKind !== 'current' && (
                   <span className="absolute inset-x-0 bottom-0 truncate bg-n900/70 px-1 py-0.5 text-[9px] text-white">
                     {material.sourceKind === 'external-upload' ? '外部上传' : material.name || '其他场景'}
@@ -1925,6 +1933,7 @@ const UnifiedAIModal: React.FC<{
           </section>
 
           {/* Styles and generation parameters */}
+          {engine === 'doubao' && <SeedreamPurposeControl value={referencePurpose} onChange={setPurpose} />}
           <section className="border-y border-n40 py-3">
             <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
               <div className="min-w-0">
@@ -2011,7 +2020,7 @@ const UnifiedAIModal: React.FC<{
                   <input
                     type="checkbox"
                     checked={imageToImageEnabled}
-                    disabled={!generationModel.supportsImageToImageBatch}
+                    disabled={!!referencePurpose || !generationModel.supportsImageToImageBatch}
                     onChange={event => toggleImageToImage(event.target.checked)}
                     className="accent-primary"
                   />
@@ -2239,7 +2248,8 @@ const OperationMaterialPicker: React.FC<{
 
   return (
     <div className="space-y-3">
-      <div className="h-64 overflow-hidden rounded-2xl border border-n40 bg-n30 flex items-center justify-center">
+      <div className="relative h-64 overflow-hidden rounded-2xl border border-n40 bg-n30 flex items-center justify-center">
+        {selected && <ImageSourceBadgeOverlay reference={selected.url} />}
         {selected ? (
           <img
             src={secureMediaUrl(selected.url) || ''}
@@ -2263,7 +2273,7 @@ const OperationMaterialPicker: React.FC<{
                   aria-label={`选择素材 ${material.name || material.id}`}
                   aria-pressed={active}
                   onClick={() => onSelect(material.id)}
-                  className={`aspect-square min-w-0 overflow-hidden rounded-lg border-2 bg-n30 transition-colors ${
+                  className={`relative aspect-square min-w-0 overflow-hidden rounded-lg border-2 bg-n30 transition-colors ${
                     active
                       ? 'border-success ring-2 ring-success/30'
                       : 'border-n40 hover:border-n100'
@@ -2274,6 +2284,7 @@ const OperationMaterialPicker: React.FC<{
                     alt={material.name || '素材缩略图'}
                     className="h-full w-full object-cover"
                   />
+                  <ImageSourceBadgeOverlay reference={material.url} />
                 </button>
               );
             })}

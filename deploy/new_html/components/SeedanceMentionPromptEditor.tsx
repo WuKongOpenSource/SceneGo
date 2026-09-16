@@ -1,3 +1,4 @@
+import { SeedreamSourceBadge } from './SeedreamSourceBadge';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Sparkles } from 'lucide-react';
@@ -411,6 +412,7 @@ export const SeedanceMentionPromptEditor: React.FC<SeedanceMentionPromptEditorPr
                                             <img src={c.thumbnailUrl} alt="" className="w-6 h-6 object-cover rounded" />
                                         )}
                                         <span className="text-n700">{c.label}</span>
+                                        {c.kind === 'image' && <SeedreamSourceBadge reference={c.fileId || c.url} />}
                                         <span className="ml-auto text-[10px] text-n100">{c.kind}</span>
                                     </button>
                                 );

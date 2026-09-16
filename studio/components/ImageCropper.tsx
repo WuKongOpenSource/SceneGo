@@ -252,6 +252,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onConfirm,
         <div className="bg-[#2c2c2e]/90 backdrop-blur-md px-6 py-2.5 rounded-full border border-white/10 text-slate-300 text-xs font-medium flex items-center gap-2 shadow-2xl">
             <Crop size={14} className="text-cyan-400" />
             <span>局部分镜截取</span>
+            <SeedreamSourceBadge reference={imageSrc} />
         </div>
         <span className="text-[10px] text-slate-500 font-medium">拖拽四角调整 • 按住中间移动</span>
       </div>
@@ -384,3 +385,4 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onConfirm,
     </div>
   );
 };
+import { SeedreamSourceBadge } from '@app/components/SeedreamSourceBadge';

@@ -1,3 +1,4 @@
+import { ImageSourceBadgeOverlay, SeedreamSourceBadge } from './SeedreamSourceBadge';
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { X, Globe, Wand2, Grid3X3, Loader2, ChevronRight, RefreshCw, Trash2, ZoomIn, ZoomOut, RotateCcw, Move } from 'lucide-react';
 
@@ -362,19 +363,20 @@ export const StoryboardToolModal: React.FC<StoryboardToolModalProps> = ({
                                             <div
                                                 key={idx}
                                                 onClick={() => !processing && setSelectedSceneImage(img)}
-                                                className={`aspect-square rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${
+                                                className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${
                                                     selectedSceneImage === img
                                                         ? 'border-primary ring-2 ring-primary/50'
                                                         : 'border-transparent hover:border-n40'
                                                 }`}
                                             >
                                                 <img src={img} alt={`Image ${idx}`} className="w-full h-full object-cover" />
+                                                <ImageSourceBadgeOverlay reference={img} />
                                             </div>
                                         ))}
                                     </div>
                                     {selectedSceneImage && (
-                                        <div className="aspect-video bg-n800 rounded-lg overflow-hidden border border-n40">
-                                            <img src={selectedSceneImage} alt="Selected" className="w-full h-full object-contain" />
+                                        <div className="relative aspect-video bg-n800 rounded-lg overflow-hidden border border-n40">
+                                            <img src={selectedSceneImage} alt="Selected" className="w-full h-full object-contain" /><ImageSourceBadgeOverlay reference={selectedSceneImage} />
                                         </div>
                                     )}
                                     <div className="space-y-2">
@@ -560,13 +562,13 @@ export const StoryboardToolModal: React.FC<StoryboardToolModalProps> = ({
                                                                 setSelectedCharacters([...selectedCharacters, img]);
                                                             }
                                                         }}
-                                                        className={`aspect-square rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${
+                                                        className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${
                                                             selectedCharacters.includes(img)
                                                                 ? 'border-b400 ring-2 ring-b400/50'
                                                                 : 'border-transparent hover:border-n40'
                                                         }`}
                                                     >
-                                                        <img src={img} alt={`Image ${idx}`} className="w-full h-full object-cover" />
+                                                        <img src={img} alt={`Image ${idx}`} className="w-full h-full object-cover" /><ImageSourceBadgeOverlay reference={img} />
                                                     </div>
                                                 ))}
                                             </div>
@@ -624,21 +626,21 @@ export const StoryboardToolModal: React.FC<StoryboardToolModalProps> = ({
                                         <div
                                             key={idx}
                                             onClick={() => !processing && setAutoImage(img)}
-                                            className={`aspect-square rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${
+                                            className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${
                                                 autoImage === img
                                                     ? 'border-primary ring-2 ring-primary/50'
                                                     : 'border-transparent hover:border-n40'
                                             }`}
                                         >
-                                            <img src={img} alt={`Image ${idx}`} className="w-full h-full object-cover" />
+                                            <img src={img} alt={`Image ${idx}`} className="w-full h-full object-cover" /><ImageSourceBadgeOverlay reference={img} />
                                         </div>
                                     ))}
                                 </div>
                             </div>
 
                             {autoImage && (
-                                <div className="aspect-video bg-n800 rounded-lg overflow-hidden border border-n40">
-                                    <img src={autoImage} alt="Selected" className="w-full h-full object-contain" />
+                                <div className="relative aspect-video bg-n800 rounded-lg overflow-hidden border border-n40">
+                                    <img src={autoImage} alt="Selected" className="w-full h-full object-contain" /><ImageSourceBadgeOverlay reference={autoImage} />
                                 </div>
                             )}
 
@@ -729,13 +731,13 @@ export const StoryboardToolModal: React.FC<StoryboardToolModalProps> = ({
                                         <div
                                             key={idx}
                                             onClick={() => !processing && setMultiGridImage(img)}
-                                            className={`aspect-square rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${
+                                            className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${
                                                 multiGridImage === img
                                                     ? 'border-primary ring-2 ring-primary/50'
                                                     : 'border-transparent hover:border-n40'
                                             }`}
                                         >
-                                            <img src={img} alt={`Image ${idx}`} className="w-full h-full object-cover" />
+                                            <img src={img} alt={`Image ${idx}`} className="w-full h-full object-cover" /><ImageSourceBadgeOverlay reference={img} />
                                         </div>
                                     )) : (
                                         <div className="col-span-6 py-8 text-center text-n100">
@@ -795,8 +797,8 @@ export const StoryboardToolModal: React.FC<StoryboardToolModalProps> = ({
                                     <label className="text-sm font-medium text-n700">生成结果</label>
                                     <div className="grid grid-cols-3 gap-3">
                                         {multiGridResults.map((img, idx) => (
-                                            <div key={idx} className="aspect-square rounded-lg overflow-hidden border border-n40">
-                                                <img src={img} alt={`Result ${idx}`} className="w-full h-full object-cover" />
+                                            <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-n40">
+                                                <img src={img} alt={`Result ${idx}`} className="w-full h-full object-cover" /><ImageSourceBadgeOverlay reference={img} />
                                             </div>
                                         ))}
                                     </div>

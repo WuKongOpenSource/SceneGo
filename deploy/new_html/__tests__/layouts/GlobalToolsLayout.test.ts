@@ -11,7 +11,7 @@ const upscaleSource = readFileSync(resolve(__dirname, '../../pages/ImageUpscaleP
 describe('project-independent user tools', () => {
   it('registers standalone routes for every global tool', () => {
     expect(appSource).toContain('path="/tools" element={<GlobalToolsLayout />}');
-    for (const route of ['media-library', 'image-upscale', 'history', 'recycle-bin']) {
+    for (const route of ['media-library', 'image-upscale', 'history', 'recycle-bin', 'help']) {
       expect(appSource).toContain(`path="${route}"`);
       expect(sidebarSource).toContain(`to: '/tools/${route}'`);
     }
@@ -34,7 +34,7 @@ describe('project-independent user tools', () => {
   });
 
   it('allows image upscale submission without project or episode params', () => {
-    expect(upscaleSource).toContain('if (!file || !previewUrl || busy) return');
+    expect(upscaleSource).toContain('if (!file || busy) return');
     expect(upscaleSource).not.toContain('!projectId || !episodeId');
     expect(upscaleSource).toContain('...(projectId ? {');
   });

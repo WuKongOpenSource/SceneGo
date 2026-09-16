@@ -1,3 +1,4 @@
+import { ImageSourceBadgeOverlay, SeedreamSourceBadge } from './SeedreamSourceBadge';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Layers, Move, Copy, UserCheck, Loader2, Eraser, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 
@@ -401,13 +402,14 @@ export const ImageFusionModal: React.FC<ImageFusionModalProps> = ({
                                     <div
                                         key={idx}
                                         onClick={() => !isProcessing && setSelectedBk(img.url)}
-                                        className={`aspect-square rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${
+                                        className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${
                                             selectedBk === img.url
                                                 ? 'border-orange-500 ring-2 ring-orange-500/50'
                                                 : 'border-transparent hover:border-n40'
                                         }`}
                                     >
                                         <img src={img.url} alt={`Image ${idx}`} className="w-full h-full object-cover" />
+                                        <ImageSourceBadgeOverlay reference={img.url} />
                                     </div>
                                 ))}
                             </div>
@@ -421,13 +423,13 @@ export const ImageFusionModal: React.FC<ImageFusionModalProps> = ({
                                     <div
                                         key={idx}
                                         onClick={() => !isProcessing && setSelectedHu(img.url)}
-                                        className={`aspect-square rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${
+                                        className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${
                                             selectedHu === img.url
                                                 ? 'border-blue-500 ring-2 ring-blue-500/50'
                                                 : 'border-transparent hover:border-n40'
                                         }`}
                                     >
-                                        <img src={img.url} alt={`Image ${idx}`} className="w-full h-full object-cover" />
+                                        <img src={img.url} alt={`Image ${idx}`} className="w-full h-full object-cover" /><ImageSourceBadgeOverlay reference={img.url} />
                                     </div>
                                 ))}
                             </div>
@@ -595,14 +597,14 @@ export const ImageFusionModal: React.FC<ImageFusionModalProps> = ({
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-n700">人物图（将模仿姿势）</label>
-                                <div className="aspect-video bg-black rounded-lg overflow-hidden border border-n40">
-                                    <img src={selectedHu} alt="Character" className="w-full h-full object-contain" />
+                                <div className="relative aspect-video bg-black rounded-lg overflow-hidden border border-n40">
+                                    <img src={selectedHu} alt="Character" className="w-full h-full object-contain" /><ImageSourceBadgeOverlay reference={selectedHu} />
                                 </div>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-n700">姿势参考图</label>
-                                <div className="aspect-video bg-black rounded-lg overflow-hidden border border-n40">
-                                    <img src={selectedBk} alt="Pose Reference" className="w-full h-full object-contain" />
+                                <div className="relative aspect-video bg-black rounded-lg overflow-hidden border border-n40">
+                                    <img src={selectedBk} alt="Pose Reference" className="w-full h-full object-contain" /><ImageSourceBadgeOverlay reference={selectedBk} />
                                 </div>
                             </div>
                         </div>

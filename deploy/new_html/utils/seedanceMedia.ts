@@ -36,6 +36,7 @@ export interface SeedanceAssetCandidate {
     storyboardItemId?: string;
     durationMs?: number;
     thumbnailUrl?: string;
+    fileId?: string;
 }
 
 export const TOKEN_PREFIX: Record<SeedanceMediaKind, string> = {
@@ -131,6 +132,7 @@ export function insertMention(
     const newInput: SeedanceMediaInput = {
         kind,
         url,
+        ...((candidate.fileId || registeredImageFileId(url)) ? { file_id: candidate.fileId || registeredImageFileId(url) } : {}),
         ...(durationSeconds && durationSeconds > 0 ? { duration_seconds: durationSeconds } : {}),
     };
     const existingIdx = findExistingMediaIndex(value, kind, url);
@@ -194,6 +196,11 @@ export function removeMediaInput(value: SeedanceParams, idxToRemove: number): Se
         media_inputs: value.media_inputs.filter((_, i) => i !== idxToRemove),
         prompt,
     };
+}
+
+export function registeredImageFileId(url: string): string | undefined {
+    const match = url.match(/\/api\/files\/([A-Za-z0-9_-]+)\/download(?:[?#].*)?$/);
+    return match?.[1];
 }
 
 export interface CanonicalizeResult {

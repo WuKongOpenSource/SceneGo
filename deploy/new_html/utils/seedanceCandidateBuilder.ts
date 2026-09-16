@@ -72,11 +72,13 @@ export function buildVideoMaterialLibrary(assets: any[] = [], audioTracks: any[]
                     : null;
         if (!group) return;
 
-        const sources: Array<{ id: string; url: string; suffix?: string }> = [];
-        const pushSource = (id: string, url: unknown, suffix?: string) => {
+        const sources: Array<{ id: string; url: string; suffix?: string; fileId?: string }> = [];
+        const pushSource = (id: string, url: unknown, suffix?: string, fileId?: string) => {
             const normalized = String(url || '').trim();
-            if (!normalized || sources.some(source => source.url === normalized)) return;
-            sources.push({ id, url: normalized, suffix });
+            if (!normalized) return;
+            const existing = sources.find(source => source.url === normalized);
+            if (existing) { if (fileId) existing.fileId = fileId; return; }
+            sources.push({ id, url: normalized, suffix, fileId });
         };
 
         pushSource('thumbnail', asset.thumbnailUrl || asset.thumbnail_url, '封面');
@@ -89,6 +91,7 @@ export function buildVideoMaterialLibrary(assets: any[] = [], audioTracks: any[]
                 String(file.fileId || file.file_id || file.entityFileId || file.entity_file_id || `file-${index + 1}`),
                 file.fileUrl || file.file_url,
                 file.fileRole || file.file_role || `版本 ${index + 1}`,
+                file.fileId || file.file_id,
             );
         });
 
@@ -98,7 +101,7 @@ export function buildVideoMaterialLibrary(assets: any[] = [], audioTracks: any[]
                 name: index === 0
                     ? (asset.name || asset.assetId || asset.asset_id)
                     : `${asset.name || asset.assetId || asset.asset_id} · ${source.suffix || index + 1}`,
-                currentVersion: { url: source.url },
+                currentVersion: { url: source.url, fileId: source.fileId },
             });
         });
     });
@@ -140,6 +143,7 @@ export function buildCandidates(ctx: CandidateBuildContext): SeedanceAssetCandid
     ctx.currentParams.media_inputs.forEach((m, i) => {
         out.push({
             id: `current_${i}`,
+            fileId: m.file_id,
             group: 'current_card',
             kind: m.kind,
             label: `${m.kind === 'image' ? '图片' : m.kind === 'video' ? '视频' : '音频'} #${i + 1}`,
@@ -243,6 +247,7 @@ export function buildCandidates(ctx: CandidateBuildContext): SeedanceAssetCandid
             if (!url) return;
             out.push({
                 id: `asset_${key}_${it.id}`,
+                fileId: it?.currentVersion?.fileId || it.fileId || it.file_id,
                 group: 'assets',
                 kind: 'image',
                 label: it.name || it.id,
@@ -349,6 +354,7 @@ export function buildCandidates(ctx: CandidateBuildContext): SeedanceAssetCandid
         if (!kind) return;
         out.push({
             id: `uf_${f.id}`,
+            fileId: f.file_id || f.fileId || f.id,
             group: 'user_files',
             kind,
             label: f.file_name || f.id,
@@ -364,6 +370,7 @@ export function buildCandidates(ctx: CandidateBuildContext): SeedanceAssetCandid
         if (!url) return;
         out.push({
             id: `media_library_${item.library_item_id || item.libraryItemId || item.file_id || item.fileId || url}`,
+            fileId: item.file_id || item.fileId,
             group: 'media_library',
             kind,
             label: item.title || item.file_name || item.fileName || item.source || '素材库资源',
@@ -383,6 +390,8 @@ export function buildCandidates(ctx: CandidateBuildContext): SeedanceAssetCandid
     });
 
     const seenMedia = new Set<string>();
+    const fileIds = new Map(out.filter(candidate => candidate.fileId && candidate.url).map(candidate => [candidate.url, candidate.fileId]));
+    out.forEach(candidate => { if (!candidate.fileId && candidate.url) candidate.fileId = fileIds.get(candidate.url); });
     return out.filter((candidate) => {
         if (candidate.kind === 'text' || candidate.group === 'ark_asset_id') return true;
         const mediaUrl = String(candidate.url || candidate.arkAssetId || '').trim();

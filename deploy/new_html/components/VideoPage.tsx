@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { ImageSourceBadgeOverlay, SeedreamSourceBadge } from './SeedreamSourceBadge';
 import {
     Upload, Video, Play, RefreshCw, Trash2, Link, Unlink,
     GripVertical, CheckSquare, Square, Clock, Film, AlertCircle,
@@ -4793,6 +4794,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                                 onClick={() => { setLightboxUrl(image.url); setLightboxType('image'); }}
                             >
                                 <img src={image.url} loading="lazy" decoding="async" alt="" className="h-full w-full bg-n900/50 object-contain" />
+                                <ImageSourceBadgeOverlay reference={image.url} />
                                 {sourceLabel && (
                                     <div className="absolute bottom-0 left-0 rounded-tr bg-n900/60 px-1 text-[9px] text-white">{sourceLabel}</div>
                                 )}
@@ -6390,6 +6392,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                                             className="relative aspect-video rounded border border-n40 hover:border-primary overflow-hidden bg-n800"
                                         >
                                             <img src={img.url} loading="lazy" decoding="async" alt="" className="w-full h-full object-cover" />
+                                            <ImageSourceBadgeOverlay reference={img.url} />
                                             <div className="absolute bottom-0 left-0 right-0 px-1 py-0.5 bg-n900/60 text-[9px] text-n700 truncate">
                                                 {img.filename || img.id}
                                             </div>
@@ -6422,6 +6425,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                     >
                         <Download className="w-8 h-8" />
                     </a>
+                    {lightboxType === 'image' && <div className="absolute top-4 left-4 rounded bg-white/95 p-2"><SeedreamSourceBadge reference={lightboxUrl} /></div>}
                     {lightboxType === 'video' ? (
                         <video
                             src={lightboxUrl}

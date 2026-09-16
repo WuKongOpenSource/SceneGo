@@ -44,6 +44,7 @@ module.exports = {
     './platform/**/*.{ts,tsx}',
     './services/**/*.{ts,tsx}',
     '../deploy/new_html/components/ModelPicker.tsx',
+    '../deploy/new_html/components/SeedreamSourceBadge.tsx',
   ],
   theme: {
     extend: {

@@ -27,6 +27,15 @@ const agentPlanValue: SeedanceParams = {
 };
 
 describe('Seedance 1.5 Pro controls', () => {
+  it('persists all-reference mode when enabling portrait references from the default mode', () => {
+    const onChange = vi.fn();
+    const value = { ...agentPlanValue, sub_model: 'standard', media_inputs: [] } as SeedanceParams;
+    render(<SeedanceMultimodalPanel value={value} onChange={onChange} candidates={[]} />);
+    fireEvent.click(screen.getByLabelText('真人文生图参考（人物四视图 + 纯背景）'));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({
+      reference_mode: 'reference', portrait_reference_mode: 'character_background',
+    }));
+  });
   it.each(['首帧', '尾帧'])('selects %s directly from the card pool without changing the other frame, prompt or audio', label => {
     const onChange = vi.fn();
     render(<SeedanceMultimodalPanel value={agentPlanValue} onChange={onChange} supportsMultimodal={false} candidates={[

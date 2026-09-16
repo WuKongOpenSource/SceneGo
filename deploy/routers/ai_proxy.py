@@ -724,6 +724,7 @@ def create_ai_proxy_router(
                 model=request.model,
                 usage_scope=request.model_scope,
                 seedance_portrait=request.seedance_portrait,
+                reference_purpose=request.reference_purpose,
             )
             logger.info("✅ 豆包生成 %s 张图片, 用户: %s", len(images), username)
             actual_model = getattr(images, "model", None) or request.model or "doubao"
@@ -759,7 +760,8 @@ def create_ai_proxy_router(
                 reference_snapshot=submitted_references,
                 logger=logger,
             )
-            return {"success": True, "images": list(images), "files": files_result}
+            return {"success": True, "images": list(images), "files": files_result,
+                    "actual_model": actual_model if getattr(images, "model_verified", False) else None}
         except AIProxyError as e:
             await fail_ai_proxy_task(task_id=task_id, error_message=e.detail, logger=logger)
             logger.error("豆包图像生成失败: %s | upstream: %s", e, e.upstream)
@@ -770,5 +772,22 @@ def create_ai_proxy_router(
             await fail_ai_proxy_task(task_id=task_id, error_message=str(e), logger=logger)
             logger.error("豆包图像生成异常: %s", e)
             raise HTTPException(status_code=500, detail="图像生成失败，请稍后重试")
+
+    @router.post("/api/materials/seedream-source")
+    async def seedream_source_labels(request: ImageReferenceValidationRequest, username: str = Depends(require_auth_dependency)):
+        from services.media_reference_service import resolve_media_file_record
+        from services.seedance_image_provenance import verified_text_to_image_source, image_generation_source
+        result = {}
+        for reference in request.references:
+            try:
+                await _authorize_generation_request(request, username, [reference])
+                record = await resolve_media_file_record(reference, file_dao)
+                metadata = (record or {}).get("metadata")
+                result[reference] = {**image_generation_source(metadata), **verified_text_to_image_source(metadata)}
+            except HTTPException as exc:
+                if exc.status_code not in (403, 404):
+                    raise
+                result[reference] = {}
+        return {"items": result}
 
     return router

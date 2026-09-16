@@ -52,7 +52,7 @@ describe('MaterialPage AI generation modal', () => {
 
   it('applies exactly one selected image style when the request is submitted', () => {
     expect(source).toContain('const styledPrompt = applyImageStylePreset(prompt, activeStyle)');
-    expect(source).toContain('prompt: withStandardTurnaround(styledPrompt, config.type, standardTurnaround)');
+    expect(source).toContain('prompt: referencePurpose ? styledPrompt : withStandardTurnaround(styledPrompt, config.type, standardTurnaround)');
     expect(source).toContain('stripImageStylePresets(nextStoredPrompt)');
   });
 });

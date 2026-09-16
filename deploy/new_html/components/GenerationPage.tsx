@@ -1,5 +1,6 @@
 
 
+import { ImageSourceBadgeOverlay } from './SeedreamSourceBadge';
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { ProjectMaterialPicker, useProjectMaterialPicker } from './ProjectMaterialPicker';
 import { useNavigate } from 'react-router-dom';
@@ -3394,6 +3395,7 @@ export const GenerationPage: React.FC<GenerationPageProps> = ({
                                   className="w-full h-full object-cover cursor-pointer"
                                   onClick={() => setImageEditorData({ imageUrl: ref.url, referenceId: ref.id })}
                                 />
+                                <ImageSourceBadgeOverlay reference={ref.url} />
                                 {unavailableReferenceUrls.has(ref.url) && (
                                   <span className="pointer-events-none absolute inset-x-0 top-1/2 bg-danger/90 px-1 py-1 text-center text-[10px] text-white">
                                     素材不可用，请重新选择
@@ -3781,6 +3783,7 @@ export const GenerationPage: React.FC<GenerationPageProps> = ({
 
                 <div className="relative flex items-center justify-center" style={{ minWidth: '50vw', minHeight: '50vh' }}>
 
+                    <ImageSourceBadgeOverlay reference={previewImage} />
                     {isLoadingFullImage && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center bg-n900/50 rounded-lg z-10">
                             <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-4"></div>
@@ -4112,6 +4115,7 @@ const CameraAngleModal: React.FC<CameraAngleModalProps> = ({
                     <div className="space-y-4">
                         <div className="relative rounded-2xl overflow-hidden border border-n40 h-80 bg-n30 flex items-center justify-center">
                             <img src={imageUrl} loading="lazy" decoding="async" className="w-full h-full object-contain" alt="预览" />
+                            <ImageSourceBadgeOverlay reference={imageUrl} />
                         </div>
                         <div className="rounded-md border border-n40 bg-n20 p-3">
                             <div className="mb-2 flex items-center justify-between">
@@ -4316,6 +4320,7 @@ const HumanMultiAngleModal: React.FC<HumanMultiAngleModalProps> = ({ imageUrl, o
 
                         <div className="relative flex h-72 items-center justify-center overflow-hidden rounded-2xl border border-n40 bg-n30">
                             <img src={imageUrl} loading="lazy" decoding="async" className="h-full w-full object-contain" alt="选中的图片" />
+                            <ImageSourceBadgeOverlay reference={imageUrl} />
                         </div>
                         <GpuNodeSelector
                             onSelectionChange={setGpuSelection}

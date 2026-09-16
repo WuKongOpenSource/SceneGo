@@ -1,3 +1,4 @@
+import { SeedreamSourceBadge } from './SeedreamSourceBadge';
 import React, { useState } from 'react';
 import { X, Scissors, Layers, Loader2 } from 'lucide-react';
 
@@ -50,6 +51,7 @@ export const MattingModal: React.FC<MattingModalProps> = ({
                 {/* Content */}
                 <div className="p-6 space-y-6">
 
+                    <SeedreamSourceBadge reference={imageUrl} />
                     <div className="aspect-video bg-black rounded-md overflow-hidden border border-n40">
                         <img
                             src={imageUrl}

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 
 
@@ -56,6 +57,34 @@ FORBIDDEN_VALUES = (
     "www.ostory.ai",
     "sshConfig",
 )
+
+
+def is_reviewed_help_catalog(path: Path, frontend_root: Path) -> bool:
+    """Recognize only the unchanged editorial data asset, never runtime JSON/JS.
+
+    Public documentation contains official site links and literal API examples.
+    The Markdown reader treats these as text, not runtime configuration. Source
+    privacy scanning and the help coverage/reproducibility gate still apply.
+    """
+    source = frontend_root / 'public/assets/help/catalog.json'
+    try:
+        if not source.is_file() or path.stat().st_size > 2_000_000 or path.read_bytes() != source.read_bytes():
+            return False
+        data = json.loads(path.read_text(encoding='utf-8'))
+        if set(data) != {'version', 'updatedAt', 'sourceRevision', 'categories', 'documents'} or data['version'] != 1:
+            return False
+        if not re.fullmatch(r'[a-f0-9]{40}', data['sourceRevision']):
+            return False
+        groups = {group['id'] for group in data['categories'] if set(group) == {'id', 'title', 'description'}}
+        if not groups or not data['documents']:
+            return False
+        required = {'id', 'title', 'category', 'summary', 'body', 'source'}
+        allowed = required | {'sourceUrl', 'sourcePath'}
+        return all(required <= set(doc) <= allowed and all(isinstance(value, str) for value in doc.values())
+                   and re.fullmatch(r'[a-z0-9-]+', doc['id']) and doc['category'] in groups
+                   for doc in data['documents'])
+    except (OSError, ValueError, TypeError, KeyError, AttributeError):
+        return False
 
 
 def audit_resolution_contract(root: Path, frontend: Path) -> list[str]:
@@ -190,6 +219,8 @@ def audit_frontend(frontend_root: Path, dist_root: Path | None = None) -> list[s
             issues.append("public build manifest is missing")
         for path in output.rglob("*"):
             if not path.is_file() or path.suffix.lower() not in {".html", ".js", ".css", ".json"}:
+                continue
+            if path.relative_to(output).as_posix() == 'assets/help/catalog.json' and is_reviewed_help_catalog(path, root):
                 continue
             try:
                 content = path.read_text(encoding="utf-8")

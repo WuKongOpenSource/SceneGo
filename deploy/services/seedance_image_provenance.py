@@ -5,6 +5,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import time
 from typing import Any
 from urllib.parse import urlsplit
@@ -15,6 +16,18 @@ PROVENANCE_KEY = "seedance_provenance"
 TRUST_SECONDS = 30 * 24 * 60 * 60
 SEEDREAM_PRO_MODEL = "doubao-seedream-5-0-pro-260628"
 SUPPORTED_MODELS = {SEEDREAM_PRO_MODEL, "doubao-seedream-5-0-lite-260128", "doubao-seedream-5.0-lite"}
+REFERENCE_PURPOSES = {"character_four_view", "pure_background"}
+
+
+def reference_purpose_prompt(prompt: str, purpose: str) -> str:
+    if purpose not in REFERENCE_PURPOSES:
+        raise SeedanceInputProvenanceError("不支持的真人参考素材用途。")
+    instruction = (
+        "生成一张人物四视图：同一个成年人物的正面、左侧面、右侧面、背面并排呈现，人物身份、服装与比例一致，干净纯色底，不含文字、水印和其他人物。"
+        if purpose == "character_four_view" else
+        "生成一张纯背景场景图：只呈现场景、建筑、环境与道具，不出现人物、人脸、人体、人物剪影、镜中人或人物海报，不含文字和水印。"
+    )
+    return f"{prompt.strip()}\n\n【参考素材规格】{instruction}"
 
 
 class SeedanceInputProvenanceError(ValueError):
@@ -48,6 +61,101 @@ def _account_binding(config: Any) -> str:
     return str((extra or {}).get("account_binding") or "").strip() if isinstance(extra, dict) else ""
 
 
+def _verified_source_provenance(metadata: Any) -> dict[str, Any]:
+    if isinstance(metadata, str):
+        try:
+            metadata = json.loads(metadata)
+        except (ValueError, TypeError):
+            return {}
+    provenance = metadata.get(PROVENANCE_KEY) if isinstance(metadata, dict) else None
+    if not isinstance(provenance, dict):
+        return {}
+    count = provenance.get("reference_count")
+    if (provenance.get("model") not in SUPPORTED_MODELS or provenance.get("official_ark") is not True
+            or type(count) is not int or count < 0
+            or provenance.get("generation_mode") != ("text_to_image" if count == 0 else "image_to_image")):
+        return {}
+    signature = str(provenance.get("signature") or "")
+    if len(signature) != 64 or any(char not in '0123456789abcdef' for char in signature):
+        return {}
+    signed = {key: value for key, value in provenance.items() if key != "signature"}
+    valid = False
+    if provenance.get("version") == 2:
+        expected = _account_signature(signed)
+        valid = bool(expected and hmac.compare_digest(signature, expected))
+    elif provenance.get("version") == 1:
+        from services.api_provider_runtime import resolve_provider
+        for scope in ("workflow", "studio"):
+            try:
+                config = resolve_provider("doubao", provenance["model"], usage_scope=scope)
+                if config.api_key and is_official_ark_endpoint(config.endpoint):
+                    valid = hmac.compare_digest(signature, _signature(signed, config.api_key))
+            except Exception:
+                continue
+            if valid:
+                break
+    if not valid:
+        return {}
+    return provenance
+
+
+def verified_text_to_image_source(metadata: Any) -> dict[str, str]:
+    """A display label is not video eligibility (age/purpose/access/hash)."""
+    provenance = _verified_source_provenance(metadata)
+    if provenance.get("model_verified") is not True or provenance.get("generation_mode") != "text_to_image":
+        return {}
+    label = "Seedream 5.0 Pro" if provenance["model"] == SEEDREAM_PRO_MODEL else "Seedream 5.0 Lite"
+    result = {"label": f"{label} · 文生图"}
+    if provenance.get("purpose") in REFERENCE_PURPOSES:
+        result["purpose"] = provenance["purpose"]
+    return result
+
+
+def image_generation_source(metadata: Any) -> dict[str, str]:
+    """Display recorded input mode only; never grant portrait eligibility."""
+    if isinstance(metadata, str):
+        try:
+            metadata = json.loads(metadata)
+        except (ValueError, TypeError):
+            return {}
+    if not isinstance(metadata, dict):
+        return {}
+    if PROVENANCE_KEY in metadata:
+        proof = _verified_source_provenance(metadata)
+        if not proof:
+            return {}
+        mode = proof["generation_mode"]
+        model = proof["model"]
+    else:
+        # These snapshots are persisted by image-generation routes. Missing
+        # snapshots, uploads, prompts and browser-supplied model names are not evidence.
+        if metadata.get("source") in {"upload", "uploaded"}:
+            return {"display_label": "外部上传 · 来源待确认"}
+        snapshot = metadata.get("reference_snapshot")
+        mode = ""
+        if metadata.get("source") in {"doubao", "gemini", "gpt", "gpt-image-vip", "gpt-image-official"} and isinstance(snapshot, list):
+            count = metadata.get("ref_count", len(snapshot))
+            if type(count) is int and count >= 0 and count == len(snapshot):
+                mode = "text_to_image" if count == 0 else "image_to_image"
+        model = str(metadata.get("model") or metadata.get("storyboard_generation_model") or "")
+    model_label = ""
+    if re.fullmatch(r"doubao-seedream-[a-zA-Z0-9.\-]+", model):
+        version = re.search(r"seedream-(\d)[.-](\d)", model)
+        model_label = "Seedream" + (f" {version[1]}.{version[2]}" if version else "")
+        model_label += " Pro" if "-pro" in model else " Lite" if "-lite" in model else ""
+    elif model in {"gpt-image-2", "gpt-image-2-vip"}:
+        model_label = "GPT Image 2" + (" VIP" if model.endswith('-vip') else "")
+    elif re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9 ._\-]{0,79}", model):
+        model_label = model.replace('gemini-', 'Gemini ').replace('-preview', ' Preview')
+    mode_label = "文生图" if mode == "text_to_image" else "图生图" if mode == "image_to_image" else ""
+    if not model_label and not mode_label:
+        return {}
+    result = {"model_label": model_label, "display_label": f"{model_label or '模型未记录'} · {mode_label or '方式待确认'}"}
+    if mode_label:
+        result.update(generation_mode=mode, mode_label=mode_label)
+    return result
+
+
 class SeedreamImageBatch(list):
     """Carry server-only provenance across generation and persistence."""
 
@@ -62,10 +170,13 @@ class SeedreamImageBatch(list):
         protected: bool,
         created_at: int,
         account_binding: str = "",
+        purpose: str | None = None,
+        model_verified: bool = False,
     ):
         super().__init__(images)
         self.model = model
         self.protected = protected
+        self.model_verified = model_verified
         self._api_key = api_key
         self._account_binding = str(account_binding or "").strip()
         self._provenance = {
@@ -80,6 +191,13 @@ class SeedreamImageBatch(list):
         }
         if self._account_binding:
             self._provenance["account_binding_sha256"] = hashlib.sha256(self._account_binding.encode()).hexdigest()
+        # Optional signed fields keep existing v1/v2 originals verifiable. Old
+        # signatures are never upgraded into purpose-qualified references.
+        self._provenance["model_verified"] = model_verified
+        if purpose:
+            if purpose not in REFERENCE_PURPOSES or reference_count or not model_verified:
+                raise SeedanceInputProvenanceError("真人参考素材必须为已核实模型的纯文生图。")
+            self._provenance["purpose"] = purpose
 
     def original_metadata(self, content: bytes) -> dict[str, Any]:
         provenance = {**self._provenance, "sha256": hashlib.sha256(content).hexdigest()}
@@ -149,7 +267,7 @@ def verify_original(
         )
     if not is_official_ark_endpoint(endpoint) or not signature_valid:
         raise SeedanceInputProvenanceError("Seedance 原图来源校验失败：当前视频 API Key 与生图时不一致或来源记录已改变；请核对同账号配置，勿反复重试。")
-    if version not in (1, 2) or signed.get("model") not in SUPPORTED_MODELS or signed.get("official_ark") is not True or signed.get("generation_mode") != "text_to_image" or signed.get("reference_count") != 0:
+    if version not in (1, 2) or signed.get("model") not in SUPPORTED_MODELS or signed.get("official_ark") is not True or signed.get("generation_mode") != "text_to_image" or type(signed.get("reference_count")) is not int or signed.get("reference_count") != 0:
         raise SeedanceInputProvenanceError("该图片不符合 Seedream 5.0 Lite/Pro 纯文生图原始产物要求。")
     current = time.time() if now is None else now
     created = signed.get("created_at")

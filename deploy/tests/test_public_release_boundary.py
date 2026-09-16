@@ -1,4 +1,5 @@
 import hashlib
+import json
 from pathlib import Path
 
 import pytest
@@ -42,6 +43,24 @@ def _rules(root: Path) -> dict[str, set[str]]:
 def test_safe_source_only_candidate_passes(tmp_path: Path) -> None:
     candidate = _safe_candidate(tmp_path / "candidate")
     assert audit_candidate(candidate) == []
+
+
+@pytest.mark.parametrize("body,extra,accepted", [
+    ("Official help: https://www.ostory.ai", {}, True),
+    ("Official help: https://tv.ostory.ai", {"runtime": "https://tv.ostory.ai"}, False),
+    ("127.0.0.1:8188", {}, False),
+    ("podman run example", {}, False),
+])
+def test_help_catalog_only_allows_editorial_site_links(tmp_path, body, extra, accepted):
+    candidate = _safe_candidate(tmp_path / "candidate")
+    path = candidate / "deploy/new_html/public/assets/help/catalog.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    data = {"version": 1, "updatedAt": "2026-09-16", "sourceRevision": "a" * 40,
+            "categories": [{"id": "manual", "title": "操作手册", "description": "说明"}],
+            "documents": [{"id": "guide", "title": "指南", "category": "manual", "summary": "说明", "body": body, "source": "manual"}], **extra}
+    path.write_text(json.dumps(data), encoding="utf-8")
+    _write_manifest(candidate)
+    assert (not audit_candidate(candidate)) is accepted
 
 
 @pytest.mark.parametrize('relative', [

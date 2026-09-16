@@ -69,6 +69,8 @@ class OnlineProviderTaskService:
                 task_data=task_data,
             )
             from services.seedance_audio_validation_service import preflight_seedance_reference_audio
+            from services.seedance_portrait_reference_service import preflight_portrait_references
+            await preflight_portrait_references(task_type, task_data, user_id)
             await preflight_seedance_reference_audio(task_type, task_data, user_id)
             from services.jimeng_preflight_service import preflight_jimeng
             await preflight_jimeng(task_type, task_data, user_id)

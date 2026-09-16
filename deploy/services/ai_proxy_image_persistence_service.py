@@ -114,6 +114,12 @@ async def persist_generated_ai_images(
                 logger.warning("media_library sync failed (%s): %s", media_source, exc)
 
             result.update({"file_id": saved["file_id"], "file_url": saved["file_url"]})
+            provenance = stored_metadata.get("seedance_provenance") or {}
+            if provenance.get("model_verified") is True:
+                result["actual_model"] = provenance.get("model")
+                if provenance.get("generation_mode") == "text_to_image" and provenance.get("reference_count") == 0:
+                    result["text_to_image"] = True
+                    result["reference_purpose"] = provenance.get("purpose")
         except Exception as exc:
             logger.warning("Generated AI image save failed (%s): %s", source, exc)
             if protected:

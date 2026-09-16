@@ -16,6 +16,11 @@ import re
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
+try:
+    from .check_public_frontend_boundary import is_reviewed_help_catalog
+except ImportError:
+    from check_public_frontend_boundary import is_reviewed_help_catalog
+
 
 # This reviewed profile must survive source-only distribution. It is also run
 # in an isolated test tree; do not replace it with failure-based test filtering.
@@ -65,8 +70,6 @@ PUBLIC_RUNTIME_REGRESSION_TESTS = (
     "deploy/tests/test_public_video_capabilities.py",
     "deploy/tests/test_public_video_crop_service.py",
     "deploy/tests/test_public_video_reverse.py",
-    "deploy/tests/test_video_submission_grace.py",
-    "deploy/tests/test_video_timing_contract.py",
     "deploy/tests/test_video_reverse_access.py",
     "deploy/tests/test_video_reverse_atomicity.py",
     "deploy/tests/test_video_reverse_reconciliation.py",
@@ -123,14 +126,12 @@ REQUIRED_PATHS = (
     *PUBLIC_AUTH_ENTRY_FILES,
     "deploy/tests/test_frontend_entry_files.py",
     "deploy/core/online_provider_queue.py",
-    "deploy/core/video_submission_grace.py",
     "deploy/core/daily_task_quota.py",
     "deploy/core/online_provider_task_model.py",
     "deploy/core/online_provider_task_types.py",
     "deploy/core/online_provider_tasks.py",
     "deploy/core/online_provider_worker.py",
     "deploy/services/online_provider_task_service.py",
-    "deploy/services/seedance_task_identity.py",
     "deploy/services/online_task_quota_service.py",
     "deploy/services/online_video_catalog_service.py",
     "deploy/services/public_video_capability_service.py",
@@ -662,13 +663,23 @@ def audit_candidate(candidate_root: Path) -> list[BoundaryIssue]:
                 except (OSError, UnicodeDecodeError):
                     issues.add(BoundaryIssue(path, "source file must be readable UTF-8 text"))
                 else:
-                    if any(pattern.search(source) for pattern in FORBIDDEN_SOURCE_CONTENT):
+                    editorial_catalog = (
+                        path == "deploy/new_html/public/assets/help/catalog.json"
+                        and is_reviewed_help_catalog(file_path, root / "deploy/new_html")
+                    )
+                    # Official website links in reviewed Markdown are editorial
+                    # content, not runtime deployment defaults. All private local
+                    # execution signatures and documentation restrictions remain.
+                    patterns = FORBIDDEN_SOURCE_CONTENT[:-1] if editorial_catalog else FORBIDDEN_SOURCE_CONTENT
+                    if any(pattern.search(source) for pattern in patterns):
                         issues.add(
                             BoundaryIssue(
                                 path,
                                 "source contains a forbidden hosted-deployment or local-execution value",
                             )
                         )
+                    if editorial_catalog and any(pattern.search(source) for pattern in FORBIDDEN_DOCUMENTATION_INSTRUCTIONS):
+                        issues.add(BoundaryIssue(path, "documentation points users to a bundled container workflow"))
 
     for documentation_path in root.rglob("*.md"):
         if not documentation_path.is_file() or documentation_path.is_symlink():

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { SeedreamSourceBadge } from './SeedreamSourceBadge';
 import { X, Plus, Image as ImageIcon, Layers } from 'lucide-react';
 import type { SeedanceParams } from '../services/videoModelService';
 import type { SeedanceAssetCandidate } from '../utils/seedanceMedia';
@@ -152,6 +153,7 @@ export const SeedanceAssetPickerModal: React.FC<SeedanceAssetPickerModalProps> =
                                                 <img src={c.thumbnailUrl} alt="" className="w-full h-16 object-cover rounded mb-1" />
                                             )}
                                             <div className="text-[11px] text-n700 truncate">{c.label}</div>
+                                            {c.kind === 'image' && <SeedreamSourceBadge reference={c.fileId || c.url} />}
                                             <div className="text-[9px] text-n100">{c.kind}</div>
                                             {selected.has(c.id) && (
                                                 <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-primary flex items-center justify-center">

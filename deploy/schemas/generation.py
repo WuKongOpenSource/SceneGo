@@ -55,6 +55,8 @@ class GenerateRequest(BaseModel):
     model_scope: Optional[str] = Field(None, description="model usage scope: workflow|studio")
     media_inputs: Optional[List[Dict[str, Any]]] = Field(None, description="Seedance 多模态输入: [{kind:image|video|audio, url, role?, file_id?}]")
     reference_audio_policy: Literal['preserve', 'trim_to_15'] = 'preserve'
+    reference_mode: Optional[Literal['reference', 'first_last']] = None
+    portrait_reference_mode: Optional[Literal['character_background']] = None
     ratio: Optional[str] = Field("adaptive", description="Seedance 画面比例: adaptive|16:9|4:3|1:1|3:4|9:16|21:9")
     watermark: Optional[bool] = Field(False, description="Seedance 水印")
     generate_audio: Optional[bool] = Field(True, description="Seedance AI 配音")
@@ -128,6 +130,13 @@ class DoubaoImageRequest(BaseModel):
     references: List[str] = Field(default_factory=list)
     reference_metadata: List[ImageReferenceMetadata] = Field(default_factory=list)
     seedance_portrait: bool = Field(False, description="Pure text-to-image with original preservation and same-key provenance checks")
+    reference_purpose: Optional[Literal['character_four_view', 'pure_background']] = None
+
+    @model_validator(mode='after')
+    def validate_reference_purpose(self):
+        if self.reference_purpose and (self.references or self.reference_metadata or self.count != 1 or self.sequential != 'disabled'):
+            raise ValueError('真人参考素材仅支持单张纯文生图，不能携带参考图或使用组图。')
+        return self
     size: str = Field("2K")
     sequential: str = Field("disabled", pattern="^(disabled|auto)$")
     count: int = Field(1, ge=1, le=15)

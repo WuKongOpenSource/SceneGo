@@ -1,5 +1,6 @@
 
 // ... existing imports
+import { ImageSourceBadgeOverlay } from '@app/components/SeedreamSourceBadge';
 import { AppNode, NodeStatus, NodeType } from '../types';
 import { RefreshCw, Play, Image as ImageIcon, Video as VideoIcon, Type, AlertCircle, CheckCircle, Plus, Maximize2, Download, MoreHorizontal, Wand2, Scaling, FileSearch, Edit, Loader2, Layers, Trash2, X, Upload, Scissors, Film, MousePointerClick, Crop as CropIcon, ChevronDown, ChevronUp, GripHorizontal, Link, Copy, Monitor, Music, Pause, Volume2, Mic2, Coins } from 'lucide-react';
 import { VideoModeSelector, SceneDirectorOverlay } from './VideoNodeModules';
@@ -270,6 +271,7 @@ const InputThumbnails = ({ assets, onReorder }: { assets: InputAsset[], onReorde
                             ) : (
                                 <img src={asset.src} className="studio-node-media-object w-full h-full object-cover pointer-events-none select-none opacity-80 group-hover:opacity-100 transition-opacity" alt="" />
                             )}
+                            {!isVideo && <ImageSourceBadgeOverlay reference={asset.src} />}
                             <div className="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-md"></div>
                             <div className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 z-20 shadow-sm pointer-events-none">
                                 <span className="text-[9px] font-bold text-white leading-none">{index + 1}</span>
@@ -593,11 +595,13 @@ const NodeComponent: React.FC<NodeProps> = ({
                         />
                     }
                     {node.status === NodeStatus.ERROR && <div className="studio-node-error-overlay absolute inset-0 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-20"><AlertCircle className="text-red-500 mb-2" /><span className="text-xs text-red-400">{node.data.error}</span></div>}
+                    {node.data.image && !showImageGrid && <ImageSourceBadgeOverlay reference={node.data.image} />}
                     {showImageGrid && (node.data.images || node.data.videoUris) && (
                         <div className="studio-node-media-chooser absolute inset-0 z-10 grid grid-cols-2 gap-2 p-2 animate-in fade-in duration-200">
                             {node.data.images ? node.data.images.map((img, idx) => (
                                 <div key={idx} className={`studio-node-thumbnail relative rounded-lg overflow-hidden cursor-pointer border-2 ${img === node.data.image ? 'border-cyan-500' : 'border-transparent hover:border-cyan-500/40'}`} onClick={(e) => { e.stopPropagation(); onUpdate(node.id, { image: img }); }}>
                                     <img src={img} className="w-full h-full object-cover" />
+                                    <ImageSourceBadgeOverlay reference={img} />
                                 </div>
                             )) : node.data.videoUris?.map((uri, idx) => (
                                 <div key={idx} className={`studio-node-thumbnail relative rounded-lg overflow-hidden cursor-pointer border-2 ${uri === node.data.videoUri ? 'border-cyan-500' : 'border-transparent hover:border-cyan-500/40'}`} onClick={(e) => { e.stopPropagation(); onUpdate(node.id, { videoUri: uri }); }}>

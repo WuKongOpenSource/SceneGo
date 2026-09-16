@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { SeedreamSourceBadge } from './SeedreamSourceBadge';
 
 interface ImagePreviewLightboxProps {
   images: string[];
@@ -90,6 +91,7 @@ export const ImagePreviewLightbox: React.FC<ImagePreviewLightboxProps> = ({
         className="max-h-[calc(100vh-4rem)] max-w-[calc(100vw-7rem)] rounded-lg object-contain shadow-2xl"
         onMouseDown={event => event.stopPropagation()}
       />
+      <div className="absolute top-6 left-6 z-20 rounded bg-white/95 px-3 py-2"><SeedreamSourceBadge reference={images[safeIndex]} /></div>
     </div>
   );
 };

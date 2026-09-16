@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Check, Clapperboard, Library, RefreshCw, Search, X } from 'lucide-react';
 import type { GenerationReference, MaterialLibrary, ProjectFile, StoryboardItem } from '../types';
 import { buildOtherStoryboardImagePickerItems } from '../utils/storyboardGeneration';
+import { SeedreamSourceBadge } from './SeedreamSourceBadge';
 
 const EMPTY_FILES: ProjectFile[] = [];
 const EMPTY_SHOTS: StoryboardItem[] = [];
@@ -254,6 +255,7 @@ export const ProjectMaterialPicker: React.FC<ProjectMaterialPickerProps> = ({
                                       </span>
                                       <span>仅作参考</span>
                                     </div>
+                                    <SeedreamSourceBadge reference={item.url} modeOnly showUnknown />
                                   </div>
                                 </button>
                               );
@@ -301,6 +303,7 @@ export const ProjectMaterialPicker: React.FC<ProjectMaterialPickerProps> = ({
                                     <div className="mt-1 flex items-center gap-1 text-[9px] text-n100">
                                       <span>{item.type === 'character' ? '人物' : item.type === 'scene' ? '场景' : '道具'}</span>
                                     </div>
+                                    <SeedreamSourceBadge reference={item.material.url} modeOnly showUnknown />
                                   </div>
                                 </button>
                               );

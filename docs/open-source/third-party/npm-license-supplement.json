@@ -4,7 +4,7 @@
   "complete_sbom": false,
   "release_approved": false,
   "lock_sha256_lf": {
-    "deploy/new_html": "db132f56fe89d2e3f5c2feabe40c860a99c0aa5f390542237bb0b12912c1ffd7",
+    "deploy/new_html": "90b955b20ed1e1d8bdef6a12337d65894d1afe1dcbc58866373c80e48e1d60c1",
     "studio": "117cf6b68d963acf183d3e9300367e0f2476db5364e2b269c675e418bf249d52"
   },
   "sources": {

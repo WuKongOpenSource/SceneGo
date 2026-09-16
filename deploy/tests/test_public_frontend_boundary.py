@@ -89,6 +89,37 @@ def test_safe_public_frontend_contract_passes(tmp_path: Path) -> None:
     assert audit_frontend(_frontend(tmp_path / "frontend")) == []
 
 
+def test_help_exception_is_only_for_unchanged_editorial_json(tmp_path: Path) -> None:
+    frontend = _frontend(tmp_path / 'frontend')
+    dist = tmp_path / 'dist'
+    (dist / '.vite').mkdir(parents=True)
+    (dist / '.vite/manifest.json').write_text('{}', encoding='utf-8')
+    relative = Path('assets/help/catalog.json')
+    payload = {
+        'version': 1, 'updatedAt': '2026-09-16', 'sourceRevision': 'a' * 40,
+        'categories': [{'id': 'technical', 'title': '技术说明', 'description': '接口说明'}],
+        'documents': [{'id': 'guide', 'title': '中文说明', 'category': 'technical',
+                       'summary': '只读', 'body': FORBIDDEN_VALUES[0], 'source': '公开文档'}],
+    }
+    source = frontend / 'public' / relative
+    output = dist / relative
+    source.parent.mkdir(parents=True)
+    output.parent.mkdir(parents=True)
+    text = json.dumps(payload)
+    source.write_text(text, encoding='utf-8')
+    output.write_text(text, encoding='utf-8')
+    assert audit_frontend(frontend, dist) == []
+    # No path-wide or extension-wide exemption: executable chunks still fail.
+    (output.parent / 'runtime.js').write_text(FORBIDDEN_VALUES[0], encoding='utf-8')
+    assert any('runtime.js contains forbidden' in issue for issue in audit_frontend(frontend, dist))
+    output.write_text(text + ' ', encoding='utf-8')
+    assert any('catalog.json contains forbidden' in issue for issue in audit_frontend(frontend, dist))
+    payload['endpoint'] = FORBIDDEN_VALUES[0]
+    source.write_text(json.dumps(payload), encoding='utf-8')
+    output.write_text(json.dumps(payload), encoding='utf-8')
+    assert any('catalog.json contains forbidden' in issue for issue in audit_frontend(frontend, dist))
+
+
 def test_private_endpoint_in_replacement_fails(tmp_path: Path) -> None:
     frontend = _frontend(tmp_path / "frontend")
     replacement = frontend / "public-source" / "videoMediaService.ts"

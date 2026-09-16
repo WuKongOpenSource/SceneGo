@@ -145,6 +145,7 @@ const ImageSlot: React.FC<ImageSlotProps> = ({
     }
     return (
         <div className={`relative aspect-video w-full rounded border ${accentBorder} overflow-hidden bg-black group`}>
+            <ImageSourceBadgeOverlay reference={media?.file_id || previewUrl} />
             {previewUrl ? (
                 <img
                     src={previewUrl}
@@ -210,6 +211,7 @@ const CompactImageSlot: React.FC<CompactImageSlotProps> = ({
             <span className="text-[10px] text-n300 shrink-0 w-10">{label}</span>
             {hasImage ? (
                 <div className={`relative w-20 h-14 shrink-0 rounded border ${accentBorder} overflow-hidden bg-black group`}>
+                    <ImageSourceBadgeOverlay reference={media?.file_id || previewUrl} />
                     {previewUrl ? (
                         <img
                             src={previewUrl}
@@ -271,6 +273,7 @@ const MultiRefRow: React.FC<MultiRefRowProps> = ({
             const url = m.url || '';
             return (
                 <div key={idx} className={`relative w-14 h-14 shrink-0 rounded border ${accentBorder} overflow-hidden bg-black group`}>
+                    <ImageSourceBadgeOverlay reference={m.file_id || url} />
                     {url ? (
                         <img src={url} className="w-full h-full object-cover cursor-zoom-in" onClick={() => onPreview?.(url)} />
                     ) : (
@@ -983,3 +986,4 @@ export const DashScopeVideoCard: React.FC<DashScopeCardProps> = (props) => {
     if (props.params.model === 'HappyHorse') return <HappyHorseCard {...props} />;
     return null;
 };
+import { ImageSourceBadgeOverlay } from '../SeedreamSourceBadge';

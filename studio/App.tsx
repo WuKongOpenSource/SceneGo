@@ -1,5 +1,6 @@
 
 
+import { SeedreamSourceBadge } from '@app/components/SeedreamSourceBadge';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { WorkspaceLoadBoundary } from '@app/components/WorkspaceLoadBoundary';
 import { useWorkspaceSave } from '@app/hooks/useWorkspaceSave';
@@ -122,6 +123,7 @@ const ExpandedView = ({ media, onClose }: { media: any, onClose: () => void }) =
                 )}
 
                 <div className="relative max-w-full max-h-full flex flex-col items-center">
+                    {!isVideo && <div className="rounded bg-white/95 px-2 py-1"><SeedreamSourceBadge reference={currentSrc} /></div>}
                     {!isVideo ? (
                         <img
                             key={currentSrc}

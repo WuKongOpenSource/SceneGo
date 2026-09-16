@@ -351,6 +351,7 @@ export const SketchEditor: React.FC<SketchEditorProps> = ({ onClose, onGenerate 
                 </div>
 
                 {/* The Canvas Wrapper */}
+                {backgroundImage && <SeedreamSourceBadge reference={backgroundImage.src} />}
                 <div className="relative shadow-2xl rounded-lg overflow-hidden border border-white/5 bg-[#ffffff] select-none" style={{ aspectRatio: '16/9', height: '100%', maxHeight: '800px' }}>
                      {/* Background Image Layer */}
                      {backgroundImage && (
@@ -434,3 +435,4 @@ export const SketchEditor: React.FC<SketchEditorProps> = ({ onClose, onGenerate 
         </div>
     );
 };
+import { SeedreamSourceBadge } from '@app/components/SeedreamSourceBadge';

@@ -12,6 +12,7 @@
 
 
 
+import { SeedreamSourceBadge } from '../components/SeedreamSourceBadge';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -875,6 +876,7 @@ const MediaCard: React.FC<MediaCardProps> = ({
       </div>
 
       <div className="px-2 py-1.5">
+        {item.item_type === 'image' && <SeedreamSourceBadge reference={item.file_url || undefined} />}
         <div className="text-xs text-n700 truncate flex items-center gap-1" title={item.title || item.file_name}>
           <span className="truncate">{item.title || item.file_name || item.library_item_id}</span>
           {/* 2026-05-26 Slice 5: visibility badge */}
@@ -1021,7 +1023,7 @@ const MediaDetailPanel: React.FC<{
 
       <div className="rounded overflow-hidden bg-n20 border border-n40">
         {isImage && item.file_url && (
-          <img src={item.file_url} alt={item.title || ''} loading="lazy" decoding="async" className="w-full max-h-72 object-contain" />
+          <><img src={item.file_url} alt={item.title || ''} loading="lazy" decoding="async" className="w-full max-h-72 object-contain" /><SeedreamSourceBadge reference={item.file_url} /></>
         )}
         {isVideo && item.file_url && (
           <LazyVideo

@@ -49,10 +49,11 @@ export async function generateImageWithPreferredFallback(options: {
 
   const count = Math.max(1, Math.round(options.count || 1));
   try {
+    const files = await generateDoubaoImages({ ...options.doubao, model: options.model, count });
     return {
-      files: await generateDoubaoImages({ ...options.doubao, model: options.model, count }),
+      files,
       actualEngine: 'doubao',
-      actualModel: options.model,
+      actualModel: files[0]?.actualModel || options.model,
       actualBillingModel: options.billingModel,
     };
   } catch (error) {
@@ -60,6 +61,7 @@ export async function generateImageWithPreferredFallback(options: {
     const fallbackAllowed = options.allowFallback !== false
       && options.model === PREFERRED_IMAGE_MODEL
       && !options.doubao.seedancePortrait
+      && !options.doubao.referencePurpose
       && references.length <= 6
       && isPreferredImageFallbackEligible(error);
     if (!fallbackAllowed) throw error;

@@ -342,6 +342,10 @@ class OnlineProviderTaskHandlers:
             verified_audio = await validate_seedance_reference_audio(
                 task.task_type, task.data, task.user_id, file_dao=FileDAO,
             )
+            from services.seedance_portrait_reference_service import validate_portrait_references
+            verified_images = await validate_portrait_references(
+                task.task_type, task.data, task.user_id, file_dao=FileDAO, prepare=True,
+            )
 
             
             contents = []
@@ -362,7 +366,7 @@ class OnlineProviderTaskHandlers:
                 if not src:
                     continue
                 if kind == 'image':
-                    resolved = await self._provider_media_reference(
+                    resolved = verified_images.get(idx) or await self._provider_media_reference(
                         src, media_kind='image', seedance_sub_model=sub_model, usage_scope=model_scope,
                     )
                     item = {"type": "image_url", "image_url": {"url": resolved}}

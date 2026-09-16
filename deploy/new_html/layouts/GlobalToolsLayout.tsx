@@ -11,6 +11,7 @@ const TOOL_TITLES: Record<string, string> = {
   'image-upscale': '图片高清放大',
   history: '生成历史',
   'recycle-bin': '回收站',
+  help: '帮助文档中心',
 };
 
 
@@ -40,7 +41,7 @@ export const GlobalToolsLayout: React.FC = () => {
   }, [refreshCredits]);
 
   const title = useMemo(() => {
-    const segment = location.pathname.split('/').filter(Boolean).pop() || '';
+    const segment = location.pathname.split('/').filter(Boolean)[1] || '';
     return TOOL_TITLES[segment] || '更多功能';
   }, [location.pathname]);
 

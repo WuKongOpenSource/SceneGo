@@ -176,8 +176,15 @@ def build_doubao_image_payload(
     return payload
 
 
+class ReturnedImageList(list):
+    """Only a provider response may supply the returned model identity."""
+    def __init__(self, images, result):
+        super().__init__(images)
+        self.actual_model = str(result.get("model") or "").strip()
+
+
 def parse_doubao_image_response(result: Dict[str, Any]) -> List[str]:
-    return parse_openai_image_response(result)
+    return ReturnedImageList(parse_openai_image_response(result), result)
 
 
 def _is_image_value(value: str) -> bool:
@@ -229,7 +236,7 @@ def parse_doubao_image_task_response(result: Dict[str, Any]) -> List[str]:
         if image and image not in seen:
             seen.add(image)
             deduped.append(image)
-    return deduped
+    return ReturnedImageList(deduped, result)
 
 
 def _extract_task_id(result: Dict[str, Any]) -> Optional[str]:
@@ -530,7 +537,14 @@ async def generate_doubao_images(
     model: Optional[str] = None,
     usage_scope: Optional[str] = None,
     seedance_portrait: bool = False,
+    reference_purpose: str | None = None,
 ) -> List[str]:
+    if reference_purpose:
+        from services.seedance_image_provenance import reference_purpose_prompt
+        if reference_inputs or count != 1 or sequential != "disabled":
+            raise AIProxyConfigError("真人参考素材仅支持单张纯文生图，不能携带参考图或使用组图。", status_code=422)
+        prompt = reference_purpose_prompt(prompt, reference_purpose)
+        seedance_portrait = True
     config = (
         resolve_provider("doubao", model, usage_scope=usage_scope)
         if usage_scope is not None
@@ -550,6 +564,12 @@ async def generate_doubao_images(
             )
         except SeedanceInputProvenanceError as exc:
             raise AIProxyConfigError(str(exc), status_code=422) from exc
+    if reference_purpose:
+        from services.api_provider_runtime import resolve_seedance_model_name
+        video_model = resolve_seedance_model_name('standard', usage_scope=usage_scope or 'workflow')
+        video_config = resolve_provider('seedance', video_model, usage_scope=usage_scope or 'workflow')
+        if video_model != 'doubao-seedance-2-0-260128' or video_config.model_name != video_model:
+            raise AIProxyConfigError('真人参考素材需要匹配 Seedance 2.0 标准版通道，本次未提交生图。', status_code=422)
     generated_at = int(time.time())
     resolved_size = (
         _normalize_agent_plan_size(size)
@@ -593,8 +613,12 @@ async def generate_doubao_images(
             raise
     if not images:
         raise AIProxyUpstreamError("豆包未返回图片")
+    actual_model = str(getattr(images, "actual_model", "") or "")
+    if reference_purpose and (actual_model != resolved_model or len(images) != 1):
+        raise AIProxyUpstreamError("未取得匹配的 Seedream 实际模型与单张结果，不能登记为真人文生图素材；请先核查生成历史，勿重复提交。", status_code=422)
     return SeedreamImageBatch(
-        images, model=resolved_model, endpoint=config.endpoint, api_key=config.api_key,
+        images, model=actual_model or resolved_model, endpoint=config.endpoint, api_key=config.api_key,
         reference_count=len(reference_inputs), protected=seedance_portrait, created_at=generated_at,
         account_binding=account_binding,
+        purpose=reference_purpose, model_verified=bool(actual_model),
     )

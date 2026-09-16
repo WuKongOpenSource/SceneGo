@@ -1,6 +1,7 @@
 // Mentions stay plain text so IME, clipboard, and deletion semantics remain
 // native. This companion row owns visual previews without coupling rich media
 // behavior to textarea editing.
+import { SeedreamSourceBadge } from './SeedreamSourceBadge';
 import React, { useState } from 'react';
 import { ImageIcon, Music, Video as VideoIcon, X } from 'lucide-react';
 import type { SeedanceParams, SeedanceMediaInput } from '../services/videoModelService';
@@ -131,6 +132,7 @@ const TokenChip: React.FC<TokenChipProps> = ({ token, hovering, onHoverStart, on
 
             <div className="flex flex-col items-start min-w-0">
                 <span className="font-medium tabular-nums text-n800">{token.label}</span>
+                {isImage && <SeedreamSourceBadge reference={token.url} />}
                 <span className="text-[9px] text-n100 truncate max-w-[80px]">
                     {(token.url || '').split('/').pop()?.split('?')[0] || token.kind}
                 </span>
@@ -153,6 +155,7 @@ const TokenChip: React.FC<TokenChipProps> = ({ token, hovering, onHoverStart, on
                     style={{ minWidth: 180 }}
                 >
                     <img src={token.url} alt={token.label} className="block max-w-[220px] max-h-[160px] object-contain rounded" />
+                    <SeedreamSourceBadge reference={token.url} />
                     <div className="mt-1 text-[9px] text-n300 text-center">{token.label}</div>
                 </div>
             )}

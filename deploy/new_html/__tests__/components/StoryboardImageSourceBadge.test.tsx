@@ -10,13 +10,9 @@ afterEach(cleanup);
 const base: GeneratedImage = { id: 'image-1', url: '/original.jpg', timestamp: 0 };
 
 describe('storyboard result source badge', () => {
-  it('always shows the model in the top-left and reserves space for the selection icon', () => {
+  it('does not infer Seedream text-to-image from a saved model label', () => {
     render(<StoryboardImageSourceBadge image={{ ...base, generationModel: 'doubao-seedream-5.0-lite' }} />);
-    const badge = screen.getByTestId('storyboard-image-source-badge');
-    expect(badge).toHaveTextContent('Doubao-Seedream-5.0-lite');
-    expect(badge).toHaveClass('absolute', 'left-1', 'top-1', 'truncate', 'max-w-[calc(100%-2.5rem)]');
-    expect(badge.className).not.toContain('opacity-0');
-    expect(badge.title).toBe('生成模型：doubao-seedream-5.0-lite');
+    expect(screen.queryByText(/Seedream/)).not.toBeInTheDocument();
   });
 
   it('marks upload immediately and preserves the parent image click action', () => {

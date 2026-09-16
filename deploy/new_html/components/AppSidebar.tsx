@@ -8,6 +8,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
+  BookOpen,
   Brush,
   ChevronDown,
   Clock3,
@@ -215,7 +216,11 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ exportTo, tools, credits
     { key: 'history', label: '生成历史', icon: Clock3, to: '/tools/history' },
     { key: 'recycle-bin', label: '回收站', icon: Trash2, to: '/tools/recycle-bin' },
   ];
-  const visibleTools = tools ?? defaultTools;
+  // Help is global even when a workflow supplies its own project-scoped tools.
+  const visibleTools = [
+    ...(tools ?? defaultTools).filter(item => item.key !== 'help'),
+    { key: 'help', label: '帮助文档中心', icon: BookOpen, to: '/tools/help' },
+  ];
   const recent = projects.slice(0, 3);
 
   const shownCredits = managed ? selfCredits : credits;

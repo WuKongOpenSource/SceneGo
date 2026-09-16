@@ -441,6 +441,7 @@ export const GenerationPage: React.FC = () => {
                       </div>
                     </div>
                     <div className="mt-2.5 flex items-center justify-between gap-2">
+                      {img && <SeedreamSourceBadge reference={img} />}
                       <span className={`text-[11px] px-2 py-0.5 rounded-full ${STATUS_BADGE[uiStatus]}`}>
                         {statusLabel(uiStatus)}
                       </span>
@@ -624,3 +625,4 @@ export const GenerationPage: React.FC = () => {
     </div>
   );
 };
+import { SeedreamSourceBadge } from '../components/SeedreamSourceBadge';

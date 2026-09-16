@@ -1,6 +1,8 @@
 
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import { SeedreamPurposeControl, type SeedreamPurpose } from './SeedreamPurposeControl';
+import { ImageSourceBadgeOverlay, SeedreamSourceBadge } from './SeedreamSourceBadge';
 import { ProjectFile, StoryboardItem, MaterialLibrary, Material, FileVersion, AiModel } from '../types';
 import { LayoutDashboard, Users, MapPin, Plus, Image as ImageIcon, Sparkles, Trash2, ChevronRight, ChevronDown, ChevronUp, Upload, AlertCircle, Film, Check, Lock, CheckCircle, Save, History, RefreshCw, X, Clock, Database, GripVertical, Camera, ZoomIn, Layers, Box, ShieldCheck, Maximize, Scissors, Loader, Wand2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
@@ -102,6 +104,7 @@ type MaterialAIGenerationPayload = {
   aspectRatio: string;
   resolution: '1K' | '2K' | '4K';
   sequential: 'disabled' | 'auto';
+  referencePurpose?: SeedreamPurpose;
   count: number;
 };
 
@@ -589,7 +592,7 @@ export const MaterialPage: React.FC<MaterialPageProps> = ({
     let generatedCount = 0;
     let savedToLibrary = false;
     try {
-        const references = await prepareReferenceData(payload.references);
+        const references = payload.referencePurpose ? [] : await prepareReferenceData(payload.references);
         const targetAssetId = assetNameToId?.[payload.tagName];
         const entityOpts = {
             entityType: 'asset' as const,
@@ -603,6 +606,7 @@ export const MaterialPage: React.FC<MaterialPageProps> = ({
             billingModel: generationModel.billingModel,
             count: requestedImageCount,
             doubao: {
+                referencePurpose: payload.referencePurpose,
                 prompt: payload.prompt,
                 references,
                 size: recommendDoubaoImageSize(payload.aspectRatio, payload.resolution),
@@ -638,7 +642,7 @@ export const MaterialPage: React.FC<MaterialPageProps> = ({
         });
         savedToLibrary = true;
 
-        onBindMaterial(selectedShot.id, payload.tagName, newMaterials[0].id);
+        if (!payload.referencePurpose) onBindMaterial(selectedShot.id, payload.tagName, newMaterials[0].id);
         try {
           const settlement = await consumeCredits({
             featureKey: DESIGN_CREDIT_FEATURES.imageGeneration,
@@ -2004,6 +2008,7 @@ export const MaterialPage: React.FC<MaterialPageProps> = ({
               className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             />
+            <div className="absolute left-6 top-6 bg-white/95 rounded p-2"><SeedreamSourceBadge reference={lightboxImage} /></div>
          </div>
         );
       })()}
@@ -2174,6 +2179,7 @@ const MaterialCard: React.FC<{
                                         已同步
                                       </span>
                                     )}
+                                    <div className="absolute bottom-0 inset-x-0 bg-white/95"><SeedreamSourceBadge reference={m.fileId || m.url} /></div>
 
                                     {/* Hover Actions */}
                                     <div className="absolute inset-0 bg-n900/50 opacity-0 group-hover/item:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
@@ -2317,6 +2323,8 @@ const MaterialAIModal: React.FC<{
     ));
     const [selectedRefs, setSelectedRefs] = useState<Set<string>>(new Set());
     const [sequential, setSequential] = useState<'disabled' | 'auto'>('disabled');
+    const [purpose, setPurpose] = useState<SeedreamPurpose>();
+    const referencePurpose = engine === 'doubao' ? purpose : undefined;
     const [count, setCount] = useState(1);
     const [activeStyle, setActiveStyle] = useState(
         detectImageStylePreset(storedPrompt) || materialAIPrefs.get('design_ai_style', ''),
@@ -2356,7 +2364,7 @@ const MaterialAIModal: React.FC<{
         getScriptModelBillingKey(refinementModel),
     );
     const maxRefs = generationModel.maxReferences;
-    const imageToImageEnabled = canUseDesignImageReferences(
+    const imageToImageEnabled = !referencePurpose && canUseDesignImageReferences(
         generationModel,
         sequential === 'auto',
     );
@@ -2541,8 +2549,9 @@ const MaterialAIModal: React.FC<{
         const styledPrompt = applyImageStylePreset(prompt, activeStyle);
         onSubmit({
             tagName: config.tagName,
+            referencePurpose,
             engine,
-            prompt: withStandardTurnaround(styledPrompt, config.type, standardTurnaround),
+            prompt: referencePurpose ? styledPrompt : withStandardTurnaround(styledPrompt, config.type, standardTurnaround),
             references: imageToImageEnabled ? references : [],
             geminiModel,
             aspectRatio: finalAspectRatio,
@@ -2566,6 +2575,7 @@ const MaterialAIModal: React.FC<{
                 </div>
 
                 <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 pb-5">
+                    {engine === 'doubao' && <SeedreamPurposeControl value={referencePurpose} onChange={setPurpose} />}
                     <section>
                         <div className="mb-2 flex items-center justify-between text-[11px] text-n100">
                             <span className="font-bold uppercase">
@@ -2741,7 +2751,7 @@ const MaterialAIModal: React.FC<{
                                     <input
                                         type="checkbox"
                                         checked={imageToImageEnabled}
-                                        disabled={!generationModel.supportsImageToImageBatch}
+                                        disabled={!!referencePurpose || !generationModel.supportsImageToImageBatch}
                                         onChange={event => toggleImageToImage(event.target.checked)}
                                         className="accent-primary"
                                     />
@@ -2888,7 +2898,7 @@ const CameraModal: React.FC<{
                     <div className="space-y-4">
                         <div className="relative rounded-md overflow-hidden border border-n40 h-72 bg-n20 flex items-center justify-center">
                             {currentMaterial ? (
-                                <img src={currentMaterial.url} loading="lazy" className="w-full h-full object-contain" />
+                                <><img src={currentMaterial.url} loading="lazy" className="w-full h-full object-contain" /><ImageSourceBadgeOverlay reference={currentMaterial.url} /></>
                             ) : (
                                 <span className="text-xs text-n100">暂无素材</span>
                             )}
@@ -2901,6 +2911,7 @@ const CameraModal: React.FC<{
                                     className={`relative aspect-square rounded-lg overflow-hidden border ${selectedMaterialId === material.id ? 'border-success ring-2 ring-success/40' : 'border-n40'}`}
                                 >
                                     <img src={material.thumbnail || material.url} loading="lazy" className="w-full h-full object-cover" />
+                                    <ImageSourceBadgeOverlay reference={material.url} />
                                 </button>
                             ))}
                         </div>
@@ -3035,7 +3046,7 @@ const ProcessModal: React.FC<{
                     <div className="space-y-4">
                         <div className="relative rounded-md overflow-hidden border border-n40 h-72 bg-n20 flex items-center justify-center">
                             {currentMaterial ? (
-                                <img src={currentMaterial.url} loading="lazy" className="w-full h-full object-contain" alt="素材预览" />
+                                <><img src={currentMaterial.url} loading="lazy" className="w-full h-full object-contain" alt="素材预览" /><ImageSourceBadgeOverlay reference={currentMaterial.url} /></>
                             ) : (
                                 <span className="text-xs text-n100">暂无素材</span>
                             )}
@@ -3061,6 +3072,7 @@ const ProcessModal: React.FC<{
                                         }`}
                                     >
                                         <img src={mat.thumbnail || mat.url} loading="lazy" className="w-full h-full object-cover" alt="素材" />
+                                        <ImageSourceBadgeOverlay reference={mat.url} />
                                         {selectedMaterialId === mat.id && (
                                             <div className="absolute inset-0 bg-primary-light flex items-center justify-center">
                                                 <Check className="w-6 h-6 text-white" />

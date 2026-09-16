@@ -3,6 +3,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ProjectMaterialPicker, useProjectMaterialPicker } from '../../components/ProjectMaterialPicker';
 import type { MaterialLibrary } from '../../types';
+const { sourceApi } = vi.hoisted(() => ({ sourceApi: vi.fn() }));
+vi.mock('../../services/httpClient', () => ({ apiJson: sourceApi }));
 
 const library: MaterialLibrary = {
   阿亮: [{ id: 'person', url: '/original.png', thumbnail: '/preview.png', assetType: 'character', name: '阿亮', description: '蓝色衣服', type: 'image', source: 'asset', timestamp: 0 }],
@@ -20,6 +22,20 @@ function Harness({ busy = false, selected = false, close = vi.fn() }: { busy?: b
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 describe('shared project material picker', () => {
+  it('labels original image sources without replacing selection semantics', async () => {
+    sourceApi.mockResolvedValue({ items: {
+      '/original.png': { display_label: 'Seedream 5.0 Lite · 文生图', generation_mode: 'text_to_image' },
+      '/scene.png': { display_label: 'Gemini 3.1 · 图生图', generation_mode: 'image_to_image' },
+    } });
+    render(<Harness />);
+    await waitFor(() => expect(screen.getByText('Seedream 5.0 Lite · 文生图')).toBeInTheDocument());
+    expect(screen.getByText('Gemini 3.1 · 图生图')).toBeInTheDocument();
+    expect(sourceApi.mock.calls[0][1].body).not.toContain('/preview.png');
+    fireEvent.click(screen.getByTitle('选择 阿亮'));
+    expect(select).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '完成' }));
+    expect(select).toHaveBeenCalledWith(expect.objectContaining({ material: expect.objectContaining({ url: '/original.png' }) }));
+  });
   it('reuses categories, counts, search and applies the original image only after confirmation', async () => {
     const close = vi.fn();
     render(<Harness close={close} />);

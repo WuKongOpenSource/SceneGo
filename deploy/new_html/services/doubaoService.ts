@@ -1,10 +1,14 @@
 import { apiJson } from './httpClient';
 import type { GeminiImageReferenceMetadata } from './geminiImageService';
+import type { SeedreamPurpose } from '../components/SeedreamPurposeControl';
 
 export interface GeneratedFileResult {
     url: string;
     fileId?: string;
     fileUrl?: string;
+    actualModel?: string;
+    textToImage?: boolean;
+    referencePurpose?: SeedreamPurpose;
 }
 
 export interface DoubaoGenerationOptions {
@@ -12,6 +16,7 @@ export interface DoubaoGenerationOptions {
     model?: string;
     modelScope?: string;
     seedancePortrait?: boolean;
+    referencePurpose?: SeedreamPurpose;
     referenceMetadata?: GeminiImageReferenceMetadata[];
     references?: string[];
     size?: string;
@@ -59,6 +64,7 @@ export const generateDoubaoImages = async (options: DoubaoGenerationOptions): Pr
             model: options.model,
             model_scope: options.modelScope,
             seedance_portrait: options.seedancePortrait || false,
+            reference_purpose: options.referencePurpose,
             reference_metadata: options.referenceMetadata || [],
             references: options.references || [],
             size: options.size || '2K',
@@ -80,13 +86,19 @@ export const generateDoubaoImages = async (options: DoubaoGenerationOptions): Pr
     });
 
     if (data.files && data.files.length > 0) {
+        if (options.referencePurpose && (data.files.length !== 1 || !data.files[0].file_id)) {
+            throw new Error('真人文生图未登记为原始文件，请先核查生成历史，勿重复提交。');
+        }
         return data.files.map((f: any) => ({
             url: f.file_url || f.data_url,
             fileId: f.file_id,
             fileUrl: f.file_url,
+            ...(f.actual_model ? { actualModel: f.actual_model } : {}),
+            ...(f.text_to_image === true ? { textToImage: true } : {}),
+            ...(f.reference_purpose ? { referencePurpose: f.reference_purpose } : {}),
         }));
     }
-    if (!data.images || data.images.length === 0) {
+    if (options.referencePurpose || !data.images || data.images.length === 0) {
         throw new Error('图像生成失败，未返回任何图片');
     }
     return data.images.map((img: string) => ({ url: img }));

@@ -91,6 +91,7 @@ export interface SeedanceParams {
   sub_model: 'agent_plan' | 'standard' | 'fast' | 'mini' | 'jimeng_mini';
   model_scope?: string;
   reference_mode?: 'reference' | 'first_last';
+  portrait_reference_mode?: 'character_background';
   prompt: string;
   media_inputs: SeedanceMediaInput[];
   resolution?: '480p' | '720p' | '1080p';

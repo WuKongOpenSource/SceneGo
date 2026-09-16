@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { SeedreamSourceBadge } from './SeedreamSourceBadge';
 import { History, Download, Trash2, RefreshCw, CheckSquare, Square, Film, Image as ImageIcon, Play, Clock, AlertTriangle, X, ShieldAlert, FileText } from 'lucide-react';
 import { fetchDeletedUserFiles, fetchUserFiles, deleteEntityFile, hardDeleteEntityFile, hardDeleteEntityFiles, type EntityFile } from '../services/entityFileService';
 import { apiJson, secureApiUrl } from '../services/httpClient';
@@ -529,6 +530,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ view = 'history' }) =>
 
 
                   <div className="p-3">
+                    {!isVideoFile && <SeedreamSourceBadge reference={file.fileUrl || undefined} />}
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-[10px] text-n100 truncate max-w-[55%]" title={m?.model}>
                         {m?.model || '—'}
@@ -766,7 +768,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ view = 'history' }) =>
                 autoPlay
               />
             ) : (
-              <img src={previewUrl} className="max-w-full max-h-[85vh] rounded-lg" alt="" />
+              <><img src={previewUrl} className="max-w-full max-h-[85vh] rounded-lg" alt="" /><SeedreamSourceBadge reference={previewUrl} /></>
             )}
             <button
               onClick={() => setPreviewUrl(null)}

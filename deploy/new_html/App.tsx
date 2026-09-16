@@ -64,6 +64,7 @@ const RecycleBinPage = React.lazy(() => import('./pages/RecycleBinPage').then(m 
 const StudioRedirectPage = React.lazy(() => import('./pages/StudioRedirectPage').then(m => ({ default: m.StudioRedirectPage })));
 const MediaLibraryPage = React.lazy(() => import('./pages/MediaLibraryPage'));
 const ImageUpscalePage = React.lazy(() => import('./pages/ImageUpscalePage'));
+const HelpCenterPage = React.lazy(() => import('./pages/HelpCenterPage'));
 const CreditsPage = React.lazy(() => import('./pages/CreditsPage'));
 const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
 const UpdatesPage = React.lazy(() => import('./pages/UpdatesPage'));
@@ -143,6 +144,8 @@ const App: React.FC = () => {
                         <Route path="image-upscale" element={<ImageUpscalePage />} />
                         <Route path="history" element={<HistoryPage />} />
                         <Route path="recycle-bin" element={<RecycleBinPage />} />
+                        <Route path="help" element={<HelpCenterPage />} />
+                        <Route path="help/:documentId" element={<HelpCenterPage />} />
                     </Route>
 
 
