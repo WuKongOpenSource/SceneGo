@@ -10,5 +10,5 @@ router = APIRouter(tags=["admin-jimeng"], dependencies=[Depends(require_super_ad
 async def get_jimeng_status():
     result = await account_status(refresh=True)
     return {"success": True, **result, "execution_model": "seedance2.0mini",
-            "pricing": "平台创作点数为 Seedance 2.0 标准模型同参数报价的 2 倍；即梦账号点数独立计算。",
+            "pricing": "平台创作点数按 Seedance 2.0 标准模型同参数报价的一倍计费；即梦账号点数独立计算。",
             "cancel_supported": False}

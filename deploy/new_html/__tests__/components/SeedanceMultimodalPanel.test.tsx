@@ -27,6 +27,31 @@ const agentPlanValue: SeedanceParams = {
 };
 
 describe('Seedance 1.5 Pro controls', () => {
+  it.each(['standard', 'fast', 'mini'] as const)('reserves editor height and scrolls instead of overlapping the enabled portrait control for %s', sub_model => {
+    const onChange = vi.fn();
+    const value: SeedanceParams = {
+      ...agentPlanValue, sub_model, reference_mode: 'reference',
+      portrait_reference_mode: 'character_background',
+      prompt: '镜头平稳推进，保留角色及画面细节。'.repeat(100),
+      media_inputs: [{ kind: 'image', role: 'reference_image', url: '/original.png' }],
+    };
+    render(<div style={{ width: 480, height: 254 }}>
+      <SeedanceMultimodalPanel value={value} onChange={onChange} candidates={[]} />
+    </div>);
+    const content = screen.getByTestId('seedance-composer-content');
+    const body = screen.getByTestId('seedance-composer-body');
+    const portrait = screen.getByTestId('portrait-reference-control');
+    const strip = screen.getByTestId('seedance-reference-strip');
+    expect(content).toHaveClass('overflow-y-auto', 'overflow-x-hidden');
+    expect(content).not.toHaveClass('overflow-hidden');
+    expect(body).toHaveClass('min-h-[112px]', 'shrink-0');
+    expect(body).not.toHaveClass('min-h-0');
+    expect(body.nextElementSibling).toBe(portrait);
+    expect(portrait.nextElementSibling).toBe(strip);
+    expect(portrait).toHaveClass('shrink-0');
+    expect(screen.getByRole('textbox')).toHaveValue(value.prompt);
+    expect(onChange).not.toHaveBeenCalled();
+  });
   it.each(['standard', 'fast', 'mini'] as const)('aligns the portrait control and preserves references for %s', sub_model => {
     const onChange = vi.fn();
     const value = { ...agentPlanValue, sub_model, media_inputs: [] } as SeedanceParams;

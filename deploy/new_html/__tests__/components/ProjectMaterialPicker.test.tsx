@@ -24,17 +24,30 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); });
 describe('shared project material picker', () => {
   it('labels original image sources without replacing selection semantics', async () => {
     sourceApi.mockResolvedValue({ items: {
-      '/original.png': { display_label: 'Seedream 5.0 Lite · 文生图', generation_mode: 'text_to_image' },
+      '/original.png': { display_label: 'Seedream 5.0 Lite · 文生图', generation_mode: 'text_to_image',
+        portrait_reference_scopes: ['workflow'], portrait_reference_expires_at: Date.now() / 1000 + 60 },
       '/scene.png': { display_label: 'Gemini 3.1 · 图生图', generation_mode: 'image_to_image' },
     } });
     render(<Harness />);
     await waitFor(() => expect(screen.getByText('Seedream 5.0 Lite · 文生图')).toBeInTheDocument());
     expect(screen.getByText('Gemini · 图生图')).toBeInTheDocument();
+    expect(screen.queryByText('可用于仿真人视频的 Seedream 文生图')).not.toBeInTheDocument();
     expect(sourceApi.mock.calls[0][1].body).not.toContain('/preview.png');
+    expect(sourceApi.mock.calls[0][1].body).not.toContain('include_portrait_eligibility');
+    expect(screen.queryByRole('img', { name: '可用于仿真人视频的 Seedream 文生图' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByTitle('选择 阿亮'));
     expect(select).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: '完成' }));
     expect(select).toHaveBeenCalledWith(expect.objectContaining({ material: expect.objectContaining({ url: '/original.png' }) }));
+  });
+  it('keeps the close control without the thumbnail-star legend in the header', () => {
+    const close = vi.fn();
+    render(<Harness close={close} />);
+    const closeButton = screen.getByRole('button', { name: '关闭' });
+    expect(closeButton).toHaveClass('ml-auto', 'shrink-0');
+    expect(screen.queryByText('可用于仿真人视频的 Seedream 文生图')).not.toBeInTheDocument();
+    fireEvent.click(closeButton);
+    expect(close).toHaveBeenCalledOnce();
   });
   it('reuses categories, counts, search and applies the original image only after confirmation', async () => {
     const close = vi.fn();

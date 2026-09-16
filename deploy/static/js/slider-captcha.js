@@ -33,16 +33,28 @@
                 if (this.challenge) overlay.querySelector('[data-piece]').style.left = `${Number(this.range.value) / this.challenge.width * 100}%`;
             };
             this.range.onpointerdown = event => {
-                if (this.range.disabled) return;
+                if (this.range.disabled || event.button !== 0 || event.isPrimary === false) return;
                 this.pointerId = event.pointerId;
-                this.range.setPointerCapture?.(event.pointerId);
+                this.dragValue = this.range.value;
+                // Native range thumbs own their drag. Capturing on the input
+                // steals WebKit's internal thumb events and leaves its value at 0.
             };
-            this.range.onpointerup = event => {
+            const finishDrag = event => {
                 if (this.pointerId !== event.pointerId) return;
                 this.pointerId = null;
-                void this.check();
+                if (this.range.value !== this.dragValue) void this.check();
             };
-            this.range.onpointercancel = () => { this.pointerId = null; };
+            const cancelDrag = () => { this.pointerId = null; };
+            // Listen at window level so releasing outside the control also ends
+            // the interaction, without overriding native mouse/touch dragging.
+            window.addEventListener('pointerup', finishDrag);
+            window.addEventListener('pointercancel', cancelDrag);
+            window.addEventListener('blur', cancelDrag);
+            this.cleanupDrag = () => {
+                window.removeEventListener('pointerup', finishDrag);
+                window.removeEventListener('pointercancel', cancelDrag);
+                window.removeEventListener('blur', cancelDrag);
+            };
             overlay.onkeydown = event => {
                 if (event.key === 'Escape') { event.preventDefault(); this.cancel(); }
                 if (event.key === 'Enter' && event.target === this.range) { event.preventDefault(); void this.check(); }
@@ -79,6 +91,7 @@
         async load() {
             if (!this.pending || this.loading || this.checking) return;
             this.loading = true;
+            this.pointerId = null;
             this.challenge = null;
             this.range.disabled = true;
             this.overlay.querySelector('[data-confirm]').disabled = true;
@@ -152,6 +165,8 @@
 
         close() {
             this.generation++;
+            this.cleanupDrag?.();
+            this.cleanupDrag = null;
             this.controller?.abort();
             this.controller = null;
             const previousFocus = this.pending?.previousFocus;

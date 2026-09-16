@@ -6,6 +6,8 @@
 
 import type { PromptTemplate } from './scriptPrompts';
 import {
+  CHARACTER_CAST_PLANNING_RULE,
+  CHARACTER_UNIQUENESS_RULE,
   COMPUTER_OPERATION_ORIENTATION_RULE,
   MIN_STABILITY_CONSTRAINT_CHARACTERS,
   MIN_VISUAL_STYLE_CHARACTERS,
@@ -302,7 +304,7 @@ export const GENERATE_VIDEO_SCRIPT_FROM_SEGMENT: PromptTemplate = {
 根据剧本设定整体美术画风与视觉调性，统一画面艺术氛围。
 只描述当前剧情有依据的画面调性；不得把样例或其他题材的画风迁移到本剧本。
 【正向稳定约束】
-无背景音乐，保持无字幕、不要生成Logo、不要生成水印，全程画面流畅丝滑，无跳帧、无抖动、无突兀切换；角色五官、妆容、发型、服饰全程100%固定不变；人物肢体自然正常，无多手指、无肢体扭曲、无穿模；画面焦点始终锁定核心主体；竖屏主体居中，纵向空间充分利用。
+${STABILITY_CONSTRAINT_REFERENCE}
 严格遵循：
 空间与衔接一致性铁则：同一场景内，所有镜头的摄影机机位、人物朝向、人物与场景的相对位置、光影色调、道具位置必须保持100%一致，prompt中必须重复固定核心参数，严禁出现跳轴、人物瞬移、道具穿帮、光影突变，杜绝模型生成画面跳变。严禁无逻辑跳切，保证画面流畅无割裂，适配模型生成连贯性。 - 对话正反打镜头必须严格遵守180度轴线规则，始终保持人物在画面中的相对位置全程固定，严禁跳轴，避免模型生成人物位置互换、空间错乱。全程固定，严禁跳轴，避免模型生成人物位置互换、空间错乱。
 1. 严禁篡改原文核心剧情、人物设定、旁白、人物对话；当输入是创意种子而非完整剧本时，允许围绕种子补足必要的场景、动作、冲突、过渡和简短台词，以形成可连续生产的短剧分镜脚本。
@@ -330,6 +332,8 @@ export const GENERATE_VIDEO_SCRIPT_FROM_SEGMENT: PromptTemplate = {
 22. 每个分段的【正向稳定约束】必须针对当前分段独立完整输出，以约${MIN_STABILITY_CONSTRAINT_CHARACTERS}字为完整度基准；不足时继续增加约束细节，并覆盖无字幕/水印/Logo、角色与肢体稳定、画面流畅、竖屏构图、机位与空间关系、光影和道具连续性。
 23. 输出前必须逐分段累加“时长（秒）”；完整剧本输入的分段累计>15秒时必须在当前段内重新规划或重新分配分镜时长，不得新增分段；创意种子扩写的任何分段累计>15秒时才可继续拆分，直到所有分段≤15秒。
 24. ${COMPUTER_OPERATION_ORIENTATION_RULE}
+25. ${CHARACTER_CAST_PLANNING_RULE}
+26. ${CHARACTER_UNIQUENESS_RULE} 每段的正向稳定约束必须包含该要求，不得因字数基准而省略。
 
 字数与细节密度基准（只参考完整度，视觉风格内容必须随当前剧本变化）：
 【视觉风格】${VISUAL_STYLE_REFERENCE}
@@ -557,6 +561,9 @@ export const EXTRACT_STORYBOARD_PROMPT_FROM_VIDEO_SHOT: PromptTemplate = {
 5.	如原脚本中包含下面输出模板中的信息，请100%按原文提取；如无输出模板中的信息，请直接写“无”。“分镜生成提示词”除外，此条需要按模板要求输出。
 6.	“分镜生成提示词”必须包含景别（只需要景别，不要运镜）、角度、主体、动作、环境、光影。
 7.	${COMPUTER_OPERATION_ORIENTATION_RULE}
+8.	继承原分镜已明确的出场名单、可见人数、各自位置与进出画动作，不按参考图数量增加人物；提取阶段不得擅自为未明确的人数编造名单。
+9.	${CHARACTER_UNIQUENESS_RULE}
+10.	将人物去重约束落实到“分镜生成提示词”中，写明原分镜已有的可见名单和人数；其他原文提取字段保持原样，不把四视图数量当作人数。
 
 输入示例：
 镜头1
@@ -584,7 +591,7 @@ export const EXTRACT_STORYBOARD_PROMPT_FROM_VIDEO_SHOT: PromptTemplate = {
 音效：按键“咔哒”一声脆响，通讯频道开启的短促“哔”声。
 
 【视觉风格】${VISUAL_STYLE_REFERENCE}
-【正向稳定约束】无背景音乐，保持无字幕、不要生成Logo、不要生成水印，全程画面流畅丝滑，无跳帧、无抖动、无突兀切换；角色五官、妆容、发型、服饰全程100%固定不变；人物肢体自然正常，无多手指、无肢体扭曲、无穿模；画面焦点始终锁定核心主体；竖屏主体居中，纵向空间充分利用。
+【正向稳定约束】${STABILITY_CONSTRAINT_REFERENCE}
 
 输出模板：
 镜头号：{canonicalShotNo}
@@ -666,6 +673,7 @@ export const REPLAN_INVALID_STORYBOARD_EXTRACTION: PromptTemplate = {
 4. 严禁篡改、遗漏或新增原脚本核心剧情、人物设定、旁白和人物对话。
 5. 无人物、场景、道具或台词时明确写“无”，不要省略字段。
 6. ${COMPUTER_OPERATION_ORIENTATION_RULE}
+7. ${CHARACTER_UNIQUENESS_RULE} 保留原镜头已明确的名单和可见人数，不擅自增删角色。
 
 输出前逐个镜头自检；仍有缺失时继续补全。只输出最终镜头设计。`,
 };

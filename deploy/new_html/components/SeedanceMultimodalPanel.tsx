@@ -11,6 +11,8 @@ import { SeedanceAssetPickerModal } from './SeedanceAssetPickerModal';
 import { VideoControlPopover } from './video/VideoControlPopover';
 import { VideoDurationControl } from './video/VideoDurationControl';
 import { VIDEO_CONTROL_BAR_CLASS, VIDEO_CONTROL_PILL_CLASS, VIDEO_CONTROL_SELECT_CLASS } from './video/videoControlStyles';
+import { ConfirmDialog } from './ConfirmDialog';
+import { checkPortraitReferenceInputs, portraitReferenceCheckKey, type PortraitReferenceCheck } from '../services/portraitReferenceService';
 
 interface Props {
     value: SeedanceParams;
@@ -39,6 +41,11 @@ export const SeedanceMultimodalPanel: React.FC<Props> = ({
     const [pickerOpen, setPickerOpen] = useState(false);
     const [targetFrame, setTargetFrame] = useState<'first_frame' | 'last_frame' | undefined>();
     const [promptModalOpen, setPromptModalOpen] = useState(false);
+    const [portraitChecking, setPortraitChecking] = useState(false);
+    const [portraitConfirmation, setPortraitConfirmation] = useState<(PortraitReferenceCheck & { key: string; labels: string[] }) | null>(null);
+    const portraitRequest = useRef<AbortController | null>(null);
+    const currentlyDisabled = useRef(disabled);
+    currentlyDisabled.current = disabled;
     const firstInput = useRef<HTMLInputElement>(null);
     const lastInput = useRef<HTMLInputElement>(null);
     const imageInput = useRef<HTMLInputElement>(null);
@@ -67,6 +74,64 @@ export const SeedanceMultimodalPanel: React.FC<Props> = ({
     const ratio = value.ratio || (isAgentPlan || isJimeng ? '16:9' : 'adaptive');
     const editorCandidates = mode === 'first_last' ? candidates.filter(item => item.kind === 'text') : candidates;
     const patch = (next: Partial<SeedanceParams>) => onChange({ ...current.current, ...next });
+
+    useEffect(() => () => { portraitRequest.current?.abort(); }, []);
+
+    useEffect(() => {
+        if (!isJimeng) return;
+        // A pending Ark provenance check must not enable portrait mode after a provider switch.
+        portraitRequest.current?.abort();
+        portraitRequest.current = null;
+        setPortraitChecking(false);
+        setPortraitConfirmation(null);
+    }, [isJimeng]);
+
+    const applyPortraitMode = (check: PortraitReferenceCheck & { key: string }) => {
+        if (currentlyDisabled.current || portraitReferenceCheckKey(current.current) !== check.key || check.expiresAt <= Date.now()) {
+            setError('素材或模式已变化，或素材已过期，请重新勾选并检查。');
+            return;
+        }
+        // Remove from the end so surviving mention numbers still refer to the same originals.
+        const next = [...check.unsupportedIndices].sort((a, b) => b - a)
+            .reduce((params, index) => removeMediaInput(params, index), current.current);
+        onChange({ ...next, reference_mode: 'reference', portrait_reference_mode: 'character_background' });
+    };
+    const togglePortraitMode = async (enabled: boolean) => {
+        if (disabled || uploadBusy || portraitRequest.current || portraitConfirmation) return;
+        setError('');
+        if (!enabled) { patch({ portrait_reference_mode: undefined }); return; }
+        if (!supportsSeedancePortraitReference(current.current.sub_model)) return;
+        if (current.current.media_inputs.every(item => item.kind === 'audio')) {
+            patch({ reference_mode: 'reference', portrait_reference_mode: 'character_background' });
+            return;
+        }
+        const snapshot = current.current;
+        const key = portraitReferenceCheckKey(snapshot);
+        const controller = new AbortController();
+        portraitRequest.current = controller;
+        setPortraitChecking(true);
+        try {
+            const check = await checkPortraitReferenceInputs(snapshot, controller.signal);
+            if (controller.signal.aborted) return;
+            if (currentlyDisabled.current || key !== portraitReferenceCheckKey(current.current)) {
+                setError('素材或模式已变化，请重新勾选并检查。');
+                return;
+            }
+            if (check.unsupportedIndices.length) {
+                const labels = check.unsupportedIndices.map(index => {
+                    const kind = snapshot.media_inputs[index].kind;
+                    const rank = snapshot.media_inputs.slice(0, index + 1).filter(item => item.kind === kind).length;
+                    return `${kind === 'image' ? '图片' : '视频'}${rank}`;
+                });
+                setPortraitConfirmation({ ...check, key, labels });
+            } else applyPortraitMode({ ...check, key });
+        } catch {
+            if (!controller.signal.aborted) setError('参考素材检查失败，请重试。未启用仿真人模式，素材保持不变。');
+        } finally {
+            if (!controller.signal.aborted) setPortraitChecking(false);
+            if (portraitRequest.current === controller) portraitRequest.current = null;
+        }
+    };
 
     useEffect(() => {
         if (!promptModalOpen) return;
@@ -177,12 +242,14 @@ export const SeedanceMultimodalPanel: React.FC<Props> = ({
         placeholder={mode === 'reference' ? '输入文字描述，或输入 @ 选择参考内容……' : '描述首帧到尾帧的变化、动作与运镜……'} onPreviewMedia={onPreviewMedia} />;
 
     return <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-n40 bg-n0 shadow-card" data-testid="seedance-jimeng-composer">
-        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden p-3" data-testid="seedance-composer-content">
+        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-x-hidden overflow-y-auto p-3" data-testid="seedance-composer-content">
             <div className="flex shrink-0 items-center justify-between gap-2">
                 <p className="min-w-0 text-[10px] leading-4 text-n100" title={getModelDisplayName(LABELS[value.sub_model])}>{hint}</p>
                 <button type="button" onClick={() => setPromptModalOpen(true)} className="inline-flex shrink-0 items-center gap-1 text-[10px] text-primary"><Maximize2 size={12} />放大编辑</button>
             </div>
-            <div className="flex min-h-0 flex-1 gap-3" data-testid="seedance-composer-body">
+            {/* Keep the editor and 80px reference rail above the portrait controls,
+                even when help text, validation or wrapped controls consume space. */}
+            <div className="flex min-h-[112px] flex-1 shrink-0 gap-3" data-testid="seedance-composer-body">
                 <div
                     className="flex shrink-0 items-start gap-1 pt-1"
                     data-testid="seedance-media-rail"
@@ -197,14 +264,14 @@ export const SeedanceMultimodalPanel: React.FC<Props> = ({
                 </div>
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{editor()}</div>
             </div>
-            {(supportsSeedancePortraitReference(value.sub_model) && mode === 'reference' || value.portrait_reference_mode) && <div className="shrink-0 space-y-1 py-1" data-testid="portrait-reference-control">
+            {!isJimeng && (supportsSeedancePortraitReference(value.sub_model) && mode === 'reference' || value.portrait_reference_mode) && <div className="shrink-0 space-y-1 py-1" data-testid="portrait-reference-control">
               <label className="inline-flex min-h-5 cursor-pointer items-center gap-2 text-[11px] leading-5 text-n300">
-                <input type="checkbox" className="m-0 h-3.5 w-3.5 shrink-0 accent-primary" checked={!!value.portrait_reference_mode} disabled={disabled}
-                    onChange={event => patch({ portrait_reference_mode: event.target.checked ? 'character_background' : undefined,
-                        ...(event.target.checked ? { reference_mode: 'reference' } : {}) })} />
+                <input type="checkbox" className="m-0 h-3.5 w-3.5 shrink-0 accent-primary" checked={!!value.portrait_reference_mode} disabled={disabled || uploadBusy || portraitChecking || !!portraitConfirmation}
+                    onChange={event => { void togglePortraitMode(event.target.checked); }} />
                 <span>生成仿真人视频（人物四视图 + 纯背景）</span>
               </label>
-              {value.portrait_reference_mode && <p className="pl-[22px] text-[10px] leading-4 text-n300">支持 Seedance 2.0、Fast、Mini 全能参考；请选择 30 天内的专用文生图原图。图生图、上传图和参考视频不可用，不自动替换现有素材。</p>}
+              {portraitChecking && <p role="status" className="pl-[22px] text-[10px] leading-4 text-n300">正在检查参考素材…</p>}
+              {value.portrait_reference_mode && <p className="pl-[22px] text-[10px] leading-4 text-n300">支持 Seedance 2.0、Fast、Mini 全能参考；请选择 30 天内的专用文生图原图。图生图、上传图和参考视频不可用；移除不支持的素材需先确认，不删除原图。</p>}
             </div>}
             {mode === 'reference' && value.media_inputs.length > 0 && <div className="flex h-12 min-h-12 w-full shrink-0 flex-nowrap items-center gap-1.5 overflow-x-auto overflow-y-hidden pb-1" data-testid="seedance-reference-strip" aria-label="已选参考素材">
                 {value.media_inputs.map((item, index) => <div key={`${item.url}-${index}`} className="flex h-10 shrink-0 items-center gap-1 overflow-hidden rounded-lg border border-n40 bg-n20/50 px-1 py-0.5 text-[9px]">
@@ -271,10 +338,17 @@ export const SeedanceMultimodalPanel: React.FC<Props> = ({
                 {audioNotice && <p className="text-[10px] text-warning">{audioNotice}</p>}
             </VideoControlPopover>}
         </div>
-        {isJimeng && <p className="shrink-0 border-t border-n40 px-3 py-2 text-[10px] leading-5 text-n100">实际执行 seedance2.0mini · 4–15 秒整数，不足 4 秒按 4 秒生成，小数向上取整；原剧本、配音和时间轴不变。平台点数为 Seedance 2.0 标准模型同参数的 2 倍。请使用已获授权的素材，真人素材仍受即梦审核限制。</p>}
+        {isJimeng && <p className="shrink-0 border-t border-n40 px-3 py-2 text-[10px] leading-5 text-n100">实际执行 seedance2.0mini · 4–15 秒整数，不足 4 秒按 4 秒生成，小数向上取整；原剧本、配音和时间轴不变。平台点数按 Seedance 2.0 标准模型同参数的一倍计费。请使用已获授权的素材，真人素材仍受即梦审核限制。</p>}
         {(error || validation) && <div role="alert" className="flex shrink-0 items-start gap-1 border-t border-r100 bg-r50 px-3 py-1.5 text-[10px] text-danger"><AlertCircle size={12} className="shrink-0" />{error || validation}</div>}
         {fileInput(firstInput, 'image', 'first_frame')}{fileInput(lastInput, 'image', 'last_frame')}
         {fileInput(imageInput, 'image')}{fileInput(videoInput, 'video')}{fileInput(audioInput, 'audio')}
+        {!isJimeng && portraitConfirmation && createPortal(<div className="relative z-[9800]"><ConfirmDialog open
+            title="移除不支持的参考素材？"
+            message={`${portraitConfirmation.labels.join('、')} 不支持仿真人模式。是否移除这些参考素材并启用仿真人模式？`}
+            detail={<p className="text-xs leading-5 text-n300">仅保留通过校验的 Seedream 文生图和参考配音。只移除当前卡片的引用，并同步调整提示词中的素材编号，不删除素材库原图；取消则保持未勾选，素材不变。</p>}
+            onCancel={() => setPortraitConfirmation(null)}
+            onConfirm={() => { const check = portraitConfirmation; setPortraitConfirmation(null); applyPortraitMode(check); }}
+        /></div>, document.body)}
         {pickerOpen && createPortal(<div className="relative z-[9700]"><SeedanceAssetPickerModal open onClose={() => { setPickerOpen(false); setTargetFrame(undefined); }} value={value} onChange={acceptReferences} candidates={mode === 'first_last' ? candidates.filter(item => item.kind === 'image') : candidates} imageLimit={imageLimit} firstLast={mode === 'first_last'} targetFrame={targetFrame} onUploadImage={targetFrame ? () => { (targetFrame === 'first_frame' ? firstInput : lastInput).current?.click(); setPickerOpen(false); setTargetFrame(undefined); } : undefined} /></div>, document.body)}
         {promptModalOpen && createPortal(<div className="fixed inset-0 z-[9500] flex items-center justify-center bg-n900/50 p-4 backdrop-blur-sm" onMouseDown={event => { if (event.target === event.currentTarget) setPromptModalOpen(false); }}>
             <div role="dialog" aria-modal="true" aria-label="放大编辑提示词" className="flex h-[min(720px,90vh)] w-full max-w-5xl flex-col gap-3 rounded-2xl bg-n0 p-4 shadow-bottom">

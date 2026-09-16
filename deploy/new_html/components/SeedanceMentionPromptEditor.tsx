@@ -186,12 +186,12 @@ export const SeedanceMentionPromptEditor: React.FC<SeedanceMentionPromptEditorPr
                 }
                 return;
             }
-            // Trigger when char before @ is line-start, whitespace, OR any non-ASCII-word
-            // character (Chinese, punctuation, full-width). Previous /\s/-only check
-
-            // a punctuation mark — exactly the case for imported video_prompt cards.
             const prev = cursor >= 2 ? v.charAt(cursor - 2) : '';
-            if (prev === '' || !/[A-Za-z0-9_]/.test(prev)) {
+            // A highlighted media token is a boundary even though its index ends in a digit.
+            // Keep ordinary words/emails and the middle of multi-digit token indices literal.
+            const previousSegment = splitPromptSegments(v.slice(0, cursor - 1)).at(-1);
+            const followsMediaToken = previousSegment?.type === 'token' && !/\d/.test(v.charAt(cursor));
+            if (prev === '' || !/[A-Za-z0-9_]/.test(prev) || followsMediaToken) {
                 setOpen(true);
                 setSearch('');
                 setActiveIdx(0);

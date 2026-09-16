@@ -96,6 +96,7 @@ export function PortraitReferenceStar({ reference, scope = 'workflow' }: { refer
 export function ImageSourceBadgeOverlay({ reference, scope = 'workflow', fallbackLabel }: { reference?: string; scope?: 'workflow' | 'studio'; fallbackLabel?: string }) {
   const host = useRef<HTMLSpanElement>(null);
   const [visible, setVisible] = useState(false);
+  const [compact, setCompact] = useState(false);
   useEffect(() => {
     const parent = host.current?.parentElement;
     if (!parent) return;
@@ -103,6 +104,7 @@ export function ImageSourceBadgeOverlay({ reference, scope = 'workflow', fallbac
     const measure = () => {
       const { width, height } = parent.getBoundingClientRect();
       setVisible(width >= 160 && height >= 120);
+      setCompact(width > 0 && height > 0 && width <= 96 && height <= 96);
     };
     measure();
     const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(measure);
@@ -110,7 +112,7 @@ export function ImageSourceBadgeOverlay({ reference, scope = 'workflow', fallbac
     window.addEventListener('resize', measure);
     return () => { observer?.disconnect(); window.removeEventListener('resize', measure); };
   }, []);
-  return <><PortraitReferenceStar reference={reference} scope={scope} /><span ref={host} className="pointer-events-none absolute bottom-0 left-0 z-10 max-w-[calc(100%-1.5rem)]">
+  return <>{compact && <PortraitReferenceStar reference={reference} scope={scope} />}<span ref={host} className="pointer-events-none absolute bottom-0 left-0 z-10 max-w-full">
     {visible && <span className="block max-w-full rounded-tr bg-white/95 px-1.5 py-0.5"><SeedreamSourceBadge reference={reference} fallbackLabel={fallbackLabel} /></span>}
   </span></>;
 }

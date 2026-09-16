@@ -47,6 +47,7 @@ const server = createServer(async (request, response) => {
       '/login': ['login.html', 'text/html; charset=utf-8'],
       '/static/js/slider-captcha.js': ['static/js/slider-captcha.js', 'application/javascript'],
       '/static/css/slider-captcha.css': ['static/css/slider-captcha.css', 'text/css'],
+      '/static/css/tab-navigation.css': ['static/css/tab-navigation.css', 'text/css'],
       '/static/branding/chuangju-logo-on-dark.svg': ['static/branding/chuangju-logo-on-dark.svg', 'image/svg+xml'],
       '/static/branding/chuangju-logo-on-light.svg': ['static/branding/chuangju-logo-on-light.svg', 'image/svg+xml'],
     };
@@ -129,7 +130,7 @@ try {
     await screenshot(`${viewport.name}-sent`);
     await send('Page.navigate', { url: origin + '/login' });
     await until(`document.getElementById('identity') && document.getElementById('authTabs')`);
-    assert.equal(await evaluate(`getComputedStyle(document.getElementById('authTabs')).display`), 'grid');
+    assert.equal(await evaluate(`getComputedStyle(document.getElementById('authTabs')).display`), 'flex');
   }
   assert.deepEqual(errors, []); assert.deepEqual(externalRequests, []);
   console.log(JSON.stringify({ result: 'passed', desktopMouseDrag: true, mobileTouchDrag: true, registrationTabsHidden: true, loginTabsRetained: true, mockSmsCount: smsCount, realSmsCount: 0, externalRequests: externalRequests.length, screenshots: output }, null, 2));

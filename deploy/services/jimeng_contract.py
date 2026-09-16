@@ -28,6 +28,8 @@ def normalize_jimeng_options(data: Mapping[str, Any]) -> dict[str, Any]:
         raise JimengError("即梦模型只能通过独立全能参考通道提交。")
     if data.get("model") not in (None, MODEL_KEY):
         raise JimengError("即梦任务模型不匹配，请重新选择模型。")
+    if data.get("portrait_reference_mode"):
+        raise JimengError("即梦不支持仿真人参考模式，请关闭该选项后重新提交。")
     if data.get("entity_type") not in (None, "", "video_segment") or data.get("file_role") not in (None, "", "video"):
         raise JimengError("即梦真人视频只能保存为视频素材或镜头视频。")
     if str(data.get("resolution") or "720p").lower() != "720p":
@@ -88,5 +90,5 @@ def capability(*, available: bool = False, reason: str = "即梦账号尚未配�
             "parameter_rules": {"resolution": ["720p"], "ratio": list(RATIOS),
                                 "duration": {"type": "integer", "minimum": 4, "maximum": 15},
                                 "normalization_policy": "reject_or_explain"},
-            "pricing_multiplier": 2, "pricing_reference_model": "Seedance2",
+            "pricing_multiplier": 1, "pricing_reference_model": "Seedance2",
             "notice": "实际执行 seedance2.0mini；需遵守即梦审核规则，不保证所有人物素材通过。"}

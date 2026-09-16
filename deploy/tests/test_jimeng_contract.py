@@ -1,6 +1,6 @@
 import pytest
 
-from services.jimeng_contract import EXECUTION_MODEL, MODEL_KEY, MODEL_LABEL, TASK_TYPE, JimengError, normalize_jimeng_options
+from services.jimeng_contract import EXECUTION_MODEL, MODEL_KEY, MODEL_LABEL, TASK_TYPE, JimengError, capability, normalize_jimeng_options
 from services.video_credit_pricing import quote_video_credits
 from services.task_credit_billing_service import resolve_task_billing
 
@@ -24,7 +24,8 @@ def test_identity_and_minimum_duration_do_not_mutate_original():
 @pytest.mark.parametrize("fields", [{"resolution": "1080p"}, {"model": "Seedance2"}, {"task_type": "seedance_multi"},
     {"ratio": "adaptive"}, {"duration": 0}, {"duration": 15.1}, {"duration": float("nan")}, {"generate_audio": False},
     {"seed": 123}, {"entity_type": "storyboard_item", "file_role": "generated_image"},
-    {"reference_audio_policy": "trim_to_15"}, {"media_inputs": [{"kind": "audio", "file_id": "a"}]},
+    {"reference_audio_policy": "trim_to_15"}, {"portrait_reference_mode": "character_background"},
+    {"media_inputs": [{"kind": "audio", "file_id": "a"}]},
     {"media_inputs": [{"kind": "image", "file_id": "a"}] * 10}])
 def test_reject_unsupported_without_fallback(fields):
     with pytest.raises(JimengError):
@@ -33,12 +34,29 @@ def test_reject_unsupported_without_fallback(fields):
 
 @pytest.mark.parametrize("duration", [4, 5, 9, 15])
 @pytest.mark.parametrize("references", [[], [4], [5, 9], [None]])
-def test_twice_standard_same_dimensions(duration, references):
+def test_once_standard_same_dimensions(duration, references):
     params = {"duration_seconds": duration, "resolution": "720P", "reference_video_durations": references}
     standard = quote_video_credits({**params, "model": "Seedance2", "sub_model": "standard"})
     jimeng = quote_video_credits({**params, "model": MODEL_KEY, "sub_model": "mini"})
-    assert jimeng["credits"] == 2 * standard["credits"]
+    assert jimeng["credits"] == standard["credits"]
+    assert jimeng["multiplier"] == 1
+    assert jimeng["basis"] == "seedance-standard-product-price"
     assert "provider_cost_cny" not in jimeng
+
+
+def test_fifteen_seconds_720p_is_315_creation_credits():
+    assert EXECUTION_MODEL == "seedance2.0mini"
+    quote = quote_video_credits(payload(duration=15))
+    assert quote["credits"] == 315
+    assert quote["reference_credits"] == 315
+
+
+def test_capability_and_quote_share_single_multiplier():
+    assert capability()["pricing_multiplier"] == quote_video_credits(payload(duration=15))["multiplier"] == 1
+
+
+def test_empty_portrait_flag_remains_a_normal_jimeng_request():
+    assert normalize_jimeng_options(payload(portrait_reference_mode=None))["execution_model"] == EXECUTION_MODEL
 
 
 def test_billing_is_video_and_preview_rounds_same_as_submission():

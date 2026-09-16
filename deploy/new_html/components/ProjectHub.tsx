@@ -640,7 +640,7 @@ const ProjectHub: React.FC = () => {
                                 >
                                     <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-n30 via-primary-light to-b75">
                                         {p.coverUrl ? (
-                                            <><img src={coverImageSrc(p.coverUrl)} alt={`${p.projectName} 封面`} className="h-full w-full object-cover object-center transition-transform duration-300 group-hover:scale-[1.02]" /><ImageSourceBadgeOverlay reference={p.coverUrl} /></>
+                                            <img src={coverImageSrc(p.coverUrl)} alt={`${p.projectName} 封面`} className="h-full w-full object-cover object-center transition-transform duration-300 group-hover:scale-[1.02]" />
                                         ) : (
                                             <div className="flex h-full items-center justify-center">
                                                 <BrandLogo variant="mark" className="h-20 w-20 opacity-[0.12]" alt="" />
@@ -1089,4 +1089,3 @@ const ProjectHub: React.FC = () => {
 };
 
 export default ProjectHub;
-import { ImageSourceBadgeOverlay } from './SeedreamSourceBadge';

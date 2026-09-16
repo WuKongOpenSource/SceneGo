@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Check, Clapperboard, Library, RefreshCw, Search, X } from 'lucide-react';
 import type { GenerationReference, MaterialLibrary, ProjectFile, StoryboardItem } from '../types';
 import { buildOtherStoryboardImagePickerItems } from '../utils/storyboardGeneration';
-import { SeedreamSourceBadge, PortraitReferenceStar, PortraitReferenceLegend } from './SeedreamSourceBadge';
+import { SeedreamSourceBadge } from './SeedreamSourceBadge';
 
 const EMPTY_FILES: ProjectFile[] = [];
 const EMPTY_SHOTS: StoryboardItem[] = [];
@@ -163,11 +163,9 @@ export const ProjectMaterialPicker: React.FC<ProjectMaterialPickerProps> = ({
                   <h3 className="text-sm font-bold text-n800 flex items-center gap-2"><Library className="w-4 h-4 text-primary" />项目素材</h3>
                   <p className="mt-1 text-[11px] text-n300">{description}</p>
                 </div>
-                <div className="ml-auto flex items-center gap-2"><PortraitReferenceLegend />
-                <button onClick={onClose} className="w-8 h-8 inline-flex items-center justify-center text-n300 hover:text-n800" title="关闭">
+                <button onClick={onClose} className="ml-auto w-8 h-8 shrink-0 inline-flex items-center justify-center text-n300 hover:text-n800" title="关闭">
                   <X className="w-4 h-4" />
                 </button>
-                </div>
               </div>
               <div className="shrink-0 px-5 py-3 border-b border-n40 flex flex-wrap items-center gap-2">
                 <div className="ui-tabs ui-tabs--compact">
@@ -239,7 +237,6 @@ export const ProjectMaterialPicker: React.FC<ProjectMaterialPickerProps> = ({
                                   title={alreadyAdded ? '已在当前参考图中' : pending ? `取消选择 ${item.shotLabel} 的${item.imageLabel}` : `选择 ${item.shotLabel} 的${item.imageLabel}`}
                                 >
                                   <div className="relative aspect-video bg-n30 flex items-center justify-center">
-                                    <PortraitReferenceStar reference={item.url} />
                                     <img
                                       src={item.thumbnail || item.url}
                                       alt={`${item.shotLabel} ${item.imageLabel}`}
@@ -297,7 +294,6 @@ export const ProjectMaterialPicker: React.FC<ProjectMaterialPickerProps> = ({
                                 >
                                   <div className="relative aspect-square bg-n30">
                                     <img src={item.material.thumbnail || item.material.url} alt={item.tagName} loading="lazy" className="w-full h-full object-cover" />
-                                    <PortraitReferenceStar reference={item.material.url} />
                                   </div>
                                   <div className="p-2 min-w-0">
                                     <div className="flex items-center justify-between gap-1">

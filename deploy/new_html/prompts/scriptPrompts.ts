@@ -8,6 +8,8 @@
 
 
 import {
+  CHARACTER_CAST_PLANNING_RULE,
+  CHARACTER_UNIQUENESS_RULE,
   COMPUTER_OPERATION_ORIENTATION_RULE,
   MIN_STABILITY_CONSTRAINT_CHARACTERS,
   MIN_VISUAL_STYLE_CHARACTERS,
@@ -122,7 +124,9 @@ export const ITERATE_FULL_SCRIPT: PromptTemplate = {
 7. 含对白镜头按中文 4 字/秒、英文 8 字符/秒估算朗读时间，中英文分别计算后相加并向上取整；“时间”必须覆盖完整对白。
 8. 保留独占一行的“分段XX”标题；每段累计时长尽量接近且不得超过 15 秒。若修改导致分段超时，必须移动镜头或新增分段，不得截短对白。
 9. 同一分段的每个镜头都必须输出完全相同的“视频提示词”，格式为“镜头01-本段末镜头，【视觉风格】...，【正向稳定约束】...。”；不同分段分别生成自己的视频提示词。
-10. 严格沿版本继承链累积执行历史要求；V2、V3 等早先版本已经形成且未被明确覆盖的修改，不得因本轮未重复提及而丢失或回退。`,
+10. 严格沿版本继承链累积执行历史要求；V2、V3 等早先版本已经形成且未被明确覆盖的修改，不得因本轮未重复提及而丢失或回退。
+11. ${CHARACTER_CAST_PLANNING_RULE}
+12. 仅对本轮获准修改的镜头应用以下规则，并写入其分镜生成提示词及视频提示词；未修改或锁定内容仍须逐字保留：${CHARACTER_UNIQUENESS_RULE}`,
 };
 
 
@@ -162,6 +166,10 @@ export const RESTRUCTURE_SHOT: PromptTemplate = {
 - scriptSegment: 必需，用一句话描述这个镜头的视觉内容
 - 其他字段可选
 
+${CHARACTER_CAST_PLANNING_RULE}
+${CHARACTER_UNIQUENESS_RULE}
+在每个新镜头的 imagePrompt、videoPrompt 中写明本镜头的可见名单和人数，并落实人物去重约束；合并片段包含多个镜头时分别说明，不将各镜头人物直接汇总为同屏人数。不得为这些规则新增 JSON 字段。
+
 只返回JSON对象，不要其他文字。`
 };
 
@@ -194,6 +202,10 @@ export const REGENERATE_SINGLE_SHOT: PromptTemplate = {
 - originalText: 必需，直接使用输入的剧本片段
 - scriptSegment: 必需，简洁的视觉描述
 - 其他字段可选
+
+${CHARACTER_CAST_PLANNING_RULE}
+${CHARACTER_UNIQUENESS_RULE}
+在 imagePrompt、videoPrompt 中写明本镜头的可见名单和人数，并落实人物去重约束；不改写 originalText，不为这些规则新增 JSON 字段。
 
 只返回JSON，不要其他文字。`
 };
@@ -237,6 +249,8 @@ const STORYBOARD_FIELD_SPEC = `
 1. 剧本拆分：100% 保留原剧情、对白、旁白和信息顺序。按情绪、信息、动作、画面或悬念的完整闭环分段；普通分段为 4-15 个整数秒，优先 13-15 秒，平均不少于 10 秒。场景切换不得合并，过短且语义连续的相邻内容可以合并。
 2. 分镜提取：每段按可独立成画的视觉变化拆为多个镜头，每个镜头对应后续一张静态画面。分镜生成提示词必须包含景别、拍摄角度、主体、动作、环境和光影，不写运镜，也不得由模型自行添加画风、媒介、题材等风格词；风格通常写在分段级【视觉风格】中。用户已经在具体分镜中主动填写、追加或确认的提示词属于用户原始内容，不受此限制，必须原样保留，不得以清理风格词为由删除、替换或改写。
 2.1 ${COMPUTER_OPERATION_ORIENTATION_RULE}
+2.2 ${CHARACTER_CAST_PLANNING_RULE}
+2.3 ${CHARACTER_UNIQUENESS_RULE}
 3. 视频脚本：画面描述应明确人物连续动作、外显情绪、空间位置和前后镜头连续性。每段最多 15 秒、原则上不超过 5 个镜头；同段镜头会合成为一个视频。
 
 【格式硬规则】

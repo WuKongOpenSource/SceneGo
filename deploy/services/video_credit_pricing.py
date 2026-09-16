@@ -419,13 +419,13 @@ def quote_video_credits(params: Mapping[str, Any] | None) -> Dict[str, Any]:
         reference = _quote_seedance({**data, "model": "Seedance2", "sub_model": "standard",
                                     "duration_seconds": max(4, math.ceil(requested)),
                                     "duration": max(4, math.ceil(requested))})
-        return _fixed_quote(reference["credits"] * 2, "jimeng-seedance-mini",
+        return _fixed_quote(reference["credits"], "jimeng-seedance-mini",
                             duration_seconds=reference["duration_seconds"], resolution=reference["resolution"],
                             reference_video_count=reference.get("reference_video_count", 0),
                             reference_video_seconds=reference.get("reference_video_seconds", "0"),
                             reference_video_duration_defaulted=reference.get("reference_video_duration_defaulted", False),
                             reference_model="Seedance2", reference_credits=reference["credits"],
-                            multiplier=2, basis="double-seedance-standard-product-price")
+                            multiplier=1, basis="seedance-standard-product-price")
 
     duration_defaults = {"sora2": 15, "veo": 8}
     duration = _positive_int(data.get("duration_seconds") or data.get("duration"), duration_defaults.get(family, 5))

@@ -1,11 +1,11 @@
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { VideoPage } from '../../components/VideoPage';
 import { loadWorkspaceSession, saveWorkspaceSession, type WorkspaceSession } from '../../services/videoWorkspaceService';
 import { importVideoResult, readUploadedVideoDuration, readVideoResultDuration } from '../../services/videoUploadService';
 import { __resetVideoTaskPollerForTesting } from '../../services/videoTaskPoller';
-import { ALL_MODELS, makeDefaultDashScopeParams } from '../../services/videoModelService';
+import { ALL_MODELS, getModelDisplayName, makeDefaultDashScopeParams } from '../../services/videoModelService';
 
 vi.mock('../../hooks/useSeedanceCandidates', () => ({ useSeedanceCandidates: () => ({ candidates: [], isLoading: false }) }));
 vi.mock('../../components/video/CapabilityVideoPanel', () => ({ CapabilityVideoPanel: () => null }));
@@ -48,7 +48,337 @@ async function uploadToPage() {
   fireEvent.click(screen.getByRole('button', { name: '上传并导入' }));
 }
 
+describe('VideoPage Hailuo frame submission', () => {
+  function prepareHailuoSession(kind: 'merged' | 'pair' | 'legacy-pair' | 'single', tail: boolean, switchModel = false, missingFirst = false) {
+    const images = [
+      { id: 'first', url: missingFirst ? '' : '/api/files/file_first_original/download',
+        filename: 'storyboard_1.png', uploadTime: 0, isPlaceholder: missingFirst },
+      { id: 'second', url: tail ? '/api/files/file_last_original/download' : '',
+        filename: tail ? 'storyboard_2.png' : 'placeholder_2', uploadTime: 0, isPlaceholder: !tail },
+    ];
+    const snapshots = images.map(image => ({ uuid: image.id, ids: [image.id], model: 'Seedance2Mini' as const, prompt: `动作 ${image.id}` }));
+    const session: WorkspaceSession = {
+      ...emptySession,
+      task_groups: [{ uuid: 'hailuo-card', ids: kind === 'single' ? ['first'] : ['first', 'second'],
+        model: switchModel ? 'Seedance2Mini' : 'MINI', videoSegmentId: 'seg-hailuo',
+        ...(kind === 'merged' ? { mergedFrom: snapshots } : {}),
+        ...(kind === 'pair' ? { firstLastFrom: snapshots } : {}),
+        minimaxParams: { model: 'MiniMax-Hailuo-2.3', resolution: '768P', duration: 10, promptOptimizer: true },
+        candidateImages: [{ id: 'unused', url: '/candidate-not-selected.png', filename: 'candidate.png', uploadTime: 0 }],
+      }],
+      uploaded_images: images,
+      image_prompts: { first: '镜头1-2：整理背包。镜头1-3：队员出发。' },
+      tasks_status: { 'hailuo-card': { state: 'done', result: '/existing.mp4', videos: ['/existing.mp4'],
+        videoModels: ['Seedance2Mini'], videoPrompts: { '/existing.mp4': '保留历史提示词' } } },
+    };
+    vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session });
+    fetchMock.mockImplementation(async (url: string) => ({ ok: true, status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => url.endsWith('/api/generate') ? { task_id: 'mock-hailuo' }
+        : { success: true, tasks: [], models: [{ key: 'MINI', available: true }, { key: 'Seedance2Mini', available: true }], balance: 1000 },
+    }));
+    return session;
+  }
+
+  it.each([
+    ['merged', false, true, 'card'], ['merged', true, false, 'card'], ['pair', true, false, 'card'],
+    ['legacy-pair', true, false, 'card'], ['single', false, false, 'card'], ['merged', false, false, 'list'],
+  ] as const)('submits Hailuo using only intended frames: %s, tail=%s, switched=%s, view=%s', async (kind, tail, switchModel, display) => {
+    const session = prepareHailuoSession(kind, tail, switchModel);
+    const view = render(<VideoPage sessionScope="ep-1" episodeId="ep-1" />);
+    if (switchModel) {
+      fireEvent.click(await screen.findByLabelText('选择视频生成模型'));
+      fireEvent.click(await screen.findByRole('option', { name: /MiniMax Hailuo 2.3/ }));
+      await waitFor(() => expect(screen.getByLabelText('选择视频生成模型')).toHaveTextContent('MiniMax Hailuo 2.3'));
+    }
+    if (display === 'list') {
+      fireEvent.click(await screen.findByRole('button', { name: '列表视图' }));
+    }
+    fireEvent.click((await screen.findAllByRole('button', { name: /^重做$/ }))[0]);
+    await screen.findByText('任务已提交');
+    const calls = fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/api/generate'));
+    expect(calls).toHaveLength(1);
+    const body = JSON.parse(calls[0][1].body);
+    const paired = kind === 'pair' || kind === 'legacy-pair';
+    expect(body).toMatchObject({ task_type: paired ? 'minimax_morph' : 'minimax_i2v', model: 'MINI',
+      first_frame_image: 'file_first_original', minimax_model: 'MiniMax-Hailuo-2.3',
+      duration: 10, minimax_resolution: '768P', prompt: session.image_prompts.first,
+      entity_id: 'seg-hailuo', episode_id: 'ep-1', workspace_group_id: 'hailuo-card',
+    });
+    if (paired) expect(body.last_frame_image).toBe('file_last_original');
+    else expect(body).not.toHaveProperty('last_frame_image');
+    const saved = vi.mocked(saveWorkspaceSession).mock.calls.at(-1)![0];
+    expect(saved.task_groups[0]).toMatchObject({ ...session.task_groups[0], model: 'MINI' });
+    expect(saved.uploaded_images).toEqual(session.uploaded_images);
+    expect(saved.tasks_status['hailuo-card'].videoPrompts).toEqual(session.tasks_status['hailuo-card'].videoPrompts);
+    expect(view.container.querySelector('video[src*="/existing.mp4"]')).not.toBeNull();
+    expect(fetchMock.mock.calls.some(([, options]) => options?.method === 'DELETE')).toBe(false);
+  });
+
+  it.each([['merged', true], ['pair', false]] as const)(
+    'still blocks genuinely missing selected frames: %s, missing first=%s', async (kind, missingFirst) => {
+      prepareHailuoSession(kind, false, false, missingFirst);
+      render(<VideoPage sessionScope="ep-1" episodeId="ep-1" />);
+      fireEvent.click(await screen.findByRole('button', { name: /^重做$/ }));
+      await screen.findByText('任务提交失败: 图片缺少真实存储地址，请重新同步分镜或重新上传图片');
+      expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/api/generate'))).toBe(false);
+    },
+  );
+
+  it('does not silently downgrade a frame pair when its tail record is missing', async () => {
+    const session = prepareHailuoSession('pair', true);
+    session.uploaded_images = session.uploaded_images.slice(0, 1);
+    render(<VideoPage sessionScope="ep-1" episodeId="ep-1" />);
+    fireEvent.click(await screen.findByRole('button', { name: /^重做$/ }));
+    await screen.findByText('任务提交失败: 图片缺少真实存储地址，请重新同步分镜或重新上传图片');
+    expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/api/generate'))).toBe(false);
+  });
+});
+
 describe('VideoPage external video persistence', () => {
+  it.each(['Seedance2', 'Seedance2Fast', 'Seedance2Mini', 'legacy-card', 'legacy-list'] as const)(
+    'removes the portrait mode for Jimeng after %s and preserves originals through reload and submission', async source => {
+      const restored = source.startsWith('legacy');
+      const model = restored ? 'JimengSeedance2' as const : source as 'Seedance2' | 'Seedance2Fast' | 'Seedance2Mini';
+      const params = { sub_model: (restored ? 'jimeng_mini' : source === 'Seedance2' ? 'standard' : source === 'Seedance2Fast' ? 'fast' : 'mini') as 'standard' | 'fast' | 'mini' | 'jimeng_mini',
+        prompt: '镜头1：图片1 人物；图片2 场景，保留原台词。', duration: 10, resolution: '720p' as const,
+        reference_mode: 'reference' as const, portrait_reference_mode: 'character_background' as const,
+        media_inputs: [{ kind: 'image' as const, url: '/original-character.png', file_id: 'file_character', role: 'reference_image' as const },
+          { kind: 'image' as const, url: '/original-scene.png', file_id: 'file_scene', role: 'reference_image' as const }],
+      };
+      const sourceImage = { id: 'i', url: '/original-character.png', filename: 'character.png', uploadTime: 0 };
+      const history = { state: 'done' as const, videos: ['/existing.mp4'], result: '/existing.mp4',
+        videoPrompts: { '/existing.mp4': '历史提示词不可修改' } };
+      vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: {
+        ...emptySession, task_groups: [{ uuid: 'card', ids: ['i'], model, videoSegmentId: 'seg-real', duration: 10, durationUserOverride: true }],
+        uploaded_images: [sourceImage], seedance_params: { card: params }, tasks_status: { card: history },
+      } });
+      fetchMock.mockImplementation(async (url: string) => ({ ok: true, status: 200,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: async () => url.endsWith('/api/generate') ? { task_id: 'mock-jimeng' }
+          : { success: true, tasks: [], models: [{ key: 'JimengSeedance2', available: true },
+            ...['Seedance2', 'Seedance2Fast', 'Seedance2Mini'].map(key => ({ key, available: true }))], balance: 1000 },
+      }));
+      const view = render(<VideoPage sessionScope="ep-1" episodeId="ep-1" />);
+      await screen.findByLabelText('选择视频生成模型');
+      if (!restored) {
+        expect(await screen.findByLabelText('生成仿真人视频（人物四视图 + 纯背景）')).toBeChecked();
+        fireEvent.click(screen.getByLabelText('选择视频生成模型'));
+        fireEvent.click(await screen.findByRole('option', { name: /Jimeng/ }));
+      }
+      await waitFor(() => expect(screen.getByLabelText('选择视频生成模型')).toHaveTextContent('Jimeng'));
+      expect(screen.queryByTestId('portrait-reference-control')).not.toBeInTheDocument();
+      if (!restored) {
+        fireEvent.click(screen.getByLabelText('选择视频生成模型'));
+        fireEvent.click(await screen.findByTitle(getModelDisplayName(model)));
+        expect(await screen.findByLabelText('生成仿真人视频（人物四视图 + 纯背景）')).not.toBeChecked();
+        fireEvent.click(screen.getByLabelText('选择视频生成模型'));
+        fireEvent.click(await screen.findByRole('option', { name: /Jimeng/ }));
+      }
+      expect(screen.getByRole('textbox')).toHaveValue(params.prompt);
+      await waitFor(() => {
+        const persisted = vi.mocked(saveWorkspaceSession).mock.calls.at(-1)?.[0].seedance_params?.card;
+        expect(persisted).toBeDefined();
+        expect(persisted?.portrait_reference_mode).toBeUndefined();
+      });
+      const saved = vi.mocked(saveWorkspaceSession).mock.calls.at(-1)![0];
+      expect(saved.seedance_params?.card).toMatchObject({ prompt: params.prompt, media_inputs: params.media_inputs, sub_model: 'jimeng_mini' });
+      expect(saved.uploaded_images).toContainEqual(sourceImage);
+      expect(saved.tasks_status.card).toMatchObject(history);
+      view.unmount();
+      vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: JSON.parse(JSON.stringify(saved)) });
+      render(<VideoPage sessionScope="ep-1" episodeId="ep-1" />);
+      await screen.findByLabelText('选择视频生成模型');
+      if (source === 'legacy-list') fireEvent.click(screen.getByRole('button', { name: '列表视图' }));
+      expect(screen.queryByTestId('portrait-reference-control')).not.toBeInTheDocument();
+      fireEvent.click((await screen.findAllByRole('button', { name: /^重做$/ }))[0]);
+      await screen.findByText('任务已提交');
+      const calls = fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/api/generate'));
+      expect(calls).toHaveLength(1);
+      const body = JSON.parse(calls[0][1].body);
+      expect(body).toMatchObject({ task_type: 'jimeng_multimodal', model: 'JimengSeedance2', sub_model: 'jimeng_mini',
+        prompt: params.prompt, media_inputs: params.media_inputs, duration: 10, resolution: '720p' });
+      expect(body).not.toHaveProperty('portrait_reference_mode');
+      expect(screen.queryByText(/仿真人参考仅支持/)).not.toBeInTheDocument();
+      expect(fetchMock.mock.calls.some(([, options]) => options?.method === 'DELETE')).toBe(false);
+    },
+  );
+
+  it.each(['close', 'backdrop', 'Escape'] as const)('previews originals above the expanded prompt and resumes editing after %s', async closeVia => {
+    const params = { sub_model: 'mini' as const, prompt: '人物图片1，保持动作。',
+      media_inputs: [{ kind: 'image' as const, url: '/original-character.png' }] };
+    vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: {
+      ...emptySession, task_groups: [{ uuid: 'card', ids: ['i'], model: 'Seedance2Mini' }],
+      uploaded_images: [{ id: 'i', url: '/original-character.png', filename: 'character.png', uploadTime: 0 }],
+      seedance_params: { card: params },
+    } });
+    const view = render(<VideoPage sessionScope="ep-1" episodeId="ep-1" />);
+    fireEvent.click(await screen.findByRole('button', { name: '放大编辑' }));
+    const editor = screen.getByRole('dialog', { name: '放大编辑提示词' });
+    const textarea = within(editor).getByRole('textbox') as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: '修改后的动作图片1，不可丢失。' } });
+    textarea.setSelectionRange(5, 5);
+    textarea.scrollTop = 30;
+    const trigger = within(editor).getByTitle('点击预览 图片1');
+    trigger.focus();
+    fireEvent.click(trigger);
+    const preview = screen.getByRole('dialog', { name: '图片预览' });
+    expect(preview.parentElement).toBe(document.body);
+    expect(preview).toHaveClass('z-[10000]');
+    expect(view.container).not.toContainElement(preview);
+    expect(within(preview).getByRole('img')).toHaveAttribute('src', '/original-character.png');
+    expect(within(preview).getByRole('link', { name: '下载原图' })).toHaveAttribute('href', '/original-character.png');
+    fireEvent.click(within(preview).getByRole('img'));
+    expect(preview).toBeInTheDocument();
+    if (closeVia === 'close') fireEvent.click(within(preview).getByRole('button', { name: '关闭图片预览' }));
+    else if (closeVia === 'backdrop') fireEvent.click(preview);
+    else fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: '图片预览' })).not.toBeInTheDocument();
+    expect(editor).toBeInTheDocument();
+    expect(textarea).toHaveValue('修改后的动作图片1，不可丢失。');
+    expect(textarea.selectionStart).toBe(5);
+    expect(textarea.scrollTop).toBe(30);
+    expect(trigger).toHaveFocus();
+    fireEvent.click(within(editor).getByRole('button', { name: '完成' }));
+    expect(screen.getByRole('textbox')).toHaveValue('修改后的动作图片1，不可丢失。');
+    await waitFor(() => expect(vi.mocked(saveWorkspaceSession).mock.calls.at(-1)?.[0].seedance_params?.card)
+      .toMatchObject({ prompt: '修改后的动作图片1，不可丢失。', media_inputs: params.media_inputs }));
+    expect(fetchMock.mock.calls.some(([url, options]) => String(url).endsWith('/api/generate') || options?.method === 'DELETE')).toBe(false);
+  });
+
+  it.each([false, true])('persists portrait reference removal only after confirmation=%s without deleting sources or history', async confirmRemoval => {
+    const params = { sub_model: 'mini' as const, reference_mode: 'reference' as const, prompt: '人物 图片1；旧图 图片2；背景 图片3',
+      duration: 5, media_inputs: [
+        { kind: 'image' as const, url: '/hero.png', file_id: 'file_hero' },
+        { kind: 'image' as const, url: '/unsupported.png', file_id: 'file_old' },
+        { kind: 'image' as const, url: '/background.png', file_id: 'file_bg' },
+      ] };
+    const sourceImage = { id: 'i', url: '/unsupported.png', filename: 'source.png', uploadTime: 0 };
+    const history = { state: 'done' as const, videos: ['/old.mp4'], result: '/old.mp4', videoPrompts: { '/old.mp4': '历史提示词' } };
+    vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: {
+      ...emptySession, task_groups: [{ uuid: 'card', ids: ['i'], model: 'Seedance2Mini' }],
+      uploaded_images: [sourceImage], seedance_params: { card: params }, tasks_status: { card: history },
+    } });
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => ({
+      ok: true, status: 200, headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => url.endsWith('/api/materials/seedream-source') ? { items: Object.fromEntries(
+        JSON.parse(init!.body as string).references.map((ref: string) => [ref,
+          ref === 'file_hero' || ref === 'file_bg' ? {
+            purpose: ref === 'file_hero' ? 'character_four_view' : 'pure_background',
+            portrait_reference_scopes: ['workflow'], portrait_reference_expires_at: Date.now() / 1000 + 3600,
+          } : {},
+        ]),
+      ) } : { success: true, tasks: [], models: [], balance: 1000 },
+    }));
+    const view = render(<VideoPage sessionScope="ep-1" episodeId="ep-1" />);
+    fireEvent.click(await screen.findByLabelText('生成仿真人视频（人物四视图 + 纯背景）'));
+    const dialog = await screen.findByRole('dialog', { name: '移除不支持的参考素材？' });
+    fireEvent.click(within(dialog).getByRole('button', { name: confirmRemoval ? '确定' : '取消' }));
+    await waitFor(() => {
+      const value = vi.mocked(saveWorkspaceSession).mock.calls.at(-1)?.[0].seedance_params?.card;
+      expect(value?.portrait_reference_mode).toBe(confirmRemoval ? 'character_background' : undefined);
+      expect(value?.media_inputs.map(item => item.url)).toEqual(confirmRemoval ? ['/hero.png', '/background.png'] : params.media_inputs.map(item => item.url));
+    });
+    const persisted = vi.mocked(saveWorkspaceSession).mock.calls.at(-1)![0];
+    expect(persisted.seedance_params?.card.prompt).toBe(confirmRemoval ? '人物 图片1；旧图 ；背景 图片2' : params.prompt);
+    expect(persisted.uploaded_images).toContainEqual(expect.objectContaining(sourceImage));
+    expect(persisted.tasks_status.card).toMatchObject(history);
+    view.unmount();
+    vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: JSON.parse(JSON.stringify(persisted)) });
+    render(<VideoPage sessionScope="ep-1" episodeId="ep-1" />);
+    const checkbox = await screen.findByLabelText('生成仿真人视频（人物四视图 + 纯背景）');
+    expect((checkbox as HTMLInputElement).checked).toBe(confirmRemoval);
+    expect(screen.getByTestId('seedance-reference-strip').querySelectorAll('img')).toHaveLength(confirmRemoval ? 2 : 3);
+    expect(fetchMock.mock.calls.some(([url, options]) => String(url).endsWith('/api/generate') || options?.method === 'DELETE')).toBe(false);
+  });
+
+  it('switches to Jimeng without an informational toast or changing the prompt and references', async () => {
+    const params = { sub_model: 'mini' as const, prompt: '原有提示词保持不变', duration: 15, resolution: '720p' as const,
+      media_inputs: [{ kind: 'image' as const, url: '/original.png', role: 'reference_image' as const }] };
+    vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: {
+      ...emptySession, task_groups: [{ uuid: 'card', ids: ['i'], model: 'Seedance2Mini', duration: 15, durationUserOverride: true }],
+      uploaded_images: [{ id: 'i', url: '/original.png', filename: 'original.png', uploadTime: 0 }],
+      seedance_params: { card: params },
+    } });
+    fetchMock.mockResolvedValue({ ok: true, status: 200, headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => ({ success: true, tasks: [], models: [
+        { key: 'Seedance2Mini', available: true }, { key: 'JimengSeedance2', available: true },
+      ], balance: 1000 }),
+    });
+    render(<VideoPage sessionScope="ep-1" episodeId="ep-1" />);
+    fireEvent.click(await screen.findByLabelText('选择视频生成模型'));
+    const option = await screen.findByRole('option', { name: /Jimeng/ });
+    expect(option).toHaveAttribute('aria-disabled', 'false');
+    fireEvent.click(option);
+    await waitFor(() => expect(screen.getByLabelText('选择视频生成模型')).toHaveTextContent('Jimeng'));
+    expect(screen.queryByText(/即梦使用全能参考/)).not.toBeInTheDocument();
+    await waitFor(() => {
+      const saved = vi.mocked(saveWorkspaceSession).mock.calls.at(-1)?.[0];
+      expect(saved?.task_groups[0].model).toBe('JimengSeedance2');
+      expect(saved?.seedance_params?.card).toMatchObject({ ...params, sub_model: 'jimeng_mini' });
+    });
+    expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/api/generate'))).toBe(false);
+  });
+
+  it.each(['Seedance15', 'Seedance2', 'Seedance2Fast', 'Seedance2Mini', 'JimengSeedance2'] as const)(
+    'keeps expanded timing inside the scroll area without shrinking the %s composer', async model => {
+      vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: {
+        ...emptySession, task_groups: [{ uuid: 'card', ids: ['i'], model }],
+        uploaded_images: [{ id: 'i', url: '/original.png', filename: 'original.png', uploadTime: 0 }],
+      } });
+      render(<VideoPage sessionScope="ep-1" />);
+      const body = await screen.findByTestId('video-card-body');
+      const composer = within(body).getByTestId('video-card-composer');
+      const timing = within(body).getByTestId('video-timing-summary');
+      await within(composer).findByTestId('seedance-jimeng-composer');
+      expect(body).toHaveClass('flex-1', 'min-h-0', 'overflow-y-auto');
+      expect(composer).toHaveClass('min-h-[280px]', 'shrink-0');
+      expect(timing.parentElement).toBe(body);
+      expect(timing.nextElementSibling).toBe(composer);
+      const prompt = within(composer).getByRole('textbox');
+      const original = prompt.textContent;
+      fireEvent.click(timing.querySelector('summary')!);
+      expect(timing).toHaveAttribute('open');
+      fireEvent.click(timing.querySelector('summary')!);
+      expect(timing).not.toHaveAttribute('open');
+      expect(prompt.textContent).toBe(original);
+      expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/api/generate'))).toBe(false);
+    },
+  );
+
+  it.each(['idle', 'done', 'failed'] as const)('shows credit rejection only as a toast and preserves a %s card and its history', async state => {
+    const original = state === 'idle' ? { state } : {
+      state, videos: ['/existing.mp4'], result: '/existing.mp4', videoModels: ['Seedance2Mini' as const],
+      videoPrompts: { '/existing.mp4': '不可覆盖的历史提示词' },
+      ...(state === 'failed' ? { error: '创作点数不足：Insufficient credits: need 630, available 361' } : {}),
+    };
+    vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: {
+      ...emptySession, task_groups: [{ uuid: 'card', ids: ['i'], model: 'JimengSeedance2', videoSegmentId: 'seg-real' }],
+      uploaded_images: [{ id: 'i', url: '/original.png', filename: 'original.png', uploadTime: 0 }],
+      seedance_params: { card: { sub_model: 'jimeng_mini', prompt: '保留原提示词', duration: 15, resolution: '720p',
+        media_inputs: [{ kind: 'image', url: '/original.png', role: 'reference_image' }] } },
+      tasks_status: { card: original },
+    } });
+    fetchMock.mockImplementation(async (url: string) => ({
+      ok: !url.endsWith('/api/generate'), status: url.endsWith('/api/generate') ? 402 : 200,
+      headers: new Headers({ 'content-type': 'application/json' }), json: async () => url.endsWith('/api/generate')
+        ? { detail: '创作点数不足：Insufficient credits: need 315, available 200' }
+        : { success: true, tasks: [], models: [{ key: 'JimengSeedance2', available: true }], balance: 200 },
+    }));
+    const view = render(<VideoPage sessionScope="ep-1" episodeId="ep-1" projectId="proj-1" />);
+    const generate = await screen.findByRole('button', { name: state === 'done' ? /^重做$/ : /^生成$/ });
+    await waitFor(() => expect(generate).not.toBeDisabled());
+    fireEvent.click(generate);
+    await screen.findByText('创作点数不足', { exact: true });
+    expect(screen.queryByText(/Insufficient credits/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.queryByText('失败·结果保留')).not.toBeInTheDocument();
+    expect(screen.queryByText('任务提交失败:', { exact: false })).not.toBeInTheDocument();
+    expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/api/generate'))).toHaveLength(1);
+    expect(screen.getByRole('button', { name: state === 'idle' ? /^生成$/ : /^重做$/ })).not.toBeDisabled();
+    if (state !== 'idle') expect(view.container.querySelector('video[src*="/existing.mp4"]')).not.toBeNull();
+  });
+
   it.each(ALL_MODELS)('shows timing for %s in card and list views using its own selected duration', async model => {
     vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: {
       ...emptySession,
@@ -60,7 +390,7 @@ describe('VideoPage external video persistence', () => {
         ? { card: { ...makeDefaultDashScopeParams(model), duration: 7, hh_duration: 13 } } : {},
     } });
     render(<VideoPage sessionScope="ep-1" episodeId="ep-1" />);
-    const seconds = model.startsWith('Seedance') ? 11 : model === 'MINI' ? 10
+    const seconds = (model.startsWith('Seedance') || model === 'JimengSeedance2') ? 11 : model === 'MINI' ? 10
       : model === 'HappyHorse' ? 13 : model === 'Kling' || model === 'Vidu' ? 7
       : model === 'Sora2' ? 15 : model === 'Veo' ? 8 : 9;
     const expected = `脚本 10秒 · 配音 10.2秒 · 校准 10.7秒 · 选用 ${seconds}秒`;

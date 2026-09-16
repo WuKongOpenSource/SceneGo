@@ -10,9 +10,9 @@
 .slider-captcha-picture[hidden] { display: none; }
 .slider-captcha-picture > [data-background] { width: 100%; height: 100%; display: block; }
 .slider-captcha-picture > .slider-captcha-piece { position: absolute; height: auto; pointer-events: none; filter: drop-shadow(0 1px 2px #222); }
-.slider-captcha-dialog [data-slider] { appearance: none; display: block; box-sizing: border-box; width: 100%; height: 44px; margin: 14px 0 0; padding: 0; background: #f0edff; border: 1px solid #ddd6fe; border-radius: 8px; cursor: grab; touch-action: none; }
+.slider-captcha-dialog [data-slider] { -webkit-appearance: none; appearance: none; display: block; box-sizing: border-box; width: 100%; height: 44px; margin: 14px 0 0; padding: 0; background: #f0edff; border: 1px solid #ddd6fe; border-radius: 8px; cursor: grab; touch-action: none; }
 .slider-captcha-dialog [data-slider]:disabled { opacity: .6; cursor: wait; }
-.slider-captcha-dialog [data-slider]::-webkit-slider-thumb { appearance: none; width: 42px; height: 42px; border-radius: 7px; background: #654df8; border: 9px solid #fff; box-shadow: 0 0 0 1px #d7d0ff; }
+.slider-captcha-dialog [data-slider]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 42px; height: 42px; border-radius: 7px; background: #654df8; border: 9px solid #fff; box-shadow: 0 0 0 1px #d7d0ff; }
 .slider-captcha-dialog [data-slider]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 7px; background: #654df8; border: 9px solid #fff; }
 .slider-captcha-dialog :focus-visible { outline: 3px solid #8b75ff; outline-offset: 3px; }
 .slider-captcha-status { min-height: 42px; margin: 10px 0; font-size: 13px; color: #53637a; overflow-wrap: anywhere; }

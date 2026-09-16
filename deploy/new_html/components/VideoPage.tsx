@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { ImageSourceBadgeOverlay, SeedreamSourceBadge } from './SeedreamSourceBadge';
+import { ImageSourceBadgeOverlay } from './SeedreamSourceBadge';
+import { isCreationCreditShortfall, restoreVideoStatusAfterCreditRejection } from '../utils/videoSubmissionError';
 import {
     Upload, Video, Play, RefreshCw, Trash2, Link, Unlink,
     GripVertical, CheckSquare, Square, Clock, Film, AlertCircle,
@@ -85,7 +86,6 @@ import { applyVideoProjectMaterial, getVideoCardImages, withVideoCardCandidates 
 import {
     getCardHeightClass,
     CARD_MEDIA_HEIGHT_CLASS,
-    CARD_BODY_SCROLL_CLASS,
     PLACEHOLDER_PROMPT_TEXTAREA_CLASS,
     RESULT_PROMPT_READONLY_CLASS,
     RESULT_MEDIA_GRID_CLASS,
@@ -141,6 +141,8 @@ import { extractSpokenDialogue } from '../utils/scriptPipelineParsers';
 import { clampSec, DURATION_MAX_SEC, SEEDANCE_AGENT_PLAN_MAX_DURATION_SEC } from '../utils/durationMapping';
 import { getVideoDurationShortfall, mergeVideoTimingMetadata, resolveVideoGroupTiming, resolveVideoSelectedSeconds } from '../utils/videoGroupTiming';
 import { VideoTimingSummary } from './video/VideoTimingSummary';
+import { VideoCardBody } from './video/VideoCardBody';
+import { VideoMediaPreview } from './video/VideoMediaPreview';
 import { VideoCancellationControl, VideoGenerationPhase } from './video/VideoCancellationControl';
 import {
     mergeStoryboardVideoPrompts,
@@ -764,7 +766,8 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
     const getSeedanceParams = useCallback((uuid: string, model: VideoModel): SeedanceParams => {
         const group = taskGroups.find(g => g.uuid === uuid);
-        const existing = seedanceParamsByUuid[uuid];
+        const stored = seedanceParamsByUuid[uuid];
+        const existing = stored && model === 'JimengSeedance2' ? prepareJimengComposerParams(stored) : stored;
         if (existing && group) {
             const prompt = upgradeLegacyStoryboardVideoPrompt(
                 existing.prompt,
@@ -1304,7 +1307,10 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
                 const sessSP = (session as any).seedance_params as Record<string, SeedanceParams> | undefined;
                 if (sessSP && typeof sessSP === 'object') {
-                    setSeedanceParamsByUuid(sessSP);
+                    // Repair stale active Jimeng cards, not historical results or other models' drafts.
+                    const jimengCards = new Set((session.task_groups || []).filter(group => group.model === 'JimengSeedance2').map(group => group.uuid));
+                    setSeedanceParamsByUuid(Object.fromEntries(Object.entries(sessSP).map(([uuid, params]) =>
+                        [uuid, jimengCards.has(uuid) ? prepareJimengComposerParams(params) : params])));
                 } else {
                     setSeedanceParamsByUuid({});
                 }
@@ -1963,10 +1969,9 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         }));
         if (isSeedanceVideoModel(model)) {
             const subModel: SeedanceParams['sub_model'] = seedanceSubModelForVideoModel(model);
-            if (model === 'JimengSeedance2') showToast('即梦使用全能参考、720P 和完整参考配音；所有原素材和剧本时长保留，按标准模型两倍计点。');
             setSeedanceParamsByUuid(prev => {
                 const current = prev[uuid];
-                if (!current || current.sub_model === subModel) return prev;
+                if (!current || (current.sub_model === subModel && !(model === 'JimengSeedance2' && current.portrait_reference_mode))) return prev;
                 return {
                     ...prev,
                     [uuid]: model === 'JimengSeedance2' ? prepareJimengComposerParams(current) : {
@@ -2973,6 +2978,14 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             showToast('视频记录保存失败，本次未提交生成，请稍后重试');
             return null;
         }
+        const statusBeforeSubmission = tasksStatus[uuid];
+        const handleCreditRejection = (error: unknown) => {
+            if (!isCreationCreditShortfall(error)) return false;
+            showToast('创作点数不足');
+            setTasksStatus(prev => ({ ...prev, [uuid]: restoreVideoStatusAfterCreditRejection(statusBeforeSubmission) }));
+            setTaskStartTimes(prev => { const next = { ...prev }; delete next[uuid]; return next; });
+            return true;
+        };
         const entityId = segmentId || undefined;
         const persistedGroups = taskGroups.map(item => item.uuid === uuid && segmentId ? { ...item, videoSegmentId: segmentId } : item);
         setTaskGroups(persistedGroups);
@@ -3061,6 +3074,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 });
                 return result.task_id;
             } catch (error: any) {
+                if (handleCreditRejection(error)) return null;
                 console.error('Seedance 任务提交失败:', error);
                 showToast('任务提交失败: ' + error.message);
                 setTasksStatus(prev => ({
@@ -3124,6 +3138,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 });
                 return result.task_id;
             } catch (error: any) {
+                if (handleCreditRejection(error)) return null;
                 console.error('DashScope 任务提交失败:', error);
                 showToast('任务提交失败: ' + error.message);
                 setTasksStatus(prev => ({
@@ -3138,7 +3153,9 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
 
         const img1 = uploadedImages.find(i => i.id === group.ids[0]);
-        const img2 = group.ids.length === 2 ? uploadedImages.find(i => i.id === group.ids[1]) : null;
+        // Merged ids preserve shot membership; only a first/last-frame pair supplies a tail.
+        const isFramePair = group.ids.length === 2 && !group.mergedFrom?.length;
+        const img2 = isFramePair ? uploadedImages.find(i => i.id === group.ids[1]) : null;
 
         if (!img1) {
             console.error('找不到图片');
@@ -3185,7 +3202,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
             const filename1 = getImageIdentifier(img1, isExternalAPI);
             const filename2 = img2 ? getImageIdentifier(img2, isExternalAPI) : null;
-            if (!filename1 || (img2 && !filename2)) {
+            if (!filename1 || (isFramePair && !filename2)) {
                 throw new Error('图片缺少真实存储地址，请重新同步分镜或重新上传图片');
             }
 
@@ -3277,6 +3294,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             return result.task_id;
 
         } catch (error: any) {
+            if (handleCreditRejection(error)) return null;
             console.error('任务提交失败:', error);
             showToast(isMiniMaxHailuoDailyLimitError(error)
                 ? 'MiniMax Hailuo 今日 3 次调用额度已用完，明日 00:00 后自动恢复；模型已保留并置灰。'
@@ -3287,7 +3305,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             }));
             return null;
         }
-    }, [taskGroups, uploadedImages, imagePrompts, showToast, getSeedanceParams, getDashScopeParams, getGroupTiming, getEffectiveGroupPrompt, ensureVideoSegmentId, episodeId, prepareSeedanceParamsForCapability, getCharacterNameForGroup, getVideoVoiceReferenceForGroup, seedanceSupportsMultimodal, getVideoModelUnavailableReason, isVideoModelAvailable, defaultMiniMaxVideoModel, isSeedanceModel, videoCapabilities]);
+    }, [taskGroups, tasksStatus, uploadedImages, imagePrompts, showToast, getSeedanceParams, getDashScopeParams, getGroupTiming, getEffectiveGroupPrompt, ensureVideoSegmentId, episodeId, prepareSeedanceParamsForCapability, getCharacterNameForGroup, getVideoVoiceReferenceForGroup, seedanceSupportsMultimodal, getVideoModelUnavailableReason, isVideoModelAvailable, defaultMiniMaxVideoModel, isSeedanceModel, videoCapabilities]);
 
     const runTask = useCallback((uuid: string): Promise<string | null> => {
         const pending = pendingSubmissions.current.get(uuid);
@@ -4849,8 +4867,11 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 })()}
 
 
-                <VideoTimingSummary timing={getGroupTiming(group)} selectedSeconds={getGroupSelectedSeconds(group)} />
-                <div className={`${CARD_BODY_SCROLL_CLASS} flex flex-col`}>
+                <VideoCardBody
+                    timing={getGroupTiming(group)}
+                    selectedSeconds={getGroupSelectedSeconds(group)}
+                    multimodal={!isPlaceholderCard && seedanceCard}
+                >
                     {isPlaceholderCard ? (
                         <textarea
                             value={getEffectiveGroupPrompt(group)}
@@ -4936,7 +4957,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                             onPromptChange={(next) => updatePrompt(group.ids[0], next)}
                         />
                     )}
-                </div>
+                </VideoCardBody>
 
                 <div className="mt-2 pt-2 border-t border-n40 shrink-0 flex items-center justify-end gap-2">
                     {isPair ? (
@@ -5303,7 +5324,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 </div>
 
 
-                {status.state === 'failed' && status.error && <p role="alert" className="shrink-0 py-1 text-xs text-danger">{status.error}</p>}
+                {status.state === 'failed' && status.error && !isCreationCreditShortfall(status.error) && <p role="alert" className="shrink-0 py-1 text-xs text-danger">{status.error}</p>}
                 {status.taskId && status.cancelDeadline && ['pending', 'running', 'processing'].includes(status.state || '') && <VideoCancellationControl
                     taskId={status.taskId} deadline={status.cancelDeadline} canCancel={status.canCancel}
                     onError={showToast} onCancelled={() => { stopVideoPoll(group.uuid); resolveBatchVideoTask(group.uuid, 'failed'); setTasksStatus(previous => ({ ...previous,
@@ -6407,44 +6428,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
             {/* Lightbox */}
             {lightboxUrl && (
-                <div
-                    className="fixed inset-0 z-50 bg-n900/90 flex items-center justify-center"
-                    onClick={() => setLightboxUrl(null)}
-                >
-                    <button
-                        className="absolute top-4 right-4 text-white hover:text-n300"
-                        onClick={() => setLightboxUrl(null)}
-                    >
-                        <X className="w-8 h-8" />
-                    </button>
-                    <a
-                        href={lightboxUrl}
-                        download
-                        className="absolute top-4 right-16 text-white hover:text-n300"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <Download className="w-8 h-8" />
-                    </a>
-                    {lightboxType === 'image' && <div className="absolute top-4 left-4 rounded bg-white/95 p-2"><SeedreamSourceBadge reference={lightboxUrl} /></div>}
-                    {lightboxType === 'video' ? (
-                        <video
-                            src={lightboxUrl}
-                            preload="metadata"
-                            className="max-w-[90vw] max-h-[90vh]"
-                            controls
-                            autoPlay
-                            onClick={(e) => e.stopPropagation()}
-                        />
-                    ) : (
-                        <img
-                            src={lightboxUrl}
-                            decoding="async"
-                            alt=""
-                            className="max-w-[90vw] max-h-[90vh] object-contain"
-                            onClick={(e) => e.stopPropagation()}
-                        />
-                    )}
-                </div>
+                <VideoMediaPreview url={lightboxUrl} kind={lightboxType} onClose={() => setLightboxUrl(null)} />
             )}
 
 

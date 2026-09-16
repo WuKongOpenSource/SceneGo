@@ -24,7 +24,7 @@ export function JimengAccountCard() {
         <p className={`mt-2 ${status?.available ? 'text-success' : 'text-warning'}`}>{status?.message || '正在检查独立账号授权…'}</p>
         {status?.account_id && <p className="mt-2 break-all">账号：{status.account_id} · 专用会话：{status.session_id}</p>}
         {status?.provider_credits !== undefined && <p className="mt-2">即梦账号可用点数：{status.provider_credits}（不是平台创作点数）</p>}
-        <p className="mt-2 leading-5 text-n100">官方 CLI · 实际执行 seedance2.0mini · 全能参考 · 720P · 4–15 秒。平台创作点数按 Seedance 2.0 标准模型同参数的两倍计费。</p>
+        <p className="mt-2 leading-5 text-n100">官方 CLI · 实际执行 seedance2.0mini · 全能参考 · 720P · 4–15 秒。平台创作点数按 Seedance 2.0 标准模型同参数的一倍计费。</p>
         <p className="mt-1 leading-5 text-n100">使用独立 OAuth 授权和新建专用会话，不复用其他平台账号。授权由管理员在专用运行环境完成，不在此页面粘贴令牌。提交后只查询原任务，未知提交结果需人工核查；供应商暂不支持已验证的取消接口。</p>
     </section>;
 }

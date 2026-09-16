@@ -40,7 +40,7 @@ describe('image source overlays', () => {
     act(() => { width = 320; height = 180; resize(); });
     await waitFor(() => expect(screen.getByText('Gemini · 文生图')).toBeInTheDocument());
     expect(screen.getByText('Gemini · 文生图')).toHaveClass('truncate');
-    expect(apiJson).toHaveBeenCalledWith('/api/materials/seedream-source', expect.objectContaining({ body: JSON.stringify({ references: ['file_original'], include_portrait_eligibility: true }) }), '图片生成来源');
+    expect(apiJson).toHaveBeenCalledWith('/api/materials/seedream-source', expect.objectContaining({ body: JSON.stringify({ references: ['file_original'] }) }), '图片生成来源');
     act(() => { width = 120; height = 68; resize(); });
     expect(screen.queryByText('Gemini · 文生图')).not.toBeInTheDocument();
     view.unmount();
@@ -80,6 +80,39 @@ describe('image source overlays', () => {
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
     await waitFor(() => expect(apiJson).toHaveBeenCalledTimes(2));
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
+  });
+
+  it('keeps stars off large and medium images even when the original is eligible', async () => {
+    apiJson.mockResolvedValue({ items: { file_original: { display_label: 'Seedream 5.0 Lite · 文生图',
+      portrait_reference_scopes: ['workflow'], portrait_reference_expires_at: Date.now() / 1000 + 60 } } });
+    width = 320; height = 180;
+    render(<div><ImageSourceBadgeOverlay reference="file_original" /></div>);
+    await screen.findByText('Seedream 5.0 Lite · 文生图');
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    act(() => { width = 120; height = 68; resize(); });
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    act(() => { width = height = 80; resize(); });
+    await screen.findByRole('img');
+    expect(screen.queryByText('Seedream 5.0 Lite · 文生图')).not.toBeInTheDocument();
+    act(() => { width = 320; height = 180; resize(); });
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+  });
+
+  it('does not put thumbnail legends on canvas or global large-image tools', () => {
+    for (const file of ['../../../../studio/App.tsx', '../../layouts/GlobalToolsLayout.tsx', '../../components/ProjectMaterialPicker.tsx', '../../components/SeedanceAssetPickerModal.tsx']) {
+      expect(readFileSync(resolve(__dirname, file), 'utf8')).not.toContain('PortraitReferenceLegend');
+    }
+    const workflow = readFileSync(resolve(__dirname, '../../layouts/WorkflowLayout.tsx'), 'utf8');
+    expect(workflow).toContain("['design', 'materials', 'storyboard', 'video'].includes(segment)");
+  });
+
+  it('never renders provenance overlays on project or episode title covers', () => {
+    for (const file of ['../../components/ProjectHub.tsx', '../../pages/EpisodeHubPage.tsx']) {
+      const source = readFileSync(resolve(__dirname, file), 'utf8');
+      expect(source).toContain('coverImageSrc(');
+      expect(source).not.toContain('ImageSourceBadgeOverlay');
+      expect(source).not.toContain('SeedreamSourceBadge');
+    }
   });
 
   it('hides expired stars and explains the meaning without granting moderation approval', async () => {

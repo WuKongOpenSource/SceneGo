@@ -1,6 +1,6 @@
 
 
-import { SeedreamSourceBadge, PortraitReferenceLegend } from '@app/components/SeedreamSourceBadge';
+import { SeedreamSourceBadge } from '@app/components/SeedreamSourceBadge';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { WorkspaceLoadBoundary } from '@app/components/WorkspaceLoadBoundary';
 import { useWorkspaceSave } from '@app/hooks/useWorkspaceSave';
@@ -1073,7 +1073,6 @@ const StudioCanvas = ({ initialSnapshot }: { initialSnapshot: StudioSnapshot | n
           <span>按住空格拖动画布</span>
         </div>
       </div>
-      <div className="fixed right-5 top-16 z-[160]"><PortraitReferenceLegend /></div>
       <button
         type="button"
         onClick={() => void leaveStudio('/credits')}

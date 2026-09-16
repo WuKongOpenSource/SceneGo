@@ -112,7 +112,7 @@ export function supportsSeedancePortraitReference(subModel: SeedanceParams['sub_
 
 export function prepareJimengComposerParams(params: SeedanceParams): SeedanceParams {
   // Explicit model selection changes provider controls, never source media or editorial duration.
-  return { ...params, sub_model: 'jimeng_mini', reference_mode: 'reference', resolution: '720p',
+  return { ...params, sub_model: 'jimeng_mini', reference_mode: 'reference', portrait_reference_mode: undefined, resolution: '720p',
     ratio: params.ratio && params.ratio !== 'adaptive' ? params.ratio : '16:9',
     generate_audio: true, watermark: false, camera_fixed: false, seed: -1, reference_audio_policy: 'preserve' };
 }
@@ -522,7 +522,7 @@ export function getVideoCreditFallbackCost(
   if (model === 'HappyHorse') return 160;
   if (model === 'Seedance15') return 32;
   if (model === 'Seedance2') return 105;
-  if (model === 'JimengSeedance2') return 2 * getVideoCreditFallbackCost('Seedance2');
+  if (model === 'JimengSeedance2') return getVideoCreditFallbackCost('Seedance2');
   if (model === 'Seedance2Fast') return 85;
   if (model === 'Seedance2Mini') return 50;
   if (model === 'MiniMaxH3Mini') {
