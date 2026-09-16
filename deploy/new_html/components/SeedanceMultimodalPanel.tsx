@@ -7,6 +7,7 @@ import { getModelDisplayName, getSeedanceOutputError, normalizeSeedanceOutputRes
 import { removeMediaInput, type SeedanceAssetCandidate } from '../utils/seedanceMedia';
 import { audioDurationLabel, probeUploadedAudioDuration, seedanceAudioBudget, seedanceAudioError } from '../utils/seedanceAudio';
 import { SeedanceMentionPromptEditor } from './SeedanceMentionPromptEditor';
+import { SeedanceReferenceShelf } from './SeedanceReferenceShelf';
 import { SeedanceAssetPickerModal } from './SeedanceAssetPickerModal';
 import { VideoControlPopover } from './video/VideoControlPopover';
 import { VideoDurationControl } from './video/VideoDurationControl';
@@ -250,50 +251,35 @@ export const SeedanceMultimodalPanel: React.FC<Props> = ({
         !isJimeng && images.some(item => item.role === 'last_frame') && !images.some(item => item.role === 'first_frame') ? '请先添加首帧，再使用尾帧。' : '');
     const editor = (expanded = false) => <SeedanceMentionPromptEditor value={value} onChange={acceptReferences}
         candidates={editorCandidates} disabled={disabled} autoOpenOnMount={autoOpenMentionOnMount}
-        fillHeight compactFillHeight={!expanded} rows={expanded ? 20 : 7} hideTokensRow={!expanded} openUpward={expanded}
+        fillHeight compactFillHeight={!expanded} rows={expanded ? 20 : 4} hideTokensRow openUpward={expanded}
         placeholder={mode === 'reference' ? '输入文字描述，或输入 @ 选择参考内容……' : '描述首帧到尾帧的变化、动作与运镜……'} onPreviewMedia={onPreviewMedia} />;
 
-    return <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-n40 bg-n0 shadow-card" data-testid="seedance-jimeng-composer">
-        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-x-hidden overflow-y-auto p-3" data-testid="seedance-composer-content">
+    const referenceShelf = () => <SeedanceReferenceShelf value={value} onChange={acceptReferences} disabled={disabled || uploadBusy}
+        onPreviewMedia={onPreviewMedia} addControl={<VideoControlPopover title="添加参考内容" dismissKey={pickerOpen} disabled={disabled} hideChevron
+            triggerClassName="flex h-20 w-16 shrink-0 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-n40 bg-n20/70 text-[10px] text-n100 hover:border-primary hover:text-primary disabled:opacity-40"
+            label={<><Plus size={18} />参考内容</>}>
+            <button type="button" disabled={disabled} onClick={() => setPickerOpen(true)} className={VIDEO_CONTROL_PILL_CLASS}>从素材库选择</button>
+            <button type="button" disabled={disabled || uploadBusy || images.length >= 9} onClick={() => imageInput.current?.click()} className={VIDEO_CONTROL_PILL_CLASS}>上传图片</button>
+            <button type="button" disabled={disabled || uploadBusy || videos.length >= 3} onClick={() => videoInput.current?.click()} className={VIDEO_CONTROL_PILL_CLASS}>上传视频</button>
+            <button type="button" disabled={disabled || uploadBusy || audios.length >= 3} onClick={() => audioInput.current?.click()} className={VIDEO_CONTROL_PILL_CLASS}>上传配音</button>
+        </VideoControlPopover>} />;
+
+    return <div className="flex h-full min-h-min flex-col overflow-hidden rounded-2xl border border-n40 bg-n0 shadow-card" data-testid="seedance-jimeng-composer">
+        <div className="flex min-h-min flex-1 flex-col gap-2 p-3" data-testid="seedance-composer-content">
             <div className="flex shrink-0 items-center justify-between gap-2">
                 <p className="min-w-0 text-[10px] leading-4 text-n100" title={getModelDisplayName(LABELS[value.sub_model])}>{hint}</p>
                 <button type="button" onClick={() => setPromptModalOpen(true)} className="inline-flex shrink-0 items-center gap-1 text-[10px] text-primary"><Maximize2 size={12} />放大编辑</button>
             </div>
-            {/* Keep the editor and 80px reference rail above the portrait controls,
-                even when help text, validation or wrapped controls consume space. */}
+            {mode === 'reference' && referenceShelf()}
             <div className="flex min-h-[112px] flex-1 shrink-0 gap-3" data-testid="seedance-composer-body">
-                <div
+                {mode === 'first_last' && <div
                     className="flex shrink-0 items-start gap-1 pt-1"
                     data-testid="seedance-media-rail"
                 >
-                    {mode === 'first_last' ? <>{frame(first, '首帧', firstInput)}{frame(last, '尾帧', lastInput)}</>
-                        : <VideoControlPopover title="添加参考内容" dismissKey={pickerOpen} disabled={disabled} hideChevron triggerClassName="flex h-[80px] w-[64px] shrink-0 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-n40 bg-n20/70 text-[10px] text-n100 transition hover:border-primary hover:text-primary disabled:opacity-40" label={<><Plus size={18} />参考内容</>}>
-                            <button type="button" disabled={disabled} onClick={() => setPickerOpen(true)} className={VIDEO_CONTROL_PILL_CLASS}>从素材库选择</button>
-                            <button type="button" disabled={disabled || uploadBusy || images.length >= 9} onClick={() => imageInput.current?.click()} className={VIDEO_CONTROL_PILL_CLASS}>上传图片</button>
-                            <button type="button" disabled={disabled || uploadBusy || videos.length >= 3} onClick={() => videoInput.current?.click()} className={VIDEO_CONTROL_PILL_CLASS}>上传视频</button>
-                            <p className="text-[10px] text-n100">{hint}</p>
-                        </VideoControlPopover>}
-                </div>
+                    {frame(first, '首帧', firstInput)}{frame(last, '尾帧', lastInput)}
+                </div>}
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{editor()}</div>
             </div>
-            {!isJimeng && (supportsSeedancePortraitReference(value.sub_model) && mode === 'reference' || value.portrait_reference_mode) && <div className="shrink-0 space-y-1 py-1" data-testid="portrait-reference-control">
-              <label className="inline-flex min-h-5 cursor-pointer items-center gap-2 text-[11px] leading-5 text-n300">
-                <input type="checkbox" className="m-0 h-3.5 w-3.5 shrink-0 accent-primary" checked={!!value.portrait_reference_mode} disabled={disabled || uploadBusy || portraitChecking || !!portraitConfirmation}
-                    onChange={event => { void togglePortraitMode(event.target.checked); }} />
-                <span>生成仿真人视频（人物四视图 + 纯背景）</span>
-              </label>
-              {portraitChecking && <p role="status" className="pl-[22px] text-[10px] leading-4 text-n300">正在检查参考素材…</p>}
-              {value.portrait_reference_mode && <p className="pl-[22px] text-[10px] leading-4 text-n300">支持 Seedance 2.0、Fast、Mini 全能参考；请选择同账号 30 天内通过来源校验的 Seedream 文生图原图。图生图、上传图和参考视频不可用；来源未核实不移除，不删除原图。</p>}
-            </div>}
-            {mode === 'reference' && value.media_inputs.length > 0 && <div className="flex h-12 min-h-12 w-full shrink-0 flex-nowrap items-center gap-1.5 overflow-x-auto overflow-y-hidden pb-1" data-testid="seedance-reference-strip" aria-label="已选参考素材">
-                {value.media_inputs.map((item, index) => <div key={`${item.url}-${index}`} className="flex h-10 shrink-0 items-center gap-1 overflow-hidden rounded-lg border border-n40 bg-n20/50 px-1 py-0.5 text-[9px]">
-                    <button type="button" title={`预览素材 ${index + 1}`} onClick={() => onPreviewMedia?.(item.url, item.kind)} className="flex min-w-0 items-center gap-1">
-                        {item.kind === 'image' ? <img src={item.url} alt={`图片${index + 1}`} className="h-7 w-9 shrink-0 rounded object-cover" /> : item.kind === 'video' ? <Film size={13} className="shrink-0" /> : <Volume2 size={13} className="shrink-0" />}
-                        <span className="whitespace-nowrap">{item.kind === 'image' ? '图片' : item.kind === 'video' ? '视频' : '配音'}{value.media_inputs.slice(0, index + 1).filter(row => row.kind === item.kind).length}</span>
-                    </button>
-                    <button type="button" aria-label={`移除素材 ${index + 1}`} onClick={() => remove(index)} disabled={disabled} className="shrink-0 text-n100 hover:text-danger"><X size={10} /></button>
-                </div>)}
-            </div>}
         </div>
         <div className={VIDEO_CONTROL_BAR_CLASS} data-testid={isAgentPlan ? 'seedance15-control-row' : 'seedance-control-row'}>
             <label className={VIDEO_CONTROL_PILL_CLASS}><Film size={12} />
@@ -343,6 +329,15 @@ export const SeedanceMultimodalPanel: React.FC<Props> = ({
                 {audioNotice && <p className="text-[10px] leading-5 text-warning">{audioNotice}</p>}
             </VideoControlPopover>
             {!isJimeng && <VideoControlPopover title="高级设置" disabled={disabled} width={280} label={<><Settings2 size={12} />更多</>}>
+                {(supportsSeedancePortraitReference(value.sub_model) && mode === 'reference' || value.portrait_reference_mode) && <div className="space-y-1 border-b border-n40 pb-3" data-testid="portrait-reference-control">
+                  <label className="inline-flex min-h-5 cursor-pointer items-center gap-2 text-[11px] leading-5 text-n300">
+                    <input type="checkbox" className="m-0 h-3.5 w-3.5 shrink-0 accent-primary" checked={!!value.portrait_reference_mode} disabled={disabled || uploadBusy || portraitChecking || !!portraitConfirmation}
+                        onChange={event => { void togglePortraitMode(event.target.checked); }} />
+                    <span>生成仿真人视频（人物四视图 + 纯背景）</span>
+                  </label>
+                  {portraitChecking && <p role="status" className="pl-[22px] text-[10px] leading-4 text-n300">正在检查参考素材…</p>}
+                  {value.portrait_reference_mode && <p className="pl-[22px] text-[10px] leading-4 text-n300">支持 Seedance 2.0、Fast、Mini 全能参考；请选择同账号 30 天内通过来源校验的 Seedream 文生图原图。图生图、上传图和参考视频不可用；来源未核实不移除，不删除原图。</p>}
+                </div>}
                 <label className="flex items-center justify-between">随机种子<input aria-label="随机种子" type="number" value={value.seed ?? -1} onChange={event => patch({ seed: Number(event.target.value) })} className="w-24 rounded-lg border border-n40 px-2 py-1.5" /></label>
                 <label className="flex items-center gap-2"><input type="checkbox" checked={!!value.watermark} onChange={event => patch({ watermark: event.target.checked })} />添加水印</label>
                 {isAgentPlan && <label className="flex items-center gap-2"><input type="checkbox" checked={!!value.camera_fixed} onChange={event => patch({ camera_fixed: event.target.checked })} />固定镜头</label>}
@@ -365,7 +360,9 @@ export const SeedanceMultimodalPanel: React.FC<Props> = ({
         {promptModalOpen && createPortal(<div className="fixed inset-0 z-[9500] flex items-center justify-center bg-n900/50 p-4 backdrop-blur-sm" onMouseDown={event => { if (event.target === event.currentTarget) setPromptModalOpen(false); }}>
             <div role="dialog" aria-modal="true" aria-label="放大编辑提示词" className="flex h-[min(720px,90vh)] w-full max-w-5xl flex-col gap-3 rounded-2xl bg-n0 p-4 shadow-bottom">
                 <div className="flex items-center justify-between"><div className="text-sm font-semibold">提示词 · 放大编辑</div><button type="button" aria-label="关闭" onClick={() => setPromptModalOpen(false)}><X size={16} /></button></div>
-                <p className="text-xs text-n100">{hint}</p><div className="flex min-h-0 flex-1 flex-col overflow-y-auto">{editor(true)}</div>
+                <p className="text-xs text-n100">{hint}</p><div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
+                    {mode === 'reference' && referenceShelf()}{editor(true)}
+                </div>
                 <button type="button" onClick={() => setPromptModalOpen(false)} className="self-end rounded-full bg-primary px-5 py-2 text-xs text-white">完成</button>
             </div>
         </div>, document.body)}

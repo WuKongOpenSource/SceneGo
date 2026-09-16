@@ -67,7 +67,7 @@ describe('compact video composer interactions', () => {
   it('shows each reference once and renumbers mentions when removed', () => {
     render(<Composer />);
     expect(screen.getAllByRole('img')).toHaveLength(2);
-    fireEvent.click(screen.getByRole('button', { name: '移除素材 1' }));
+    fireEvent.click(screen.getByRole('button', { name: '移除图片1' }));
     expect(saved().media_inputs).toEqual([initial.media_inputs[1]]);
     expect(saved().prompt).toContain('@图片1');
     expect(saved().prompt).not.toContain('@图片2');

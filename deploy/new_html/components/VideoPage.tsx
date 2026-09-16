@@ -82,7 +82,7 @@ import {
 import { AppView, TaskNotification } from '../types';
 import type { VideoVoiceReference, MaterialLibrary } from '../types';
 import { ProjectMaterialPicker, useProjectMaterialPicker, type ProjectMaterialPickerItem } from './ProjectMaterialPicker';
-import { applyVideoProjectMaterial, getVideoCardImages, withVideoCardCandidates } from '../utils/videoProjectMaterial';
+import { applyVideoProjectMaterial, getVideoCardImages, withVideoCardCandidates, includeVideoCardReferences } from '../utils/videoProjectMaterial';
 import {
     getCardHeightClass,
     CARD_MEDIA_HEIGHT_CLASS,
@@ -767,7 +767,8 @@ export const VideoPage: React.FC<VideoPageProps> = ({
     const getSeedanceParams = useCallback((uuid: string, model: VideoModel): SeedanceParams => {
         const group = taskGroups.find(g => g.uuid === uuid);
         const stored = seedanceParamsByUuid[uuid];
-        const existing = stored && model === 'JimengSeedance2' ? prepareJimengComposerParams(stored) : stored;
+        const modelStored = stored && model === 'JimengSeedance2' ? prepareJimengComposerParams(stored) : stored;
+        const existing = modelStored && group ? includeVideoCardReferences(modelStored, getVideoCardImages(group, uploadedImages)) : modelStored;
         if (existing && group) {
             const prompt = upgradeLegacyStoryboardVideoPrompt(
                 existing.prompt,
@@ -794,7 +795,8 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         const selectedLinkedImages = agentPlan ? linkedImages.slice(0, 2) : linkedImages;
         const seedMedia: SeedanceMediaInput[] = selectedLinkedImages.map((img, index) => ({
             kind: 'image',
-            url: img.url,
+            url: img.storageUrl || img.url,
+            ...(img.fileId ? { file_id: img.fileId } : {}),
             role: agentPlan
                 ? (index === 0 ? 'first_frame' : 'last_frame')
                 : 'reference_image',
@@ -836,7 +838,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             camera_fixed: false,
         };
         const modelParams = model === 'JimengSeedance2' ? prepareJimengComposerParams(nextParams) : nextParams;
-        return group ? applyPreferredReferenceAudio(group, modelParams) : modelParams;
+        return group ? applyPreferredReferenceAudio(group, includeVideoCardReferences(modelParams, getVideoCardImages(group, uploadedImages))) : modelParams;
     }, [seedanceParamsByUuid, taskGroups, uploadedImages, imagePrompts, storyboardMetaByItemId, applyPreferredReferenceAudio, defaultAspectRatio, getStoryboardPromptSourcesForGroup, resolveSeedanceDurationForGroup, syncSeedanceDuration]);
 
     const setSeedanceParams = useCallback((uuid: string, next: SeedanceParams) => {
@@ -1483,7 +1485,8 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         let changed = false;
         const next = { ...seedanceParamsByUuid };
         taskGroups.forEach(group => {
-            const current = next[group.uuid];
+            const saved = next[group.uuid];
+            const current = saved && isSeedanceVideoModel(group.model) ? includeVideoCardReferences(saved, getVideoCardImages(group, uploadedImages)) : saved;
             if (!current) return;
             const duration = resolveSeedanceDurationForGroup(group);
             const prompt = upgradeLegacyStoryboardVideoPrompt(
@@ -1491,13 +1494,13 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 getStoryboardPromptSourcesForGroup(group),
                 group.ids.length === 2 && !group.mergedFrom?.length,
             );
-            if (current.duration !== duration || current.prompt !== prompt) {
+            if (current !== saved || current.duration !== duration || current.prompt !== prompt) {
                 next[group.uuid] = { ...current, duration, prompt };
                 changed = true;
             }
         });
         return changed ? next : seedanceParamsByUuid;
-    }, [seedanceParamsByUuid, taskGroups, getStoryboardPromptSourcesForGroup, resolveSeedanceDurationForGroup]);
+    }, [seedanceParamsByUuid, taskGroups, uploadedImages, getStoryboardPromptSourcesForGroup, resolveSeedanceDurationForGroup]);
 
     const saveSession = useCallback(async (patch?: Partial<WorkspaceSession>) => {
         if (sessionReadFailed.current) return { success: false };
@@ -1578,7 +1581,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 applied = true;
                 if (!(await saveSessionRef.current({ task_groups: next })).success) throw new Error('工作区保存失败');
                 setProjectMaterialTarget(null);
-                showToast('画面已保存，请在下方选择首尾帧或参考图');
+                showToast(isSeedanceVideoModel(group.model) && !isSeedanceAgentPlanModel(group.model) ? '画面已保存并加入参考内容' : '画面已保存，请选择首尾帧或参考图');
                 return true;
             }
             const images = uploadedImages.map(candidate => candidate.id === imageId ? image : candidate);
@@ -4762,7 +4765,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
 
                 <div className="mb-1 flex items-center gap-3 text-[10px] text-n100">
-                    <span>画面素材 · {sourceImages.filter(image => image.url && !image.isPlaceholder).length}（下方选择首尾帧或参考图）</span>
+                    <span>画面素材 · {sourceImages.filter(image => image.url && !image.isPlaceholder).length}（{isSeedanceModel(group.model) && getSeedanceParams(group.uuid, group.model).reference_mode !== 'first_last' && !isSeedanceAgentPlanModel(group.model) ? '默认加入参考内容，可在下方移除引用' : '下方选择首尾帧或参考图'}）</span>
                     <button type="button" onClick={() => openProjectMaterials(group.uuid)} disabled={candidateUploadBusy || projectMaterialBusy} className="ml-auto text-primary">添加画面</button>
                     {!isPlaceholderCard && <label className="cursor-pointer text-primary">上传画面<input aria-label="上传卡片画面" type="file" multiple accept="image/*" hidden disabled={candidateUploadBusy} onChange={event => { void uploadCandidateImages(group.uuid, event.target.files); event.target.value = ''; }} /></label>}
                 </div>

@@ -6,6 +6,7 @@ import { loadWorkspaceSession, saveWorkspaceSession, type WorkspaceSession } fro
 import { importVideoResult, readUploadedVideoDuration, readVideoResultDuration } from '../../services/videoUploadService';
 import { __resetVideoTaskPollerForTesting } from '../../services/videoTaskPoller';
 import { ALL_MODELS, getModelDisplayName, makeDefaultDashScopeParams } from '../../services/videoModelService';
+import { ensureVideoCharacterUniqueness } from '../../utils/scriptPromptStandards';
 
 vi.mock('../../hooks/useSeedanceCandidates', () => ({ useSeedanceCandidates: () => ({ candidates: [], isLoading: false }) }));
 vi.mock('../../components/video/CapabilityVideoPanel', () => ({ CapabilityVideoPanel: () => null }));
@@ -24,6 +25,11 @@ vi.mock('../../services/videoVoiceReferenceService', () => ({
   createVideoVoiceReference: vi.fn(), extractVideoReferenceAudio: vi.fn(), normalizeVideoVoiceReference: vi.fn(),
 }));
 const fetchMock = vi.fn();
+async function findPortraitCheckbox() {
+  const label = '生成仿真人视频（人物四视图 + 纯背景）';
+  if (!screen.queryByLabelText(label)) fireEvent.click(await screen.findByRole('button', { name: '高级设置' }));
+  return screen.findByLabelText(label);
+}
 const emptySession: WorkspaceSession = { task_groups: [], uploaded_images: [], image_prompts: {}, tasks_status: {} };
 const file = new File(['video'], 'outside.mp4', { type: 'video/mp4' });
 
@@ -49,6 +55,30 @@ async function uploadToPage() {
 }
 
 describe('VideoPage Hailuo frame submission', () => {
+  it('defaults old card pool originals into unified references, persists removal and does not re-add them on reload', async () => {
+    const source = { id: 'first', url: '/pool-original.png', filename: '画面', uploadTime: 0 };
+    const params = { sub_model: 'mini' as const, reference_mode: 'reference' as const, prompt: '人物图片1运动', media_inputs: [{ kind: 'image' as const, url: '/person-original.png' }] };
+    vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: {
+      ...emptySession, task_groups: [{ uuid: 'card', ids: ['first'], model: 'Seedance2Mini' }],
+      uploaded_images: [source], seedance_params: { card: params },
+    } });
+    const view = render(<VideoPage sessionScope="ep-1" />);
+    const shelf = await screen.findByTestId('seedance-reference-shelf');
+    expect(within(shelf).getByAltText('图片2')).toHaveAttribute('src', '/pool-original.png');
+    fireEvent.click(within(shelf).getByLabelText('移除图片2'));
+    await waitFor(() => {
+      const saved = vi.mocked(saveWorkspaceSession).mock.calls.at(-1)?.[0];
+      expect(saved?.seedance_params?.card.media_inputs).toEqual(params.media_inputs);
+      expect(saved?.seedance_params?.card.reference_pool_keys).toContain('/pool-original.png');
+    });
+    const saved = vi.mocked(saveWorkspaceSession).mock.calls.at(-1)![0];
+    expect(saved.uploaded_images).toContainEqual(source);
+    view.unmount();
+    vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: JSON.parse(JSON.stringify(saved)) });
+    render(<VideoPage sessionScope="ep-1" />);
+    expect((await screen.findByTestId('seedance-reference-shelf')).querySelectorAll('img')).toHaveLength(1);
+    expect(screen.getByTestId('video-source-grid').querySelectorAll('img')).toHaveLength(1);
+  });
   function prepareHailuoSession(kind: 'merged' | 'pair' | 'legacy-pair' | 'single', tail: boolean, switchModel = false, missingFirst = false) {
     const images = [
       { id: 'first', url: missingFirst ? '' : '/api/files/file_first_original/download',
@@ -102,7 +132,7 @@ describe('VideoPage Hailuo frame submission', () => {
     const paired = kind === 'pair' || kind === 'legacy-pair';
     expect(body).toMatchObject({ task_type: paired ? 'minimax_morph' : 'minimax_i2v', model: 'MINI',
       first_frame_image: 'file_first_original', minimax_model: 'MiniMax-Hailuo-2.3',
-      duration: 10, minimax_resolution: '768P', prompt: session.image_prompts.first,
+      duration: 10, minimax_resolution: '768P', prompt: ensureVideoCharacterUniqueness(session.image_prompts.first),
       entity_id: 'seg-hailuo', episode_id: 'ep-1', workspace_group_id: 'hailuo-card',
     });
     if (paired) expect(body.last_frame_image).toBe('file_last_original');
@@ -162,7 +192,7 @@ describe('VideoPage external video persistence', () => {
       const view = render(<VideoPage sessionScope="ep-1" episodeId="ep-1" />);
       await screen.findByLabelText('选择视频生成模型');
       if (!restored) {
-        expect(await screen.findByLabelText('生成仿真人视频（人物四视图 + 纯背景）')).toBeChecked();
+        expect(await findPortraitCheckbox()).toBeChecked();
         fireEvent.click(screen.getByLabelText('选择视频生成模型'));
         fireEvent.click(await screen.findByRole('option', { name: /Jimeng/ }));
       }
@@ -171,7 +201,7 @@ describe('VideoPage external video persistence', () => {
       if (!restored) {
         fireEvent.click(screen.getByLabelText('选择视频生成模型'));
         fireEvent.click(await screen.findByTitle(getModelDisplayName(model)));
-        expect(await screen.findByLabelText('生成仿真人视频（人物四视图 + 纯背景）')).not.toBeChecked();
+        expect(await findPortraitCheckbox()).not.toBeChecked();
         fireEvent.click(screen.getByLabelText('选择视频生成模型'));
         fireEvent.click(await screen.findByRole('option', { name: /Jimeng/ }));
       }
@@ -197,7 +227,7 @@ describe('VideoPage external video persistence', () => {
       expect(calls).toHaveLength(1);
       const body = JSON.parse(calls[0][1].body);
       expect(body).toMatchObject({ task_type: 'jimeng_multimodal', model: 'JimengSeedance2', sub_model: 'jimeng_mini',
-        prompt: params.prompt, media_inputs: params.media_inputs, duration: 10, resolution: '720p' });
+        prompt: ensureVideoCharacterUniqueness(params.prompt), media_inputs: params.media_inputs, duration: 10, resolution: '720p' });
       expect(body).not.toHaveProperty('portrait_reference_mode');
       expect(screen.queryByText(/仿真人参考仅支持/)).not.toBeInTheDocument();
       expect(fetchMock.mock.calls.some(([, options]) => options?.method === 'DELETE')).toBe(false);
@@ -219,7 +249,7 @@ describe('VideoPage external video persistence', () => {
     fireEvent.change(textarea, { target: { value: '修改后的动作图片1，不可丢失。' } });
     textarea.setSelectionRange(5, 5);
     textarea.scrollTop = 30;
-    const trigger = within(editor).getByTitle('点击预览 图片1');
+    const trigger = within(editor).getByTitle('预览图片1');
     trigger.focus();
     fireEvent.click(trigger);
     const preview = screen.getByRole('dialog', { name: '图片预览' });
@@ -271,7 +301,7 @@ describe('VideoPage external video persistence', () => {
       ) } : { success: true, tasks: [], models: [], balance: 1000 },
     }));
     const view = render(<VideoPage sessionScope="ep-1" episodeId="ep-1" />);
-    fireEvent.click(await screen.findByLabelText('生成仿真人视频（人物四视图 + 纯背景）'));
+    fireEvent.click(await findPortraitCheckbox());
     const dialog = await screen.findByRole('dialog', { name: '移除不支持的参考素材？' });
     fireEvent.click(within(dialog).getByRole('button', { name: confirmRemoval ? '确定' : '取消' }));
     await waitFor(() => {
@@ -286,9 +316,9 @@ describe('VideoPage external video persistence', () => {
     view.unmount();
     vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: JSON.parse(JSON.stringify(persisted)) });
     render(<VideoPage sessionScope="ep-1" episodeId="ep-1" />);
-    const checkbox = await screen.findByLabelText('生成仿真人视频（人物四视图 + 纯背景）');
+    const checkbox = await findPortraitCheckbox();
     expect((checkbox as HTMLInputElement).checked).toBe(confirmRemoval);
-    expect(screen.getByTestId('seedance-reference-strip').querySelectorAll('img')).toHaveLength(confirmRemoval ? 2 : 3);
+    expect(screen.getByTestId('seedance-reference-shelf').querySelectorAll('img')).toHaveLength(confirmRemoval ? 2 : 3);
     expect(fetchMock.mock.calls.some(([url, options]) => String(url).endsWith('/api/generate') || options?.method === 'DELETE')).toBe(false);
   });
 
@@ -312,7 +342,7 @@ describe('VideoPage external video persistence', () => {
       ) } : { success: true, tasks: [], models: [], balance: 1000 },
     }));
     const view = render(<VideoPage sessionScope="ep-1" episodeId="ep-1" />);
-    fireEvent.click(await screen.findByLabelText('生成仿真人视频（人物四视图 + 纯背景）'));
+    fireEvent.click(await findPortraitCheckbox());
     await waitFor(() => expect(vi.mocked(saveWorkspaceSession).mock.calls.at(-1)?.[0].seedance_params?.card)
       .toMatchObject({ prompt: params.prompt, portrait_reference_mode: 'character_background',
         media_inputs: params.media_inputs.map((item, i) => ({ ...item, file_id: `original_${i}` })) }));
@@ -322,8 +352,8 @@ describe('VideoPage external video persistence', () => {
     view.unmount();
     vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: JSON.parse(JSON.stringify(persisted)) });
     render(<VideoPage sessionScope="ep-1" episodeId="ep-1" />);
-    expect(await screen.findByLabelText('生成仿真人视频（人物四视图 + 纯背景）')).toBeChecked();
-    expect(screen.getByTestId('seedance-reference-strip').querySelectorAll('img')).toHaveLength(5);
+    expect(await findPortraitCheckbox()).toBeChecked();
+    expect(screen.getByTestId('seedance-reference-shelf').querySelectorAll('img')).toHaveLength(5);
     expect(fetchMock.mock.calls.some(([url, options]) => String(url).endsWith('/api/generate') || options?.method === 'DELETE')).toBe(false);
   });
 
@@ -367,7 +397,8 @@ describe('VideoPage external video persistence', () => {
       const timing = within(body).getByTestId('video-timing-summary');
       await within(composer).findByTestId('seedance-jimeng-composer');
       expect(body).toHaveClass('flex-1', 'min-h-0', 'overflow-y-auto');
-      expect(composer).toHaveClass('min-h-[280px]', 'shrink-0');
+      expect(composer).toHaveClass('min-h-[360px]', 'shrink-0');
+      expect(within(composer).getByTestId('seedance-composer-content')).not.toHaveClass('overflow-y-auto');
       expect(timing.parentElement).toBe(body);
       expect(timing.nextElementSibling).toBe(composer);
       const prompt = within(composer).getByRole('textbox');

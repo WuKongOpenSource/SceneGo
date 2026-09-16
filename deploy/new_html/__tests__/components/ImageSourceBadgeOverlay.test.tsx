@@ -103,7 +103,7 @@ describe('image source overlays', () => {
       expect(readFileSync(resolve(__dirname, file), 'utf8')).not.toContain('PortraitReferenceLegend');
     }
     const workflow = readFileSync(resolve(__dirname, '../../layouts/WorkflowLayout.tsx'), 'utf8');
-    expect(workflow).toContain("['design', 'materials', 'storyboard', 'video'].includes(segment)");
+    expect(workflow).toContain("['design', 'materials', 'storyboard'].includes(segment)");
   });
 
   it('never renders provenance overlays on project or episode title covers', () => {

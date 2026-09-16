@@ -330,6 +330,7 @@ class OnlineProviderTaskHandlers:
         # Once accepted, a polling/download failure must not enqueue a new paid
         # generation. Retain the provider id in errors for result recovery.
         ark_task_id = None
+        contents = []
         try:
             from seedance_api import get_seedance_client
             client = get_seedance_client()
@@ -482,7 +483,7 @@ class OnlineProviderTaskHandlers:
                 )
 
                 non_retryable = seedance_error_is_non_retryable(e)
-                task_error = seedance_user_facing_error(e)
+                task_error = seedance_user_facing_error(e, contents=contents)
                 if ark_task_id:
                     task_error += f"（任务编号 {ark_task_id}；已停止自动重新生成，请先查询原任务结果。）"
                 if non_retryable and not seedance_error_is_input_rejection(e):

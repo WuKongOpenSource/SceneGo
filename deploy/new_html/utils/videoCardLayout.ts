@@ -2,14 +2,15 @@ import { isDashScopeVideoModel, type VideoModel } from '../services/videoModelSe
 
 export const PLACEHOLDER_CARD_HEIGHT_CLASS = 'h-[400px] flex flex-col overflow-hidden';
 
-export const COMPACT_CARD_HEIGHT_CLASS = 'h-[560px] flex flex-col overflow-hidden';
+/** Source/result cards share a viewport-relative height so paired columns stay aligned. */
+export const COMPACT_CARD_HEIGHT_CLASS = 'h-[75vh] min-h-[640px] flex flex-col overflow-hidden';
 
-export const DASHSCOPE_CARD_HEIGHT_CLASS = 'h-[560px] flex flex-col overflow-hidden';
+export const DASHSCOPE_CARD_HEIGHT_CLASS = COMPACT_CARD_HEIGHT_CLASS;
 /** MiniMax Hailuo model, duration, resolution, optimizer, and prompt controls. */
-export const MINIMAX_CARD_HEIGHT_CLASS = 'h-[560px] flex flex-col overflow-hidden';
+export const MINIMAX_CARD_HEIGHT_CLASS = COMPACT_CARD_HEIGHT_CLASS;
 
-export const SEEDANCE_CARD_HEIGHT_CLASS = 'h-[560px] flex flex-col overflow-hidden';
-export const SEEDANCE_15_CARD_HEIGHT_CLASS = 'h-[560px] flex flex-col overflow-hidden';
+export const SEEDANCE_CARD_HEIGHT_CLASS = COMPACT_CARD_HEIGHT_CLASS;
+export const SEEDANCE_15_CARD_HEIGHT_CLASS = COMPACT_CARD_HEIGHT_CLASS;
 
 export const PARAMETRIC_CARD_HEIGHT_CLASS = DASHSCOPE_CARD_HEIGHT_CLASS;
 

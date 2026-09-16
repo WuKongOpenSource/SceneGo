@@ -606,7 +606,7 @@ class ProviderFailureContract(ProviderWorkerFixture):
         mock_worker.task_queue = queue
         mock_worker._provider_media_reference = AsyncMock(return_value='data:image/png;base64,AAAA')
         fake_client = MagicMock()
-        error = {'code': 'InputImageSensitiveContentDetected.PrivacyInformation', 'message': 'Input refused'}
+        error = {'code': 'InputImageSensitiveContentDetected.PrivacyInformation', 'message': "Input image content[1] refused"}
         if stage == 'audio_parameter':
             error = {'code': 'InvalidParameter', 'message': 'audio duration must be <= 15.2 seconds'}
             fake_client.create_video_task.side_effect = _http_error(400, __import__('json').dumps({'error': error}))
@@ -633,6 +633,8 @@ class ProviderFailureContract(ProviderWorkerFixture):
         assert fake_client.create_video_task.call_count == (0 if stage == 'provenance' else 1)
         fake_client.download_video.assert_not_called()
         assert ('原图过期' if stage == 'provenance' else '已停止自动重试') in task.error
+        if stage in ('submit', 'poll'):
+            assert '本次提交的图片1（上游位置 content[1]）' in task.error
 
 
 

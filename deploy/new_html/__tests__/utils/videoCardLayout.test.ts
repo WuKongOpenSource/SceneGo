@@ -10,12 +10,12 @@ import {
 } from '../../utils/videoCardLayout';
 
 describe('video card media layout', () => {
-  it('uses the same compact fixed height for every card family', () => {
-    expect(getCardHeightClass('Wan2')).toContain('h-[560px]');
-    expect(getCardHeightClass('MINI')).toContain('h-[560px]');
-    expect(getCardHeightClass('HappyHorse')).toContain('h-[560px]');
-    expect(getCardHeightClass('Seedance2')).toContain('h-[560px]');
-    expect(getCardHeightClass('Seedance15')).toContain('h-[560px]');
+  it('aligns every populated card family at three quarters of the viewport with a small-screen floor', () => {
+    for (const model of ['Wan2', 'MINI', 'HappyHorse', 'Seedance2', 'Seedance2Fast', 'Seedance2Mini', 'Seedance15', 'JimengSeedance2'] as const) {
+      expect(getCardHeightClass(model)).toContain('h-[75vh]');
+      expect(getCardHeightClass(model)).toContain('min-h-[640px]');
+      expect(getCardHeightClass(model)).toBe(getCardHeightClass('Seedance2'));
+    }
     expect(getCardHeightClass('Seedance2', true)).toContain('h-[400px]');
   });
 

@@ -253,7 +253,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="h-6 w-px bg-n40 mx-2"></div>
 
         <div className="flex items-center gap-4 text-sm text-n300">
-          {[AppView.Design, AppView.Materials, AppView.Generation, AppView.Video].includes(currentView) && <PortraitReferenceLegend />}
+          {[AppView.Design, AppView.Materials, AppView.Generation].includes(currentView) && <PortraitReferenceLegend />}
 
           <WorkspaceSwitcher />
 

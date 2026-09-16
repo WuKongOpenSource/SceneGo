@@ -67,10 +67,12 @@ function findExistingMediaIndex(
     value: Pick<SeedanceParams, 'media_inputs'>,
     kind: SeedanceMediaKind,
     url: string,
+    fileId?: string,
 ): number {
     const normalizedUrl = normalizedMediaUrl(url);
     return value.media_inputs.findIndex(m =>
-        m.kind === kind && normalizedMediaUrl(m.url) === normalizedUrl,
+        m.kind === kind && (normalizedMediaUrl(m.url) === normalizedUrl
+            || (!!fileId && (m.file_id || registeredImageFileId(m.url)) === fileId)),
     );
 }
 
@@ -135,7 +137,7 @@ export function insertMention(
         ...((candidate.fileId || registeredImageFileId(url)) ? { file_id: candidate.fileId || registeredImageFileId(url) } : {}),
         ...(durationSeconds && durationSeconds > 0 ? { duration_seconds: durationSeconds } : {}),
     };
-    const existingIdx = findExistingMediaIndex(value, kind, url);
+    const existingIdx = findExistingMediaIndex(value, kind, url, newInput.file_id);
     const hasExistingInput = existingIdx >= 0;
     const idx = hasExistingInput
         ? tokenIndexForMediaInput(value, existingIdx)

@@ -100,4 +100,19 @@ describe('Header model display and credit balance', () => {
       expect(screen.getByTestId('header-credit-balance').textContent).toContain('--');
     });
   });
+
+  it('only explains portrait stars in thumbnail views, including after switching views', async () => {
+    const view = render(<Header {...baseProps} currentView={AppView.Design} aiModel={AiModel.Gemini} />);
+    await screen.findByText('1,280');
+    for (const currentView of [AppView.Design, AppView.Materials, AppView.Generation]) {
+      view.rerender(<Header {...baseProps} currentView={currentView} aiModel={AiModel.Gemini} />);
+      expect(screen.getByText('可用于仿真人视频的 Seedream 文生图')).toBeInTheDocument();
+    }
+    for (const currentView of [AppView.Video, AppView.Editor]) {
+      view.rerender(<Header {...baseProps} currentView={currentView} aiModel={AiModel.Gemini} />);
+      expect(screen.queryByText('可用于仿真人视频的 Seedream 文生图')).not.toBeInTheDocument();
+    }
+    view.rerender(<Header {...baseProps} currentView={AppView.Design} aiModel={AiModel.Gemini} />);
+    expect(screen.getByText('可用于仿真人视频的 Seedream 文生图')).toBeInTheDocument();
+  });
 });

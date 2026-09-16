@@ -87,6 +87,8 @@ export interface SeedanceMediaInput {
 }
 
 export interface SeedanceParams {
+  /** Card-pool originals already considered; manual removals must not be re-added. Not sent to providers. */
+  reference_pool_keys?: string[];
   reference_audio_policy?: 'preserve' | 'trim_to_15';
   sub_model: 'agent_plan' | 'standard' | 'fast' | 'mini' | 'jimeng_mini';
   model_scope?: string;

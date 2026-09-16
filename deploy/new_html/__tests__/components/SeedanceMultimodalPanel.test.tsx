@@ -27,7 +27,7 @@ const agentPlanValue: SeedanceParams = {
 };
 
 describe('Seedance 1.5 Pro controls', () => {
-  it.each(['standard', 'fast', 'mini'] as const)('reserves editor height and scrolls instead of overlapping the enabled portrait control for %s', sub_model => {
+  it.each(['standard', 'fast', 'mini'] as const)('keeps portrait settings in More without a nested composer scroll area for %s', sub_model => {
     const onChange = vi.fn();
     const value: SeedanceParams = {
       ...agentPlanValue, sub_model, reference_mode: 'reference',
@@ -40,15 +40,18 @@ describe('Seedance 1.5 Pro controls', () => {
     </div>);
     const content = screen.getByTestId('seedance-composer-content');
     const body = screen.getByTestId('seedance-composer-body');
-    const portrait = screen.getByTestId('portrait-reference-control');
-    const strip = screen.getByTestId('seedance-reference-strip');
-    expect(content).toHaveClass('overflow-y-auto', 'overflow-x-hidden');
-    expect(content).not.toHaveClass('overflow-hidden');
+    const shelf = screen.getByTestId('seedance-reference-shelf');
+    expect(content).not.toHaveClass('overflow-y-auto');
     expect(body).toHaveClass('min-h-[112px]', 'shrink-0');
     expect(body).not.toHaveClass('min-h-0');
-    expect(body.nextElementSibling).toBe(portrait);
-    expect(portrait.nextElementSibling).toBe(strip);
-    expect(portrait).toHaveClass('shrink-0');
+    expect(screen.queryByTestId('portrait-reference-control')).not.toBeInTheDocument();
+    expect(shelf.nextElementSibling).toBe(body);
+    expect(screen.queryByTestId('seedance-reference-strip')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '高级设置' }));
+    const portrait = screen.getByTestId('portrait-reference-control');
+    expect(portrait.closest('[role="dialog"]')).toHaveAttribute('aria-label', '高级设置');
+    expect(content.contains(portrait)).toBe(false);
+    expect(screen.getByLabelText('生成仿真人视频（人物四视图 + 纯背景）')).toBeChecked();
     expect(screen.getByRole('textbox')).toHaveValue(value.prompt);
     expect(onChange).not.toHaveBeenCalled();
   });
@@ -56,6 +59,7 @@ describe('Seedance 1.5 Pro controls', () => {
     const onChange = vi.fn();
     const value = { ...agentPlanValue, sub_model, media_inputs: [] } as SeedanceParams;
     const { rerender } = render(<SeedanceMultimodalPanel value={value} onChange={onChange} candidates={[]} />);
+    fireEvent.click(screen.getByRole('button', { name: '高级设置' }));
     const checkbox = screen.getByLabelText('生成仿真人视频（人物四视图 + 纯背景）');
     expect(checkbox).toHaveClass('m-0', 'shrink-0');
     expect(checkbox.closest('label')).toHaveClass('inline-flex', 'items-center', 'gap-2');
@@ -208,15 +212,12 @@ describe('Seedance 2.0 Jimeng-style controls', () => {
     expect(screen.getByTestId('seedance-control-row')).toHaveClass('flex-wrap');
     const body = screen.getByTestId('seedance-composer-body');
     const content = screen.getByTestId('seedance-composer-content');
-    const rail = screen.getByTestId('seedance-media-rail');
-    const referenceStrip = screen.getByTestId('seedance-reference-strip');
-    expect(rail.parentElement).toBe(body);
-    expect(referenceStrip.parentElement).toBe(content);
-    expect(content.lastElementChild).toBe(referenceStrip);
-    expect(rail).toHaveClass('shrink-0', 'items-start');
-    expect(rail).not.toHaveClass('w-[64px]');
-    expect(referenceStrip).toHaveClass('h-12', 'min-h-12', 'shrink-0', 'flex-nowrap', 'overflow-x-auto', 'overflow-y-hidden');
-    expect(screen.getByRole('img', { name: '图片1' })).toHaveClass('h-7', 'w-9', 'object-cover');
+    const shelf = screen.getByTestId('seedance-reference-shelf');
+    expect(shelf.parentElement).toBe(content);
+    expect(shelf.nextElementSibling).toBe(body);
+    expect(screen.queryByTestId('seedance-reference-strip')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('seedance-media-rail')).not.toBeInTheDocument();
+    expect(screen.getByRole('img', { name: '图片1' })).toHaveClass('object-cover');
     expect(screen.getByPlaceholderText(/输入文字描述，或输入 @ 选择参考内容/)).toHaveClass('min-h-[96px]');
 
     expect(screen.queryByLabelText('选择比例')).not.toBeInTheDocument();

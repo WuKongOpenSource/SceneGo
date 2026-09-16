@@ -24,6 +24,7 @@ import {
 import { cancelTask, deleteTask } from '../services/taskControlService';
 import { localConnectorUnavailable } from './runtimeUnavailable';
 import { seedanceAudioError } from '../utils/seedanceAudio';
+import { ensureVideoCharacterUniqueness } from '../utils/scriptPromptStandards';
 
 export type { VideoTask } from '../services/videoTaskTypes';
 export { cancelTask, deleteTask };
@@ -136,6 +137,8 @@ export async function submitTask(
   generationOptions?: VideoGenerationOptions,
 ): Promise<VideoTaskSubmission> {
   if (isComfyUIModel(model)) localConnectorUnavailable();
+
+  prompt = ensureVideoCharacterUniqueness(prompt);
 
   let body: Record<string, any>;
   if (model === 'MINI') {
@@ -334,7 +337,7 @@ export async function submitSeedanceTask(
     sub_model: params.sub_model,
     model: seedanceModelForSubModel(params.sub_model),
     model_scope: params.model_scope,
-    prompt: params.prompt,
+    prompt: ensureVideoCharacterUniqueness(params.prompt),
     media_inputs: mediaInputs,
     reference_audio_policy: params.reference_audio_policy || 'preserve',
     reference_mode: params.reference_mode,
@@ -364,7 +367,7 @@ export async function submitDashScopeVideoTask(
   const referenceImages = images.filter(item => item !== firstFrame && item !== lastFrame);
   const body: Record<string, any> = {
     task_type: inferDashScopeTaskType(params.model, media),
-    prompt: params.prompt || '',
+    prompt: ensureVideoCharacterUniqueness(params.prompt || ''),
     duration: params.duration ?? 5,
     seed: params.seed ?? -1,
     watermark: !!params.watermark,

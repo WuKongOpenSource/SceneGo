@@ -1,8 +1,10 @@
 import type { Material } from '../types';
 import type { UploadedImage, TaskGroup } from '../services/videoTaskTypes';
 import type { SeedanceAssetCandidate } from './seedanceMedia';
+import { registeredImageFileId } from './seedanceMedia';
+import type { SeedanceParams } from '../services/videoModelService';
 
-/** Candidate images are not storyboard members or automatically submitted inputs. */
+/** Pool images remain independent from storyboard membership. */
 export function getVideoCardImages(group: TaskGroup, uploadedImages: UploadedImage[]): UploadedImage[] {
   const seen = new Set<string>();
   return [...group.ids.map(id => uploadedImages.find(image => image.id === id)).filter((image): image is UploadedImage => !!image),
@@ -13,12 +15,35 @@ export function getVideoCardImages(group: TaskGroup, uploadedImages: UploadedIma
     });
 }
 
+/** Add new pool originals once without reordering mentions or resurrecting removed references. */
+export function includeVideoCardReferences(params: SeedanceParams, images: UploadedImage[]): SeedanceParams {
+  if (params.sub_model === 'agent_plan' || params.reference_mode === 'first_last'
+    || (!params.reference_mode && params.media_inputs.some(item => item.role === 'first_frame' || item.role === 'last_frame'))) return params;
+  const keys = new Set(params.reference_pool_keys || []);
+  const inputs = [...params.media_inputs];
+  for (const image of images) {
+    const url = image.storageUrl || image.url;
+    if (!url || image.isPlaceholder || image.isUploading || image.uploadFailed || /^(blob:|data:)/.test(url)) continue;
+    const fileId = image.fileId || registeredImageFileId(url);
+    const key = fileId || url;
+    if (keys.has(key)) continue;
+    keys.add(key);
+    if (!inputs.some(item => item.kind === 'image' && (item.url === url || (fileId && (item.file_id || registeredImageFileId(item.url)) === fileId)))) {
+      inputs.push({ kind: 'image', url, role: 'reference_image', ...(fileId ? { file_id: fileId } : {}) });
+    }
+  }
+  // Never silently truncate an over-limit pool; the composer and submit validation explain it.
+  if (keys.size === (params.reference_pool_keys || []).length) return params;
+  return { ...params, reference_pool_keys: [...keys], media_inputs: inputs };
+}
+
 export function withVideoCardCandidates(images: UploadedImage[], candidates: SeedanceAssetCandidate[]): SeedanceAssetCandidate[] {
   const seen = new Set<string>();
   return [...images.filter(image => !!(image.storageUrl || image.url)).map((image, index) => ({
     id: `card-pool:${image.id}`, group: 'current_card' as const, kind: 'image' as const,
     label: `画面${index + 1} · ${image.filename || '图片'}`, url: image.storageUrl || image.url,
     thumbnailUrl: image.storageUrl || image.url,
+    fileId: image.fileId,
   })), ...candidates].filter(item => {
     const key = item.kind === 'text' ? item.id : `${item.kind}:${item.url || item.id}`;
     if (seen.has(key)) return false;

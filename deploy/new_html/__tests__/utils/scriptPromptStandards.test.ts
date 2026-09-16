@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   CHARACTER_CAST_PLANNING_RULE, CHARACTER_UNIQUENESS_RULE,
-  STABILITY_CONSTRAINT_REFERENCE, ensureStabilityConstraintLength,
+  STABILITY_CONSTRAINT_REFERENCE, ensureStabilityConstraintLength, ensureVideoCharacterUniqueness,
 } from '../../utils/scriptPromptStandards';
 import {
   GENERATE_STORYBOARD_SCRIPT, CONTINUE_STORYBOARD_SCRIPT,
@@ -15,6 +15,17 @@ import {
 import { normalizeGeneratedVideoScript, parseVideoScriptGroups } from '../../utils/scriptPipelineParsers';
 
 describe('default character uniqueness and cast planning', () => {
+  it('guards historical submissions once without rewriting original prompts or adding people to empty shots', () => {
+    const prompt = '镜头1：出场队员A、B共2人。镜头2：空镜。图片1 图片2';
+    const result = ensureVideoCharacterUniqueness(prompt);
+    expect(result.startsWith(prompt)).toBe(true);
+    expect(result).toContain('仅补足人数缺口');
+    expect(result).toContain('不能复制已有角色来凑人数');
+    expect(result).toContain('无人物镜头不添加人物');
+    expect(result).toContain('合并片段逐镜头分别执行');
+    expect(ensureVideoCharacterUniqueness(result)).toBe(result);
+    expect(ensureVideoCharacterUniqueness('')).toBe('');
+  });
   it('separates cross-shot identity consistency from same-shot duplicate people', () => {
     expect(STABILITY_CONSTRAINT_REFERENCE).toContain(CHARACTER_UNIQUENESS_RULE);
     expect(CHARACTER_UNIQUENESS_RULE).toContain('同一角色在同一镜头内只出现一个实体');

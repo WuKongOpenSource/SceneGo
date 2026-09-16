@@ -30,14 +30,14 @@ async function openWorkflow(page: string) {
     <MemoryRouter initialEntries={[`${base}/${page}`]}>
       <Routes>
         <Route path="/projects/:projectId/ep/:episodeId/workflow" element={<WorkflowLayout />}>
-          {['design', 'audio', 'storyboard'].map(path => (
+          {['script', 'design', 'materials', 'audio', 'storyboard', 'video', 'enhance', 'final', 'image-upscale', 'history', 'recycle-bin', 'canvas'].map(path => (
             <Route key={path} path={path} element={<div data-testid={`page-${path}`} />} />
           ))}
         </Route>
       </Routes>
     </MemoryRouter>,
   );
-  await screen.findByText('Test episode');
+  await screen.findByRole('button', { name: '可用创作点数：10' });
 }
 
 describe('third-stage navigation order', () => {
@@ -77,5 +77,27 @@ describe('third-stage navigation order', () => {
     expect(await screen.findByTestId('page-storyboard')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('link', { name: '声音对白，第 3-1 步' }));
     expect(await screen.findByTestId('page-audio')).toBeInTheDocument();
+  });
+});
+
+describe('thumbnail-only portrait legend', () => {
+  it.each(['design', 'materials', 'storyboard'])('keeps the legend in the %s thumbnail workspace', async page => {
+    await openWorkflow(page);
+    expect(screen.getByText('可用于仿真人视频的 Seedream 文生图')).toBeInTheDocument();
+  });
+
+  it.each(['script', 'audio', 'video', 'enhance', 'final', 'image-upscale', 'history', 'recycle-bin', 'canvas'])('omits the thumbnail legend from %s', async page => {
+    await openWorkflow(page);
+    expect(screen.queryByText('可用于仿真人视频的 Seedream 文生图')).not.toBeInTheDocument();
+  });
+
+  it('removes the legend when navigating to video and restores it when returning to design', async () => {
+    await openWorkflow('design');
+    fireEvent.click(screen.getByRole('button', { name: /生成短片/ }));
+    expect(await screen.findByTestId('page-video')).toBeInTheDocument();
+    expect(screen.queryByText('可用于仿真人视频的 Seedream 文生图')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /定角色和场景/ }));
+    expect(await screen.findByTestId('page-design')).toBeInTheDocument();
+    expect(screen.getByText('可用于仿真人视频的 Seedream 文生图')).toBeInTheDocument();
   });
 });

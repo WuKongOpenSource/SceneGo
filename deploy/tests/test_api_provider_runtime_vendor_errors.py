@@ -216,6 +216,55 @@ def test_seedance_thin_shell_user_facing_for_invalid_key():
     assert "Seedance API Key 无效或无权限" in msg
 
 
+@pytest.mark.parametrize('with_prompt', [True, False])
+def test_seedance_rejected_image_maps_actual_content_index(with_prompt):
+    contents = ([{'type': 'text', 'text': 'prompt'}] if with_prompt else []) + [
+        {'type': 'image_url'}, {'type': 'audio_url'}, {'type': 'image_url'},
+        {'type': 'video_url'}, {'type': 'image_url'},
+    ]
+    index = 5 if with_prompt else 4
+    exc = _http_error(400, '{"error":{"code":"InputImageSensitiveContentDetected.PrivacyInformation",'
+        f'"message":"The input image content[{index}] may contain real person."}}}}')
+    msg = seedance_user_facing_error(exc, contents=contents)
+    assert f'本次提交的图片3（上游位置 content[{index}]）' in msg
+    assert '其他图片是否通过审核尚未确认' in msg
+    assert '本站原图来源校验不等于上游审核通过' in msg
+    assert '已停止自动重试' in msg
+
+
+def test_seedance_poll_rejection_preserves_multiple_distinct_image_positions():
+    exc = RuntimeError('InputImageSensitiveContentDetected.PrivacyInformation content[3] content[1] content[3]')
+    contents = [{'type': 'text'}, {'type': 'image_url'}, {'type': 'audio_url'}, {'type': 'image_url'}]
+    msg = seedance_user_facing_error(exc, contents=contents)
+    assert msg.count('本次提交的图片1') == 1
+    assert msg.count('本次提交的图片2') == 1
+    assert '图片3' not in msg
+
+
+@pytest.mark.parametrize('contents', [None, [], [{'type': 'text'}, {'type': 'audio_url'}]])
+def test_seedance_rejection_does_not_guess_rank_without_matching_submitted_image(contents):
+    exc = RuntimeError('InputImageSensitiveContentDetected.PrivacyInformation content[1]')
+    msg = seedance_user_facing_error(exc, contents=contents)
+    assert 'content[1]' in msg
+    assert '无法可靠对应图片编号' in msg
+    assert '本次提交的图片' not in msg
+
+
+def test_seedance_rejection_without_index_does_not_mark_all_inputs():
+    exc = RuntimeError('InputImageSensitiveContentDetected.PrivacyInformation Request id: 12345')
+    msg = seedance_user_facing_error(exc, contents=[{'type': 'image_url'}] * 5)
+    assert '上游未返回具体图片编号' in msg
+    assert '不会将全部参考图判为不合格' in msg
+    assert '本次提交的图片' not in msg
+
+
+def test_seedance_non_portrait_image_rejection_also_identifies_submitted_image():
+    exc = RuntimeError('InputImageSensitiveContentDetected content[1]')
+    msg = seedance_user_facing_error(exc, contents=[{'type': 'text'}, {'type': 'image_url'}])
+    assert '本次提交的图片1' in msg
+    assert '人像' not in msg
+
+
 
 
 

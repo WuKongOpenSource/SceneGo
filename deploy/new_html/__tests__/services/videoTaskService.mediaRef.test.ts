@@ -5,6 +5,19 @@ import {
 } from '@runtime/videoTaskService';
 
 describe('portrait variant submission', () => {
+    it.each(['standard', 'mini', 'jimeng_mini'] as const)('sends anti-duplicate cast defaults for old %s prompts without changing originals or media', async sub_model => {
+        const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ task_id: 'cast' }), { status: 200 }));
+        const params = { sub_model, prompt: '数名队员跑步。图片1', duration: 5, media_inputs: [{ kind: 'image' as const, url: '/original.png' }] };
+        try {
+            await submitSeedanceTask(params);
+            const body = JSON.parse(String(fetchSpy.mock.calls[0][1]?.body));
+            expect(body.prompt).toContain('同一角色在同一镜头内只出现一个实体');
+            expect(body.prompt).toContain('仅补足人数缺口');
+            expect(body.prompt.startsWith(params.prompt)).toBe(true);
+            expect(params.prompt).toBe('数名队员跑步。图片1');
+            expect(body.media_inputs[0].url).toBe('/original.png');
+        } finally { fetchSpy.mockRestore(); }
+    });
     it.each(['standard', 'fast', 'mini'] as const)('keeps %s and original media when the portrait flag is enabled', async sub_model => {
         const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ task_id: 'portrait' }), { status: 200 }));
         try {

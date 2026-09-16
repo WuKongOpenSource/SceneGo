@@ -1090,7 +1090,24 @@ def seedance_error_is_input_rejection(exc: BaseException) -> bool:
     return any(marker in text for marker in ("invalidparameter", "sensitivecontentdetected", "privacyinformation", "may contain real person"))
 
 
-def seedance_user_facing_error(exc: BaseException) -> str:
+def _seedance_rejected_image_location(exc: BaseException, contents: Optional[List[Dict[str, Any]]]) -> str:
+    """Map provider content indexes against the actual submitted array, not UI order."""
+    response = getattr(exc, "response", None)
+    text = f"{exc} {getattr(response, 'text', '') or ''}"
+    indexes = sorted({int(value) for value in re.findall(r"\bcontent\[\s*(\d{1,4})\s*\]", text, re.IGNORECASE)})
+    if not indexes:
+        return "上游未返回具体图片编号，无法确定是哪张图片；不会将全部参考图判为不合格。"
+    labels = []
+    for index in indexes:
+        if not contents or index >= len(contents) or contents[index].get("type") != "image_url":
+            labels.append(f"上游位置 content[{index}]（无法可靠对应图片编号）")
+            continue
+        number = sum(item.get("type") == "image_url" for item in contents[:index + 1])
+        labels.append(f"本次提交的图片{number}（上游位置 content[{index}]）")
+    return "、".join(labels) + "。其他图片是否通过审核尚未确认。"
+
+
+def seedance_user_facing_error(exc: BaseException, *, contents: Optional[List[Dict[str, Any]]] = None) -> str:
     from services.seedance_image_provenance import SeedanceInputProvenanceError
     from services.seedance_audio_validation_service import SeedanceAudioValidationError
     if isinstance(exc, (SeedanceInputProvenanceError, SeedanceAudioValidationError)):
@@ -1104,10 +1121,14 @@ def seedance_user_facing_error(exc: BaseException) -> str:
             return "Seedance 请求参数不符合要求，已停止自动重试；请检查视频设置及参考素材后提交。"
         if "privacyinformation" in text or "may contain real person" in text:
             return (
-                "Seedance 输入人像未通过火山审核，已停止自动重试。请使用同一方舟账号近 30 天内由 "
-                "Seedream 5.0 Lite/Pro 纯文生图生成的原始图片；图生图、压缩、编辑或跨账号图片不在此受信范围。"
-                "可在分镜生图时启用“Seedance 人像分镜”模式；所有输入素材都须合规，输出仍需安全审核。"
+                "Seedance 输入人像未通过上游审核："
+                + _seedance_rejected_image_location(exc, contents)
+                + "本站原图来源校验不等于上游审核通过。素材未删除，已停止自动重试。"
             )
+        if "inputimagesensitivecontentdetected" in text:
+            return ("Seedance 输入图片未通过上游安全审核："
+                    + _seedance_rejected_image_location(exc, contents)
+                    + "素材未删除，已停止自动重试。")
         return "Seedance 内容未通过火山安全审核，已停止自动重试；请检查提示词及参考素材后再提交。"
     response = getattr(exc, "response", None)
     response_text = str(getattr(response, "text", "") or "")

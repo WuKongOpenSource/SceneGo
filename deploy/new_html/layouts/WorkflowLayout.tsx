@@ -261,7 +261,7 @@ export const WorkflowLayout: React.FC = () => {
                   );
                 })}
               </div>
-              {['design', 'materials', 'storyboard', 'video'].includes(segment) && <div className="ml-auto pl-4"><PortraitReferenceLegend /></div>}
+              {['design', 'materials', 'storyboard'].includes(segment) && <div className="ml-auto pl-4"><PortraitReferenceLegend /></div>}
             </nav>
           )}
 
