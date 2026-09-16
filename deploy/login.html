@@ -662,6 +662,12 @@
         .platform-login-footer a { color: var(--primary); text-decoration: none; }
         .platform-login-footer a:hover { text-decoration: underline; }
         .platform-login-footer a:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+        .platform-login-copyright { min-width: 0; text-align: center; line-height: 1.5; }
+        @media (max-width: 760px) {
+            body { --platform-footer-height: calc(64px + env(safe-area-inset-bottom, 0px)); }
+            .platform-login-footer { flex-wrap: wrap; align-content: center; gap: 2px 10px; }
+            .platform-login-copyright { flex-basis: 100%; }
+        }
 
         .auth-tabs {
             margin: 0 0 28px;
@@ -953,6 +959,7 @@
         <span data-platform-version>版本信息</span>
         <span aria-hidden="true">·</span>
         <a href="/updates">更新记录 ↗</a>
+        <span class="platform-login-copyright">© 2026 深圳熔岩算力科技有限责任公司. All rights reserved.</span>
     </footer>
     <script src="/static/platform-version.js" defer></script>
     <script src="/static/js/slider-captcha.js?v=20260916-5"></script>
