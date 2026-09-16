@@ -48,7 +48,7 @@ describe('trusted text-to-image reference UI', () => {
     await waitFor(() => expect(apiJson).toHaveBeenCalledTimes(1));
     expect(screen.getByText('来源待确认')).toBeInTheDocument();
     view.rerender(<SeedreamSourceBadge reference="file_new" />);
-    await waitFor(() => expect(screen.getByText('Gemini 3.1 · 图生图')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Gemini · 图生图')).toBeInTheDocument());
   });
   it('keeps stable original file IDs through asset deduplication and mentions', () => {
     const url = '/storage/original.png';

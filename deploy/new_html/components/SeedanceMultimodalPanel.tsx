@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { SeedreamSourceBadge } from './SeedreamSourceBadge';
+import { PortraitReferenceStar } from './SeedreamSourceBadge';
 import { createPortal } from 'react-dom';
 import { AlertCircle, Film, ImagePlus, Info, Loader2, Maximize2, Plus, Settings2, Upload, Volume2, X } from 'lucide-react';
 import { uploadAudio, uploadImage, uploadVideoFile } from '@runtime/videoMediaService';
@@ -151,7 +151,7 @@ export const SeedanceMultimodalPanel: React.FC<Props> = ({
         <div className="relative h-[80px] w-[64px] shrink-0 overflow-hidden rounded-xl border border-n40 bg-n20/60">
             {media ? <>
                 <button type="button" title={`预览${label}`} onClick={() => onPreviewMedia?.(media.url, 'image')} className="h-full w-full"><img src={media.url} alt={label} className="h-full w-full object-cover" /></button>
-                <span className="pointer-events-none absolute inset-x-0 top-0 bg-white/95 px-0.5"><SeedreamSourceBadge reference={media.file_id || media.url} /></span>
+                <PortraitReferenceStar reference={media.file_id || media.url} />
                 <button type="button" disabled={disabled || uploadBusy} onClick={() => { setTargetFrame(label === '首帧' ? 'first_frame' : 'last_frame'); setPickerOpen(true); }} className="absolute inset-x-0 bottom-0 bg-n0/95 py-1 text-[9px] text-n700">{label} · 替换</button>
                 <button type="button" aria-label={`删除${label}`} disabled={disabled} onClick={() => remove(value.media_inputs.indexOf(media))} className="absolute right-1 top-1 rounded-full bg-n900/65 text-white"><X size={12} /></button>
             </> : <button type="button" title={`添加${label}`} disabled={disabled || uploadBusy} onClick={() => { setTargetFrame(label === '首帧' ? 'first_frame' : 'last_frame'); setPickerOpen(true); }} className="flex h-full w-full flex-col items-center justify-center gap-1 text-n100 hover:text-primary"><ImagePlus size={18} /><span className="text-[10px]">+ {label}</span></button>}
@@ -159,11 +159,11 @@ export const SeedanceMultimodalPanel: React.FC<Props> = ({
     const referenceList = <div className="space-y-2">
         {value.media_inputs.length === 0 && <p className="text-n100">还没有参考素材，可从素材库或本机添加。</p>}
         {value.media_inputs.map((item, index) => <div key={`${item.url}-${index}`} className="flex items-center gap-2 rounded-xl bg-n20 p-2">
-            <button type="button" onClick={() => onPreviewMedia?.(item.url, item.kind)} className="flex h-9 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-n0">
+            <button type="button" onClick={() => onPreviewMedia?.(item.url, item.kind)} className="relative flex h-9 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-n0">
                 {item.kind === 'image' ? <img src={item.url} alt="" className="h-full w-full object-cover" /> : item.kind === 'video' ? <Film size={14} /> : <Volume2 size={14} />}
+                {item.kind === 'image' && <PortraitReferenceStar reference={item.file_id || item.url} />}
             </button>
             <span className="min-w-0 flex-1 truncate" title={item.url}>{item.url.split('/').pop() || '参考素材'}</span>
-            {item.kind === 'image' && <SeedreamSourceBadge reference={item.file_id || item.url} />}
             <button type="button" aria-label={`移除素材 ${index + 1}`} disabled={disabled} onClick={() => remove(index)} className="rounded p-1 text-n100 hover:text-danger"><X size={13} /></button>
         </div>)}
     </div>;

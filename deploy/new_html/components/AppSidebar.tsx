@@ -136,18 +136,34 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ exportTo, tools, credits
 
   useEffect(() => {
     let alive = true;
-    (async () => {
+    let request = 0;
+    const refresh = async () => {
+      const current = ++request;
       try {
         const data = await apiJson<{ success?: boolean; projects?: RecentProject[] }>('/api/projects', {}, '最近项目');
-        if (alive && Array.isArray(data?.projects)) setProjects(data.projects);
+        if (alive && current === request && Array.isArray(data?.projects)) {
+          setProjects(data.projects);
+          setProjectsLoadError(false);
+        }
       } catch {
-        if (alive) setProjectsLoadError(true);
+        if (alive && current === request) setProjectsLoadError(true);
       } finally {
-        if (alive) setProjectsLoading(false);
+        if (alive && current === request) setProjectsLoading(false);
       }
-    })();
+    };
+    const onProjectsUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<{ projectId?: string; projectName?: string }>).detail;
+      if (detail?.projectId && typeof detail.projectName === 'string') {
+        setProjects(previous => previous.map(project => project.project_id === detail.projectId
+          ? { ...project, project_name: detail.projectName, name: detail.projectName } : project));
+      }
+      void refresh();
+    };
+    void refresh();
+    window.addEventListener('projects:updated', onProjectsUpdated);
     return () => {
       alive = false;
+      window.removeEventListener('projects:updated', onProjectsUpdated);
     };
   }, []);
 

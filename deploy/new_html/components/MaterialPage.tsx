@@ -2179,7 +2179,7 @@ const MaterialCard: React.FC<{
                                         已同步
                                       </span>
                                     )}
-                                    <div className="absolute bottom-0 inset-x-0 bg-white/95"><SeedreamSourceBadge reference={m.fileId || m.url} /></div>
+                                    <ImageSourceBadgeOverlay reference={m.fileId || m.url} />
 
                                     {/* Hover Actions */}
                                     <div className="absolute inset-0 bg-n900/50 opacity-0 group-hover/item:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">

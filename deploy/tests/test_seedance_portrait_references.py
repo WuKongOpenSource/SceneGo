@@ -174,6 +174,58 @@ async def test_ordinary_tasks_not_changed():
     assert await policy.validate_portrait_references('seedance_i2v', {}, '') == {}
 
 
+@pytest.mark.asyncio
+async def test_reference_star_checks_original_and_current_scope_without_generation(context, monkeypatch):
+    c = context
+    result = await policy.portrait_reference_badge(c.rows['file_character'])
+    assert result['portrait_reference_scopes'] == ['workflow', 'studio']
+    assert result['portrait_reference_expires_at'] > time.time()
+    monkeypatch.setattr(runtime, 'resolve_provider', lambda *a, usage_scope=None, **kw:
+        c.config if usage_scope == 'workflow' else SimpleNamespace(api_key='test-other-key', endpoint=ENDPOINT, model_name=VIDEO))
+    assert (await policy.portrait_reference_badge(c.rows['file_character']))['portrait_reference_scopes'] == ['workflow']
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('bad', ['i2i', 'upload', 'unsigned', 'unknown', 'expired', 'sha', 'missing', 'unprotected', 'account', 'redirect'])
+async def test_reference_star_fails_closed(context, monkeypatch, bad):
+    c = context
+    row = c.rows['file_character']
+    if bad == 'i2i': row['metadata'] = c.metadata(None, reference_count=1)
+    elif bad == 'upload': row['metadata'] = {'source': 'upload', 'model': MODEL, 'reference_snapshot': []}
+    elif bad == 'unsigned': row['metadata'] = {'source': 'doubao', 'model': MODEL, 'reference_snapshot': []}
+    elif bad == 'unknown': row['metadata'] = c.metadata(None, model_verified=False)
+    elif bad == 'expired': row['metadata'] = c.metadata(None, created_at=int(time.time()) - provenance.TRUST_SECONDS)
+    elif bad == 'sha': monkeypatch.setattr(policy, '_read_local_record', lambda *a, **kw: b'changed')
+    elif bad == 'missing': row = None
+    elif bad == 'unprotected': row['metadata'] = c.metadata(None, protected=False)
+    elif bad == 'account': c.config.api_key = 'test-another-key'
+    elif bad == 'redirect': c.config.model_name = 'doubao-seedance-1.5-pro'
+    assert await policy.portrait_reference_badge(row) == {}
+
+
+@pytest.mark.asyncio
+async def test_source_endpoint_authorizes_before_reading_or_marking(context, monkeypatch):
+    from routers.ai_proxy import create_ai_proxy_router
+    from schemas.generation import ImageReferenceValidationRequest
+    from services import media_reference_service
+    badge = AsyncMock(return_value={'portrait_reference_scopes': ['workflow']})
+    resolver = AsyncMock(return_value=context.rows['file_character'])
+    access = AsyncMock(side_effect=policy.GenerationAccessDenied())
+    monkeypatch.setattr(policy, 'portrait_reference_badge', badge)
+    monkeypatch.setattr(media_reference_service, 'resolve_media_file_record', resolver)
+    router = create_ai_proxy_router(require_auth_dependency=lambda: 'user', get_main_event_loop=lambda: None,
+        get_redis_client=lambda: None, file_dao=context.dao, generation_access_checker=access)
+    endpoint = next(route.endpoint for route in router.routes if route.path == '/api/materials/seedream-source')
+    request = ImageReferenceValidationRequest(references=['file_character'], include_portrait_eligibility=True)
+    assert await endpoint(request, 'user') == {'items': {'file_character': {}}}
+    resolver.assert_not_awaited()
+    badge.assert_not_awaited()
+    access.side_effect = None
+    result = await endpoint(request, 'user')
+    assert result['items']['file_character']['portrait_reference_scopes'] == ['workflow']
+    badge.assert_awaited_once()
+
+
 def test_gate_is_wired_in_both_submission_services_and_shared_worker():
     from pathlib import Path
     root = Path(__file__).resolve().parents[1]

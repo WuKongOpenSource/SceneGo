@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SeedreamSourceBadge } from './SeedreamSourceBadge';
+import { PortraitReferenceStar, PortraitReferenceLegend } from './SeedreamSourceBadge';
 import { X, Plus, Image as ImageIcon, Layers } from 'lucide-react';
 import type { SeedanceParams } from '../services/videoModelService';
 import type { SeedanceAssetCandidate } from '../utils/seedanceMedia';
@@ -110,6 +110,7 @@ export const SeedanceAssetPickerModal: React.FC<SeedanceAssetPickerModalProps> =
                     <button onClick={p.onClose} className="p-1 text-n300 hover:text-n800"><X size={14} /></button>
                 </div>
                 <div className="flex-1 overflow-y-auto px-3 py-2 space-y-3">
+                    <div className="flex justify-end"><PortraitReferenceLegend /></div>
                     {p.imageLimit != null && <p className="text-xs text-n300">{p.firstLast ? '首帧 + 可选尾帧' : '多图参考'} · 最多 {p.imageLimit} 张图片，支持连续添加</p>}
                     {error && <p role="alert" className="text-xs text-danger">{error}</p>}
                     {Object.entries(grouped).map(([group, items]) => (
@@ -150,10 +151,11 @@ export const SeedanceAssetPickerModal: React.FC<SeedanceAssetPickerModalProps> =
                                             className={`relative p-2 rounded border text-left ${selected.has(c.id) ? 'border-primary bg-primary-light' : 'border-n40 hover:bg-n20'}`}
                                         >
                                             {c.thumbnailUrl && (
-                                                <img src={c.thumbnailUrl} alt="" className="w-full h-16 object-cover rounded mb-1" />
+                                                <div className="relative mb-1"><img src={c.thumbnailUrl} alt="" className="w-full h-16 object-cover rounded" />
+                                                    {c.kind === 'image' && <PortraitReferenceStar reference={c.fileId || c.url} />}
+                                                </div>
                                             )}
                                             <div className="text-[11px] text-n700 truncate">{c.label}</div>
-                                            {c.kind === 'image' && <SeedreamSourceBadge reference={c.fileId || c.url} />}
                                             <div className="text-[9px] text-n100">{c.kind}</div>
                                             {selected.has(c.id) && (
                                                 <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-primary flex items-center justify-center">

@@ -44,10 +44,14 @@ export async function getProject(projectId: string): Promise<{ success: boolean;
 }
 
 export async function updateProject(projectId: string, data: UpdateProjectPayload) {
-  return apiJson<any>(`/api/projects/${projectId}`, {
+  const result = await apiJson<any>(`/api/projects/${projectId}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   }, 'updateProject');
+  if (result.success && typeof data.project_name === 'string') {
+    window.dispatchEvent(new CustomEvent('projects:updated', { detail: { projectId, projectName: data.project_name } }));
+  }
+  return result;
 }
 
 export async function deleteProject(projectId: string): Promise<{ success: boolean }> {

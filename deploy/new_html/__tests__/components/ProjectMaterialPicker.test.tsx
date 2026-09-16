@@ -29,7 +29,7 @@ describe('shared project material picker', () => {
     } });
     render(<Harness />);
     await waitFor(() => expect(screen.getByText('Seedream 5.0 Lite · 文生图')).toBeInTheDocument());
-    expect(screen.getByText('Gemini 3.1 · 图生图')).toBeInTheDocument();
+    expect(screen.getByText('Gemini · 图生图')).toBeInTheDocument();
     expect(sourceApi.mock.calls[0][1].body).not.toContain('/preview.png');
     fireEvent.click(screen.getByTitle('选择 阿亮'));
     expect(select).not.toHaveBeenCalled();

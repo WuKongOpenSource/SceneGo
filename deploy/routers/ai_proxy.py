@@ -777,6 +777,7 @@ def create_ai_proxy_router(
     async def seedream_source_labels(request: ImageReferenceValidationRequest, username: str = Depends(require_auth_dependency)):
         from services.media_reference_service import resolve_media_file_record
         from services.seedance_image_provenance import verified_text_to_image_source, image_generation_source
+        from services.seedance_portrait_reference_service import portrait_reference_badge
         result = {}
         for reference in request.references:
             try:
@@ -784,6 +785,8 @@ def create_ai_proxy_router(
                 record = await resolve_media_file_record(reference, file_dao)
                 metadata = (record or {}).get("metadata")
                 result[reference] = {**image_generation_source(metadata), **verified_text_to_image_source(metadata)}
+                if request.include_portrait_eligibility:
+                    result[reference].update(await portrait_reference_badge(record))
             except HTTPException as exc:
                 if exc.status_code not in (403, 404):
                     raise

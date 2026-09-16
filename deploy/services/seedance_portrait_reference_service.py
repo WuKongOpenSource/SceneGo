@@ -28,6 +28,44 @@ async def _require_current_model_access(user_id, task_type, data):
         raise SeedanceInputProvenanceError("当前账户已无权使用该生成模型，本次未提交。") from exc
 
 
+async def portrait_reference_badge(record: dict[str, Any] | None) -> dict[str, Any]:
+    """Read-only original eligibility, after caller checks file access.
+
+    This does not grant model access or claim provider moderation approval.
+    Submission still validates the chosen mode, purpose pair and current bytes.
+    """
+    from services.api_provider_runtime import resolve_provider, resolve_seedance_model_name
+    from services.seedance_image_provenance import verified_text_to_image_source
+
+    metadata = (record or {}).get("metadata") or {}
+    if not verified_text_to_image_source(metadata):
+        return {}
+    if isinstance(metadata, str):
+        metadata = json.loads(metadata)
+    proof = metadata[PROVENANCE_KEY]
+    if proof.get("protected") is not True:
+        return {}
+    try:
+        content = await asyncio.to_thread(_read_local_record, record, max_bytes=DEFAULT_MAX_PROVIDER_IMAGE_BYTES)
+        await asyncio.to_thread(_validated_image_payload, content)
+    except Exception:
+        return {}
+    scopes = []
+    for scope in ("workflow", "studio"):
+        try:
+            model = resolve_seedance_model_name("standard", usage_scope=scope)
+            config = resolve_provider("seedance", model, usage_scope=scope)
+            if model != "doubao-seedance-2-0-260128" or config.model_name != model or not config.api_key:
+                continue
+            verify_original(proof, content, api_key=config.api_key, endpoint=config.endpoint,
+                account_binding=str((getattr(config, "extra", None) or {}).get("account_binding") or ""))
+            scopes.append(scope)
+        except Exception:
+            # Unknown credentials, expired or changed originals never receive a star.
+            continue
+    return {"portrait_reference_scopes": scopes, "portrait_reference_expires_at": proof["expires_at"]} if scopes else {}
+
+
 async def validate_portrait_references(task_type: str, data: dict[str, Any], user_id: str, *, file_dao=None, prepare=False) -> dict[int, str]:
     mode = data.get("portrait_reference_mode")
     if not mode:

@@ -181,7 +181,7 @@ export const SidebarDock: React.FC<SidebarDockProps> = ({
                                         ) : (
                                             <video src={a.src} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" draggable={false} />
                                         )}
-                                        {a.type.includes('image') && <ImageSourceBadgeOverlay reference={a.src} />}
+                                        {a.type.includes('image') && <ImageSourceBadgeOverlay reference={a.src} scope="studio" />}
                                         <div className="absolute top-1 right-1 px-1.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-[8px] font-bold text-white/70">
                                             {a.type.includes('image') ? 'IMG' : 'MOV'}
                                         </div>

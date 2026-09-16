@@ -6,7 +6,7 @@ import type { TaskGroup, UploadedImage } from '../../services/videoTaskTypes';
 import type { StoryboardMeta } from '../../services/videoWorkspaceService';
 import { useReactiveDuration } from '../../hooks/useReactiveDuration';
 import { LazyImage } from '../LazyImage';
-import { SeedreamSourceBadge } from '../SeedreamSourceBadge';
+import { ImageSourceBadgeOverlay } from '../SeedreamSourceBadge';
 import { CardDurationField } from './CardDurationField';
 
 export interface DurationFieldForGroupProps {
@@ -90,7 +90,7 @@ export const StoryboardImageArea: React.FC<StoryboardImageAreaProps> = ({
                     <div className="text-[9px] mt-0.5">@ 选首帧</div>
                 </div>
             ) : (
-                <><LazyImage src={image.url} alt={image.filename} className={realImgClass} /><SeedreamSourceBadge reference={image.url} /></>
+                <div className="relative"><LazyImage src={image.url} alt={image.filename} className={realImgClass} /><ImageSourceBadgeOverlay reference={image.url} /></div>
             )}
             {showBadges && <AudioBadgesRow meta={meta} />}
         </div>

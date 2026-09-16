@@ -229,7 +229,7 @@ export const SmartSequenceDock: React.FC<SmartSequenceDockProps> = ({ isOpen, on
             ) : frames.length > 0 ? (
                 <div className="relative w-full h-full">
                     {/* Show hovered frame or first frame */}
-                    <ImageSourceBadgeOverlay reference={hoverIndex !== null && frames[hoverIndex] ? frames[hoverIndex].src : frames[0].src} />
+                    <ImageSourceBadgeOverlay reference={hoverIndex !== null && frames[hoverIndex] ? frames[hoverIndex].src : frames[0].src} scope="studio" />
                     <img
                         src={hoverIndex !== null && frames[hoverIndex] ? frames[hoverIndex].src : frames[0].src}
                         className="w-full h-full object-contain opacity-80"
@@ -352,7 +352,7 @@ export const SmartSequenceDock: React.FC<SmartSequenceDockProps> = ({ isOpen, on
                                     onDrop={handleDrop}
                                 >
                                     <img src={frame.src} className="w-full h-full object-cover pointer-events-none" />
-                                    <ImageSourceBadgeOverlay reference={frame.src} />
+                                    <ImageSourceBadgeOverlay reference={frame.src} scope="studio" />
 
                                     {/* Index Badge */}
                                     <div className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/60 rounded-full flex items-center justify-center text-[8px] font-bold text-white/80 pointer-events-none">

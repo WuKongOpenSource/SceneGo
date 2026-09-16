@@ -1,7 +1,7 @@
 // Mentions stay plain text so IME, clipboard, and deletion semantics remain
 // native. This companion row owns visual previews without coupling rich media
 // behavior to textarea editing.
-import { SeedreamSourceBadge } from './SeedreamSourceBadge';
+import { SeedreamSourceBadge, PortraitReferenceStar } from './SeedreamSourceBadge';
 import React, { useState } from 'react';
 import { ImageIcon, Music, Video as VideoIcon, X } from 'lucide-react';
 import type { SeedanceParams, SeedanceMediaInput } from '../services/videoModelService';
@@ -105,9 +105,10 @@ const TokenChip: React.FC<TokenChipProps> = ({ token, hovering, onHoverStart, on
                     type="button"
                     onClick={onPreview}
                     title={`点击预览 ${token.label}`}
-                    className="block w-12 h-9 rounded overflow-hidden bg-n0 border border-n40 cursor-zoom-in"
+                    className="relative block w-12 h-9 rounded overflow-hidden bg-n0 border border-n40 cursor-zoom-in"
                 >
                     <img src={token.url} alt={token.label} className="w-full h-full object-cover" />
+                    <PortraitReferenceStar reference={token.url} />
                 </button>
             ) : isVideo ? (
                 <button
@@ -132,7 +133,6 @@ const TokenChip: React.FC<TokenChipProps> = ({ token, hovering, onHoverStart, on
 
             <div className="flex flex-col items-start min-w-0">
                 <span className="font-medium tabular-nums text-n800">{token.label}</span>
-                {isImage && <SeedreamSourceBadge reference={token.url} />}
                 <span className="text-[9px] text-n100 truncate max-w-[80px]">
                     {(token.url || '').split('/').pop()?.split('?')[0] || token.kind}
                 </span>

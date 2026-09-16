@@ -416,7 +416,8 @@ export const GenerationPage: React.FC = () => {
                     style={{ animationDelay: `${idx * 30}ms` }}
                   >
                     <div className="flex gap-2.5">
-                      <div className="w-[72px] h-[72px] rounded-lg overflow-hidden shrink-0 bg-n30">
+                      <div className="relative w-[72px] h-[72px] rounded-lg overflow-hidden shrink-0 bg-n30">
+                        {img && <PortraitReferenceStar reference={img} />}
                         {img ? (
                           <MediaImage
                             src={withAuthParam(img)}
@@ -441,7 +442,6 @@ export const GenerationPage: React.FC = () => {
                       </div>
                     </div>
                     <div className="mt-2.5 flex items-center justify-between gap-2">
-                      {img && <SeedreamSourceBadge reference={img} />}
                       <span className={`text-[11px] px-2 py-0.5 rounded-full ${STATUS_BADGE[uiStatus]}`}>
                         {statusLabel(uiStatus)}
                       </span>
@@ -625,4 +625,4 @@ export const GenerationPage: React.FC = () => {
     </div>
   );
 };
-import { SeedreamSourceBadge } from '../components/SeedreamSourceBadge';
+import { PortraitReferenceStar } from '../components/SeedreamSourceBadge';

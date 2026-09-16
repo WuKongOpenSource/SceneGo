@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -41,6 +41,18 @@ describe('AppSidebar public tools', () => {
     (getCreditBalance as any).mockResolvedValue({ available_credits: 100 });
     (apiJson as any).mockResolvedValue({ success: true, projects: [] });
     (getCurrentAdminSession as any).mockResolvedValue(null);
+  });
+
+  it('updates a renamed project without reload and ignores an older pending response', async () => {
+    let finishOld: (value: unknown) => void = () => {};
+    (apiJson as any).mockImplementationOnce(() => new Promise(resolve => { finishOld = resolve; }))
+      .mockResolvedValueOnce({ success: true, projects: [{ project_id: 'proj_1', name: '作品新名称' }] });
+    render(<MemoryRouter><AppSidebar /></MemoryRouter>);
+    act(() => { window.dispatchEvent(new CustomEvent('projects:updated', { detail: { projectId: 'proj_1', projectName: '作品新名称' } })); });
+    await screen.findByText('作品新名称');
+    await act(async () => { finishOld({ success: true, projects: [{ project_id: 'proj_1', name: '旧名称' }] }); });
+    expect(screen.queryByText('旧名称')).not.toBeInTheDocument();
+    expect(screen.getByText('作品新名称')).toBeInTheDocument();
   });
 
   it('shows the management entry only after the signed-in account passes the admin role check', async () => {

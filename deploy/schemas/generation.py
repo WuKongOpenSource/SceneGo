@@ -115,6 +115,7 @@ class ImageReferenceMetadata(BaseModel):
 
 class ImageReferenceValidationRequest(BaseModel):
     references: List[str] = Field(default_factory=list, max_length=16)
+    include_portrait_eligibility: bool = False
     entity_type: Optional[str] = None
     entity_id: Optional[str] = None
     project_id: Optional[str] = None

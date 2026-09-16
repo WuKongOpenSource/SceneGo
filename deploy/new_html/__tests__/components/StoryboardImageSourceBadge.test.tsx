@@ -1,12 +1,16 @@
 import React from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { StoryboardImageSourceBadge } from '../../components/StoryboardImageSourceBadge';
 import type { GeneratedImage } from '../../types';
 
-afterEach(cleanup);
+vi.mock('../../services/httpClient', () => ({ apiJson: vi.fn().mockResolvedValue({ items: {} }) }));
+beforeEach(() => {
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ width: 320, height: 180 } as DOMRect);
+});
+afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 const base: GeneratedImage = { id: 'image-1', url: '/original.jpg', timestamp: 0 };
 
 describe('storyboard result source badge', () => {

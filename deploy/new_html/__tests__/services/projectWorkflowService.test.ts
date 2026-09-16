@@ -37,6 +37,23 @@ beforeEach(() => {
 });
 
 describe('project workflow service', () => {
+  it('notifies recent projects only after a successful project rename', async () => {
+    const listener = vi.fn();
+    window.addEventListener('projects:updated', listener);
+    try {
+      mockFetch.mockResolvedValueOnce(mockJsonResponse({ success: false }));
+      await updateProject('proj_1', { project_name: 'Rejected' });
+      expect(listener).not.toHaveBeenCalled();
+      mockFetch.mockResolvedValueOnce(mockJsonResponse({ success: true }));
+      await updateProject('proj_1', { project_name: 'Renamed' });
+      expect(listener).toHaveBeenCalledOnce();
+      expect(listener.mock.calls[0][0].detail).toEqual({ projectId: 'proj_1', projectName: 'Renamed' });
+      mockFetch.mockResolvedValueOnce(mockJsonResponse({ success: true }));
+      await updateEpisode('ep_1', { episode_name: 'Episode only' });
+      expect(listener).toHaveBeenCalledOnce();
+    } finally { window.removeEventListener('projects:updated', listener); }
+  });
+
   it('lists projects with optional organization scope', async () => {
     mockFetch.mockResolvedValueOnce(mockJsonResponse({ success: true, projects: [] }));
 

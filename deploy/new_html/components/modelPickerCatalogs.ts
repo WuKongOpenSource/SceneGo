@@ -8,6 +8,7 @@ import {
 import type { StoryboardGenerationModel } from '../utils/storyboardConsistency';
 import type { StoryboardGenerationModelOption } from '../utils/storyboardGenerationModels';
 import type { ModelPickerOption } from './ModelPicker';
+import { compactImageModelLabel } from '../utils/imageSourceDisplay';
 
 export function buildScriptModelPickerOptions(
   options: readonly ScriptModelOption[],
@@ -27,9 +28,9 @@ export function buildDesignImageModelPickerOptions(
 ): readonly ModelPickerOption<string>[] {
   return options.map(option => ({
     value: option.id,
-    label: option.label,
+    label: compactImageModelLabel(option.label),
     description: option.hint,
-    runtimeLabel: option.runtime,
+    runtimeLabel: compactImageModelLabel(option.runtime),
     group: '在线 API',
   }));
 }
@@ -44,7 +45,7 @@ export function buildStoryboardModelPickerOptions(
     const available = option.requiresCluster ? hasUsableClusterNode : online?.available !== false;
     return {
       value: option.value,
-      label: option.label,
+      label: compactImageModelLabel(option.label),
       description: option.hint,
       group: option.requiresCluster ? '本地节点' : '在线 API',
       badge: option.requiresCluster ? '本地节点' : undefined,

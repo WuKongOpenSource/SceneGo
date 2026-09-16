@@ -5,6 +5,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import AppSidebar from '../components/AppSidebar';
 import { NotificationPanel } from '../components/NotificationPanel';
 import { getCreditBalance } from '../services/creditService';
+import { PortraitReferenceLegend } from '../components/SeedreamSourceBadge';
 
 const TOOL_TITLES: Record<string, string> = {
   'media-library': '我的素材',
@@ -60,6 +61,7 @@ export const GlobalToolsLayout: React.FC = () => {
           <span className="h-5 w-px bg-n50" />
           <h1 className="font-display text-sm font-bold text-n800">{title}</h1>
           <div className="ml-auto flex items-center gap-2">
+            <PortraitReferenceLegend />
             <button
               type="button"
               onClick={() => navigate('/credits')}
