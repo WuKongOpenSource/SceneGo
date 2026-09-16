@@ -31,6 +31,7 @@ VIDEO_TASK_TYPES = frozenset(
         "wan2_i2v",
         "wan2_morph",
         "wan26_i2v",
+        "jimeng_multimodal",
     }
 )
 VIDEO_TASK_PREFIXES = ("seedance_", "kling_", "vidu_", "happyhorse_")

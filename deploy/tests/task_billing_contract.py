@@ -25,6 +25,49 @@ class RecordingQueue:
 
 
 class TaskBillingContract:
+    @pytest.mark.asyncio
+    async def test_jimeng_ordinary_user_is_denied_before_credit_reservation(self, monkeypatch):
+        from services.jimeng_access_service import UserDAO
+        from services import jimeng_preflight_service
+        monkeypatch.setattr(UserDAO, 'get_session_identity', AsyncMock(return_value={
+            'user_id': 'user-1', 'username': 'admin', 'role': 'user', 'status': 'active', 'is_active': True}))
+        reserve, refund, provider_status = AsyncMock(), AsyncMock(), AsyncMock()
+        monkeypatch.setattr(task_credit_billing_service, 'reserve_task_credits', reserve)
+        monkeypatch.setattr(task_credit_billing_service, 'release_task_credits', refund)
+        monkeypatch.setattr(jimeng_preflight_service, 'JimengCli', provider_status)
+        service = self.service_type(None, model_access_checker=AsyncMock(return_value={}))
+        service.queue = self.queue_type()
+        with pytest.raises(HTTPException) as error:
+            await service.submit('jimeng_multimodal', {'model': 'JimengSeedance2', 'role': 'super_admin'},
+                                 'user-1', prepare=False, task_id='new')
+        assert error.value.status_code == 403
+        reserve.assert_not_awaited()
+        refund.assert_not_awaited()
+        provider_status.assert_not_called()
+        assert not service.queue.tasks
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize('managed', [False, True])
+    async def test_jimeng_uncertain_delivery_refund_is_owned_by_durable_job(self, monkeypatch, managed):
+        from services import jimeng_preflight_service, jimeng_submission_service
+        monkeypatch.setattr(jimeng_preflight_service, 'preflight_jimeng', AsyncMock())
+        monkeypatch.setattr(task_credit_billing_service, 'reserve_task_credits', AsyncMock(return_value={'amount': 100}))
+        refund = AsyncMock()
+        monkeypatch.setattr(task_credit_billing_service, 'release_task_credits', refund)
+        async def enqueue(_queue, task):
+            if managed:
+                task.data[jimeng_submission_service.ENQUEUE_MANAGED_KEY] = True
+            raise RuntimeError('simulated enqueue failure')
+        monkeypatch.setattr(jimeng_submission_service, 'enqueue_jimeng_task', enqueue)
+        service = self.service_type(None, model_access_checker=AsyncMock(return_value={}))
+        service.queue = self.queue_type()
+        with pytest.raises(RuntimeError):
+            await service.submit('jimeng_multimodal', {}, 'user-1', prepare=False, task_id='new')
+        if managed:
+            refund.assert_not_awaited()
+        else:
+            refund.assert_awaited_once()
+
     def assert_enqueued_data(self, enqueued, original):
         assert enqueued == original
 

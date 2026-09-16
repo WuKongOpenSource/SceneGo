@@ -29,6 +29,7 @@ import {
 import { crmConfirm, crmMessage } from './crmUI';
 import { apiBlob } from '../services/httpClient';
 import { apiJson } from '../services/httpClient';
+import { JimengAccountCard } from './JimengAccountCard';
 import {
     isConnectivityOnlyConfigTest,
     mergeConfigTestPreservingVerification,
@@ -4388,6 +4389,7 @@ const ApiConfigPanel: React.FC = () => {
                     <div className="rounded-md border border-r75 bg-r50 px-3 py-2 text-sm text-danger">{error}</div>
                 )}
 
+                <JimengAccountCard />
                 {summary.runtimeOnlyKeyProviders.length > 0 && (
                     <section className="rounded-md border border-y200 bg-y50 px-3 py-2 shadow-card flex flex-wrap items-center justify-between gap-3">
                         <div className="min-w-0 text-xs text-y400">

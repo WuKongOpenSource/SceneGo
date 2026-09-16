@@ -35,9 +35,11 @@ VIDEO_TASK_TYPES = (
     "seedance_morph",
     "seedance_multi",
     "seedance_draft",
+    "jimeng_multimodal",
 )
 
 VIDEO_LOG_TYPE_MATCHES = (
+    "jimeng_multimodal",
     "i2v",
     "morph",
     "upscale",
@@ -90,6 +92,7 @@ TEXT_LOG_TYPE_MATCHES = (
 )
 
 MODEL_NAME_BY_TASK_TYPE = {
+    "jimeng_multimodal": "JimengSeedance2",
     "wan2_i2v": "wan2-i2v",
     "wan2_morph": "wan2-morph",
     "wan26_i2v": "wan26-i2v",

@@ -323,8 +323,10 @@ export async function submitSeedanceTask(
   const mediaInputs = normalizeSeedanceMediaForSubmission(params.media_inputs, agentPlanCompat);
   const audioError = params.sub_model !== 'agent_plan' && seedanceAudioError(mediaInputs, params.reference_audio_policy);
   if (audioError) throw new Error(audioError);
+  const jimeng = params.sub_model === 'jimeng_mini';
+  if (jimeng && draftTaskId) throw new Error('即梦不支持复用样片任务，本次未提交。');
   const body: Record<string, any> = {
-    task_type: inferSeedanceTaskType(mediaInputs, !!draftTaskId),
+    task_type: jimeng ? 'jimeng_multimodal' : inferSeedanceTaskType(mediaInputs, !!draftTaskId),
     sub_model: params.sub_model,
     model: seedanceModelForSubModel(params.sub_model),
     model_scope: params.model_scope,
@@ -332,8 +334,8 @@ export async function submitSeedanceTask(
     media_inputs: mediaInputs,
     reference_audio_policy: params.reference_audio_policy || 'preserve',
     resolution: normalizeSeedanceOutputResolution(params.resolution),
-    ratio: params.ratio || 'adaptive',
-    duration: params.duration,
+    ratio: params.ratio || (jimeng ? '16:9' : 'adaptive'),
+    duration: jimeng ? Math.max(4, Math.ceil(params.duration ?? 5)) : params.duration,
     seed: params.seed ?? -1,
     watermark: !!params.watermark,
     generate_audio: params.generate_audio !== false,

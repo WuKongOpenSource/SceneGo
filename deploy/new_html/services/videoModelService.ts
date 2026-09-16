@@ -7,7 +7,7 @@ export type VideoModel =
   | 'Wan2' | 'LTXNode1' | 'WanNode2' | '一阶' | '二阶' | '三阶' | '四阶' | '五阶' | '六阶' | '七阶'
   | 'MiniMaxH3' | 'MiniMaxH3Fast' | 'MiniMaxH3Mini'
   | 'Veo' | 'Sora2' | 'MINI' | '大能'
-  | 'Seedance15' | 'Seedance2' | 'Seedance2Fast' | 'Seedance2Mini'
+  | 'Seedance15' | 'Seedance2' | 'Seedance2Fast' | 'Seedance2Mini' | 'JimengSeedance2'
   | 'Kling' | 'Vidu' | 'HappyHorse';
 
 export const DEFAULT_VIDEO_MODEL: VideoModel = 'Seedance15';
@@ -88,7 +88,7 @@ export interface SeedanceMediaInput {
 
 export interface SeedanceParams {
   reference_audio_policy?: 'preserve' | 'trim_to_15';
-  sub_model: 'agent_plan' | 'standard' | 'fast' | 'mini';
+  sub_model: 'agent_plan' | 'standard' | 'fast' | 'mini' | 'jimeng_mini';
   model_scope?: string;
   reference_mode?: 'reference' | 'first_last';
   prompt: string;
@@ -102,16 +102,27 @@ export interface SeedanceParams {
   camera_fixed?: boolean;
 }
 
-export type SeedanceVideoModel = 'Seedance15' | 'Seedance2' | 'Seedance2Fast' | 'Seedance2Mini';
+// Shared composer shape only; Jimeng has its own provider and submit route.
+export type SeedanceVideoModel = 'Seedance15' | 'Seedance2' | 'Seedance2Fast' | 'Seedance2Mini' | 'JimengSeedance2';
+
+export function prepareJimengComposerParams(params: SeedanceParams): SeedanceParams {
+  // Explicit model selection changes provider controls, never source media or editorial duration.
+  return { ...params, sub_model: 'jimeng_mini', reference_mode: 'reference', resolution: '720p',
+    ratio: params.ratio && params.ratio !== 'adaptive' ? params.ratio : '16:9',
+    generate_audio: true, watermark: false, camera_fixed: false, seed: -1, reference_audio_policy: 'preserve' };
+}
 
 export function getSeedanceDurationError(subModel: SeedanceParams['sub_model'], value?: number): string | null {
   const duration = value ?? 5;
   const max = subModel === 'agent_plan' ? 12 : 15;
+  if (subModel === 'jimeng_mini') return Number.isFinite(duration) && duration > 0 && duration <= 15 ? null
+    : '即梦视频需在 4–15 秒内；不足 4 秒按 4 秒生成，小数向上取整，原剧本和台词不变。';
   return Number.isInteger(duration) && duration >= 4 && duration <= max ? null
     : `Seedance ${subModel === 'agent_plan' ? '1.5 Pro' : '2.0'} 需要 4–${max} 秒整数时长，当前选用 ${duration} 秒；请调整后生成。`;
 }
 
 export function seedanceModelForSubModel(subModel: SeedanceParams['sub_model']): SeedanceVideoModel {
+  if (subModel === 'jimeng_mini') return 'JimengSeedance2';
   return subModel === 'agent_plan' ? 'Seedance15' : subModel === 'fast' ? 'Seedance2Fast' : subModel === 'mini' ? 'Seedance2Mini' : 'Seedance2';
 }
 
@@ -121,6 +132,7 @@ export function normalizeSeedanceOutputResolution(value?: string | null): string
 
 export function getSeedanceOutputError(subModel: SeedanceParams['sub_model'], value?: string | null): string | null {
   const resolution = normalizeSeedanceOutputResolution(value);
+  if (subModel === 'jimeng_mini') return resolution === '720p' ? null : '即梦真人视频当前只支持 720P，请调整后提交。';
   if (!['480p', '720p', '1080p'].includes(resolution)) return 'Seedance 清晰度无效，请选择 480P、720P 或 1080P';
   return (subModel === 'fast' || subModel === 'mini') && resolution === '1080p'
     ? 'Seedance 2.0 Fast / Mini 仅支持 480P 或 720P，请调整清晰度后重试' : null;
@@ -130,7 +142,8 @@ export function isSeedanceVideoModel(model: VideoModel): model is SeedanceVideoM
   return model === 'Seedance15'
     || model === 'Seedance2'
     || model === 'Seedance2Fast'
-    || model === 'Seedance2Mini';
+    || model === 'Seedance2Mini'
+    || model === 'JimengSeedance2';
 }
 
 export function isSeedanceAgentPlanModel(model: VideoModel | SeedanceVideoModel): boolean {
@@ -142,6 +155,7 @@ export function supportsSeedanceMultimodalModel(model: VideoModel | SeedanceVide
 }
 
 export function seedanceSubModelForVideoModel(model: SeedanceVideoModel | VideoModel): SeedanceParams['sub_model'] {
+  if (model === 'JimengSeedance2') return 'jimeng_mini';
   if (model === 'Seedance15') return 'agent_plan';
   if (model === 'Seedance2Fast') return 'fast';
   if (model === 'Seedance2Mini') return 'mini';
@@ -395,6 +409,7 @@ export function getModelDisplayName(model: VideoModel): string {
     '大能': 'Wan 2.6 · 镜头叙事视频模型',
     Seedance15: 'Seedance 1.5 Pro · 首尾帧视频模型',
     Seedance2: 'Seedance 2.0 · 多模态标准视频模型',
+    JimengSeedance2: 'Jimeng·Seedance 2.0 · 真人视频模型',
     Seedance2Fast: 'Seedance 2.0 Fast · 多模态快速视频模型',
     Seedance2Mini: 'Seedance 2.0 Mini · 多模态简化视频模型',
     Kling: 'Kling V3 · 全能音画视频模型',
@@ -407,13 +422,13 @@ export function getModelDisplayName(model: VideoModel): string {
 export const ALL_MODELS: VideoModel[] = [
   'Wan2', 'LTXNode1', 'WanNode2', '一阶', '二阶', '三阶', '四阶', '五阶', '六阶', '七阶', ...MINIMAX_H3_MODELS,
   'Veo', 'Sora2', 'MINI', '大能',
-  'Seedance15', 'Seedance2', 'Seedance2Fast', 'Seedance2Mini',
+  'Seedance15', 'Seedance2', 'JimengSeedance2', 'Seedance2Fast', 'Seedance2Mini',
   'Kling', 'Vidu', 'HappyHorse',
 ];
 
 export const SELECTABLE_MODELS: VideoModel[] = [
   // Online APIs are always listed first.
-  'Seedance15', 'Seedance2', 'Seedance2Fast', 'Seedance2Mini',
+  'Seedance15', 'Seedance2', 'JimengSeedance2', 'Seedance2Fast', 'Seedance2Mini',
   'MINI', 'Veo', 'Sora2', '大能',
   'Kling', 'Vidu', 'HappyHorse',
   // Legacy local keys remain readable, but only supported profiles are offered for new tasks.
@@ -502,6 +517,7 @@ export function getVideoCreditFallbackCost(
   if (model === 'HappyHorse') return 160;
   if (model === 'Seedance15') return 32;
   if (model === 'Seedance2') return 105;
+  if (model === 'JimengSeedance2') return 2 * getVideoCreditFallbackCost('Seedance2');
   if (model === 'Seedance2Fast') return 85;
   if (model === 'Seedance2Mini') return 50;
   if (model === 'MiniMaxH3Mini') {
@@ -643,11 +659,16 @@ export function buildVideoModelOptions(
 
 export function sortVideoModelOptions(options: readonly VideoModelOption[]): VideoModelOption[] {
   const local = (option: VideoModelOption) => option.provider === 'processing_cluster' || isComfyUIModel(option.value);
-  return [...options].sort((left, right) => (
+  const sorted = [...options].sort((left, right) => (
     Number(local(left)) - Number(local(right))
     || Number(!left.available) - Number(!right.available)
     || (local(left) ? Number(!isMiniMaxH3Model(left.value)) - Number(!isMiniMaxH3Model(right.value)) : 0)
   ));
+  const jimeng = sorted.find(option => option.value === 'JimengSeedance2');
+  if (!jimeng || !sorted.some(option => option.value === 'Seedance2')) return sorted;
+  const others = sorted.filter(option => option !== jimeng);
+  others.splice(others.findIndex(option => option.value === 'Seedance2') + 1, 0, jimeng);
+  return others;
 }
 
 export function withCurrentVideoModelOption(

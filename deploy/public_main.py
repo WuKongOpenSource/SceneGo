@@ -42,6 +42,7 @@ from media_library_routes import router as media_library_router
 from video_reverse_routes import create_video_reverse_router
 from routers.admin_compat import create_admin_compat_router
 from routers.admin_credits import router as admin_credit_router
+from routers.admin_jimeng import router as admin_jimeng_router
 from routers.admin_project_groups import router as admin_project_groups_router
 from routers.ai_proxy import create_ai_proxy_router
 from routers.auth import create_auth_router
@@ -218,6 +219,8 @@ async def lifespan(application: FastAPI):
                 worker_tasks.append(asyncio.create_task(worker.start(), name=f"online-provider:{index + 1}"))
             background_tasks.append(asyncio.create_task(email_outbox_worker_loop(), name="email-outbox"))
             background_tasks.append(asyncio.create_task(recharge_order_expiry_loop(), name="recharge-order-expiry"))
+            from services.jimeng_task_service import jimeng_recovery_loop
+            background_tasks.append(asyncio.create_task(jimeng_recovery_loop(online_task_service.get_queue()), name="jimeng-recovery"))
             background_tasks.append(
                 asyncio.create_task(provider_health_monitor_loop(redis_client), name="provider-health")
             )
@@ -388,6 +391,7 @@ public_admin = APIRouter(
 public_admin.include_router(create_public_api_config_router(api_config_router))
 public_admin.include_router(admin_project_groups_router)
 public_admin.include_router(admin_credit_router)
+public_admin.include_router(admin_jimeng_router)
 app.include_router(public_admin)
 app.include_router(
     create_public_health_router(

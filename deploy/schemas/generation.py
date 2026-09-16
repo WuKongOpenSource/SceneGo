@@ -9,6 +9,10 @@ class GenerateRequest(BaseModel):
     @model_validator(mode='before')
     @classmethod
     def validate_seedance_output(cls, values):
+        if isinstance(values, dict):
+            from services.jimeng_contract import is_jimeng_task, normalize_jimeng_options
+            if is_jimeng_task(values):
+                return normalize_jimeng_options(values)
         if isinstance(values, dict) and str(values.get('task_type') or '').startswith('seedance_'):
             # Resolve the model-specific default before shared field defaults.
             return {**values, **seedance_task_identity(values), 'resolution': seedance_output_resolution(values.get('resolution'), values.get('sub_model'))}

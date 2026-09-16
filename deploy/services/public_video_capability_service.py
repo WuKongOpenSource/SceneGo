@@ -107,6 +107,7 @@ def _dashscope_options(sub_models: Iterable[str], *, usage_scope: str) -> List[s
 
 async def get_public_video_capabilities(
     usage_scope: str = MODEL_USAGE_SCOPE_WORKFLOW,
+    *, user_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     scope = normalize_model_usage_scope(usage_scope)
     catalog = await load_public_video_catalog(scope)
@@ -244,4 +245,5 @@ async def get_public_video_capabilities(
         "model_scope": scope,
         "models": models,
     }
-    return apply_public_video_catalog(manifest, catalog)
+    from services.jimeng_account_service import attach_capability
+    return await attach_capability(apply_public_video_catalog(manifest, catalog), user_id=user_id)

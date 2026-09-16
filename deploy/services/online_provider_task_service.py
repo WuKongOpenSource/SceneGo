@@ -59,6 +59,7 @@ class OnlineProviderTaskService:
 
         checker = self.model_access_checker or require_user_model_access
         reserved = False
+        jimeng_enqueue_managed = False
         daily_quota_key: Optional[str] = None
         try:
             await checker(
@@ -69,6 +70,8 @@ class OnlineProviderTaskService:
             )
             from services.seedance_audio_validation_service import preflight_seedance_reference_audio
             await preflight_seedance_reference_audio(task_type, task_data, user_id)
+            from services.jimeng_preflight_service import preflight_jimeng
+            await preflight_jimeng(task_type, task_data, user_id)
             window = online_daily_quota(task_type) if self.redis is not None else None
             if window is not None:
                 seed_ids = await load_online_quota_seeds(window, task_dao=TaskDAO)
@@ -86,6 +89,9 @@ class OnlineProviderTaskService:
             except InsufficientCreditsError as exc:
                 raise HTTPException(status_code=402, detail=f"创作点数不足：{exc}") from exc
 
+            if task_type == "jimeng_multimodal" and not reserved:
+                raise HTTPException(status_code=503, detail="即梦创作点数预留未就绪，本次未提交。")
+
             from core.video_submission_grace import set_video_submission_grace
             set_video_submission_grace(task_type, task_data)
             task = OnlineProviderTask(
@@ -95,11 +101,17 @@ class OnlineProviderTaskService:
                 priority=priority,
                 user_id=user_id,
             )
-            if not await self.queue.enqueue(task):
+            if task_type == 'jimeng_multimodal':
+                from services.jimeng_submission_service import enqueue_jimeng_task
+                try:
+                    await enqueue_jimeng_task(self.queue, task)
+                finally:
+                    jimeng_enqueue_managed = bool(task.data.get('_jimeng_enqueue_managed'))
+            elif not await self.queue.enqueue(task):
                 raise HTTPException(status_code=500, detail="任务入队失败")
             return task_id
         except Exception:
-            if reserved:
+            if reserved and not jimeng_enqueue_managed:
                 try:
                     await release_task_credits(
                         task_id=task_id,

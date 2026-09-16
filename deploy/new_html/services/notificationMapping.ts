@@ -69,6 +69,7 @@ function inferKindFromCategoryAndTitle(
     const toolKind = inferImageToolKind(t);
     if (toolKind) return toolKind;
     if (/image[_ -]?upscale|图片高清放大/.test(t)) return 'image-upscale';
+    if (/jimeng/.test(t)) return 'jimeng';
     if (category === 'video' || /upscale|放大|i2v|视频|seedance|wan2|kling|vidu|happyhorse|sora|veo/.test(t)) {
         if (/upscale|放大/.test(t)) return 'video-upscale';
         if (/seedance[\s_-]*1[.\s_-]?5|agent_plan/.test(t)) return 'seedance-1.5';

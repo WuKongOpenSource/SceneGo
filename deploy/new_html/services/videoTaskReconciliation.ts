@@ -21,6 +21,7 @@ export function getVideoTaskModel(task: VideoTask): VideoModel | undefined {
   // API-backed tasks. Several legacy request shapes either omitted `model` or
   // inherited the generic Wan2 schema default, so data.model alone is unsafe.
   const taskType = String(task.task_type || '').toLowerCase();
+  if (taskType === 'jimeng_multimodal') return 'JimengSeedance2';
   if (['minimax_i2v', 'minimax_morph'].includes(taskType)) return 'MINI';
   if (taskType.startsWith('sora2_')) return 'Sora2';
   if (taskType.startsWith('veo_')) return 'Veo';

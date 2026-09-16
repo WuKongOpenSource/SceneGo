@@ -492,6 +492,7 @@ class TaskDAO:
                 SELECT task_id
                 FROM tasks
                 WHERE status IN ('pending', 'queued', 'processing')
+                  AND task_type <> 'jimeng_multimodal'
                   AND created_at < NOW() - INTERVAL '1 hour' * $1
                 ORDER BY created_at ASC
                 LIMIT $2

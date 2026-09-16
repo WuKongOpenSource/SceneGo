@@ -30,6 +30,7 @@ import {
     MINIMAX_HAILUO_LIMIT_EVENT,
     normalizeMiniMaxVideoParams,
     seedanceSubModelForVideoModel,
+    prepareJimengComposerParams,
     supportsSeedanceMultimodalModel,
     withCurrentVideoModelOption,
     type DashScopeVideoModel,
@@ -227,6 +228,8 @@ interface VideoPageProps {
     episodeId?: string;
 
     storyboardItems?: any[];
+    storyboardItemsComplete?: boolean;
+    knownEpisodeStoryboardIds?: readonly string[];
 
     onRequestReimport?: () => void | Promise<void>;
 
@@ -339,6 +342,8 @@ export const VideoPage: React.FC<VideoPageProps> = ({
     projectId,
     episodeId,
     storyboardItems = [],
+    storyboardItemsComplete = false,
+    knownEpisodeStoryboardIds = [],
     onRequestReimport,
     defaultAspectRatio = '16:9',
 }) => {
@@ -631,11 +636,12 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         () => buildVideoStoryboardShotLookup(storyboardItems),
         [storyboardItems],
     );
+    const knownEpisodeStoryboardIdSet = useMemo(() => new Set(knownEpisodeStoryboardIds), [knownEpisodeStoryboardIds]);
 
     const getImageShotInfo = useCallback((imageId: string): VideoStoryboardShotInfo | null => {
         const image = uploadedImages.find(candidate => candidate.id === imageId);
-        return resolveVideoStoryboardShotInfo(imageId, image, storyboardShotInfoByItemId);
-    }, [storyboardShotInfoByItemId, uploadedImages]);
+        return resolveVideoStoryboardShotInfo(imageId, image, storyboardShotInfoByItemId, storyboardItemsComplete, knownEpisodeStoryboardIdSet);
+    }, [storyboardShotInfoByItemId, storyboardItemsComplete, knownEpisodeStoryboardIdSet, uploadedImages]);
 
     const getGroupShotRange = useCallback((group: TaskGroup, index: number) => {
         const start = getImageShotInfo(group.ids?.[0] || '');
@@ -825,7 +831,8 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             generate_audio: true,
             camera_fixed: false,
         };
-        return group ? applyPreferredReferenceAudio(group, nextParams) : nextParams;
+        const modelParams = model === 'JimengSeedance2' ? prepareJimengComposerParams(nextParams) : nextParams;
+        return group ? applyPreferredReferenceAudio(group, modelParams) : modelParams;
     }, [seedanceParamsByUuid, taskGroups, uploadedImages, imagePrompts, storyboardMetaByItemId, applyPreferredReferenceAudio, defaultAspectRatio, getStoryboardPromptSourcesForGroup, resolveSeedanceDurationForGroup, syncSeedanceDuration]);
 
     const setSeedanceParams = useCallback((uuid: string, next: SeedanceParams) => {
@@ -1955,12 +1962,13 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         }));
         if (isSeedanceVideoModel(model)) {
             const subModel: SeedanceParams['sub_model'] = seedanceSubModelForVideoModel(model);
+            if (model === 'JimengSeedance2') showToast('即梦使用全能参考、720P 和完整参考配音；所有原素材和剧本时长保留，按标准模型两倍计点。');
             setSeedanceParamsByUuid(prev => {
                 const current = prev[uuid];
                 if (!current || current.sub_model === subModel) return prev;
                 return {
                     ...prev,
-                    [uuid]: {
+                    [uuid]: model === 'JimengSeedance2' ? prepareJimengComposerParams(current) : {
                         ...current,
                         sub_model: subModel,
                         resolution: (subModel === 'fast' || subModel === 'mini') && normalizeSeedanceOutputResolution(current.resolution) === '1080p'
@@ -2991,9 +2999,9 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             }
 
             // First/last-frame mode submits images only.
-            const isFirstLastMode = capabilityParams.reference_mode === 'first_last' || capabilityParams.media_inputs.some(
+            const isFirstLastMode = group.model !== 'JimengSeedance2' && (capabilityParams.reference_mode === 'first_last' || capabilityParams.media_inputs.some(
                 m => m.kind === 'image' && (m.role === 'first_frame' || m.role === 'last_frame')
-            );
+            ));
             const params = isFirstLastMode
                 ? {
                     ...capabilityParams,
@@ -3469,7 +3477,8 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         startVideoPoll(uuid, {
             taskId,
             title: titleText,
-            kind: groupRef?.model === 'Seedance2' ? 'seedance'
+            kind: groupRef?.model === 'JimengSeedance2' ? 'jimeng'
+                : groupRef?.model === 'Seedance2' ? 'seedance'
                 : groupRef?.model === 'Seedance2Fast' ? 'seedance-fast'
                 : groupRef?.model === 'Seedance2Mini' ? 'seedance-mini'
                 : groupRef?.model === 'Seedance15' ? 'seedance-1.5'

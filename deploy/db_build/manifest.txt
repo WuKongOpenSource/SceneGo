@@ -84,3 +84,4 @@ sql/db_migration_session_version.sql # revocable user sessions after password, s
 sql/db_migration_creation_points.sql # permanent and expiring creation-point buckets
 sql/db_migration_wechat_creation_point_recharge.sql # WeChat Native orders and idempotent permanent-point crediting
 sql/db_migration_agent_registry_kind.sql # administrative node classification only
+sql/db_migration_jimeng_jobs.sql # durable independent CLI submission and recovery ledger

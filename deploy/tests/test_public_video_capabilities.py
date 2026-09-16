@@ -39,6 +39,7 @@ async def test_public_manifest_exposes_online_models_and_no_local_routing(monkey
     assert keys == {
         "Seedance15",
         "Seedance2",
+        "JimengSeedance2",
         "Seedance2Fast",
         "Seedance2Mini",
         "MINI",
@@ -54,3 +55,5 @@ async def test_public_manifest_exposes_online_models_and_no_local_routing(monkey
     assert all(model["unavailable_reason"] for model in manifest["models"])
     assert all("preferred_agent_id" not in model for model in manifest["models"])
     assert all("preferred_node_id" not in model for model in manifest["models"])
+    jimeng = next(model for model in manifest["models"] if model['key'] == 'JimengSeedance2')
+    assert '仅限管理员' in jimeng['unavailable_reason']

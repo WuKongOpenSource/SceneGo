@@ -26,7 +26,7 @@ interface Props {
 }
 
 const RATIOS = ['adaptive', '16:9', '4:3', '1:1', '3:4', '9:16', '21:9'] as const;
-const LABELS = { agent_plan: 'Seedance15', standard: 'Seedance2', fast: 'Seedance2Fast', mini: 'Seedance2Mini' } as const;
+const LABELS = { agent_plan: 'Seedance15', standard: 'Seedance2', fast: 'Seedance2Fast', mini: 'Seedance2Mini', jimeng_mini: 'JimengSeedance2' } as const;
 
 export const SeedanceMultimodalPanel: React.FC<Props> = ({
     value, onChange, disabled, candidates, autoOpenMentionOnMount, onPreviewMedia,
@@ -46,23 +46,24 @@ export const SeedanceMultimodalPanel: React.FC<Props> = ({
     const current = useRef(value);
     current.current = value;
     const isAgentPlan = value.sub_model === 'agent_plan';
+    const isJimeng = value.sub_model === 'jimeng_mini';
     const omni = supportsMultimodal && !isAgentPlan;
     const images = value.media_inputs.filter(item => item.kind === 'image');
     const audios = value.media_inputs.filter(item => item.kind === 'audio');
     const trimAudio = value.reference_audio_policy === 'trim_to_15';
     const audioBudget = seedanceAudioBudget(audios.map(item => item.duration_seconds ?? NaN));
     const videos = value.media_inputs.filter(item => item.kind === 'video');
-    const mode = !omni ? 'first_last' : value.reference_mode
+    const mode = isJimeng ? 'reference' : !omni ? 'first_last' : value.reference_mode
         || (images.some(item => item.role === 'first_frame' || item.role === 'last_frame') ? 'first_last' : 'reference');
     const first = images.find(item => item.role === 'first_frame') || images.find(item => item.role !== 'last_frame');
     const last = images.find(item => item.role === 'last_frame') || images.find(item => item !== first);
     const imageLimit = mode === 'first_last' ? 2 : 9;
     const hint = mode === 'reference'
-        ? '最多输入 15 个参考素材（图片 9、视频 3、配音 3）；输入文字，或输入 @ 选择参考内容。'
+        ? `最多输入 ${isJimeng ? 12 : 15} 个参考素材（图片 9、视频 3、配音 3）；输入文字，或输入 @ 选择参考内容。`
         : '最多 2 张图片：首帧 + 可选尾帧；输入文字描述动作和运镜，或输入 @ 引用文字。';
     const audioNotice = audioReferenceNotice || (!omni ? '参考配音会保留在卡片中，当前通道提交时不发送。' : '');
     const resolution = normalizeSeedanceOutputResolution(value.resolution);
-    const ratio = value.ratio || (isAgentPlan ? '16:9' : 'adaptive');
+    const ratio = value.ratio || (isAgentPlan || isJimeng ? '16:9' : 'adaptive');
     const editorCandidates = mode === 'first_last' ? candidates.filter(item => item.kind === 'text') : candidates;
     const patch = (next: Partial<SeedanceParams>) => onChange({ ...current.current, ...next });
 
@@ -86,6 +87,7 @@ export const SeedanceMultimodalPanel: React.FC<Props> = ({
     };
     const remove = (index: number) => { if (!disabled) onChange(removeMediaInput(current.current, index)); };
     const acceptReferences = (next: SeedanceParams) => {
+        if (isJimeng && next.media_inputs.length > 12) { setError('即梦参考素材总数不能超过 12 个，请保留需要的原素材。'); return; }
         const nextImages = next.media_inputs.filter(item => item.kind === 'image');
         if (nextImages.length > Math.max(imageLimit, images.length) || next.media_inputs.filter(item => item.kind === 'video').length > Math.max(3, videos.length) || next.media_inputs.filter(item => item.kind === 'audio').length > Math.max(3, audios.length)) {
             setError(`当前模式最多支持 ${imageLimit} 张图片、3 段视频和 3 段配音，请减少新增素材。`);
@@ -162,9 +164,10 @@ export const SeedanceMultimodalPanel: React.FC<Props> = ({
             <button type="button" aria-label={`移除素材 ${index + 1}`} disabled={disabled} onClick={() => remove(index)} className="rounded p-1 text-n100 hover:text-danger"><X size={13} /></button>
         </div>)}
     </div>;
-    const validation = images.length > imageLimit ? `当前模式最多使用 ${imageLimit} 张图片，多余素材暂存于“素材”中，请移除或切换全能参考。`
+    const validation = isJimeng && value.media_inputs.length > 12 ? '即梦参考素材总数不能超过 12 个。'
+        : images.length > imageLimit ? `当前模式最多使用 ${imageLimit} 张图片，多余素材暂存于“素材”中，请移除或切换全能参考。`
         : getSeedanceOutputError(value.sub_model, resolution) || (omni ? seedanceAudioError(value.media_inputs, value.reference_audio_policy) : null) || (
-        images.some(item => item.role === 'last_frame') && !images.some(item => item.role === 'first_frame') ? '请先添加首帧，再使用尾帧。' : '');
+        !isJimeng && images.some(item => item.role === 'last_frame') && !images.some(item => item.role === 'first_frame') ? '请先添加首帧，再使用尾帧。' : '');
     const editor = (expanded = false) => <SeedanceMentionPromptEditor value={value} onChange={acceptReferences}
         candidates={editorCandidates} disabled={disabled} autoOpenOnMount={autoOpenMentionOnMount}
         fillHeight compactFillHeight={!expanded} rows={expanded ? 20 : 7} hideTokensRow={!expanded} openUpward={expanded}
@@ -204,18 +207,18 @@ export const SeedanceMultimodalPanel: React.FC<Props> = ({
         <div className={VIDEO_CONTROL_BAR_CLASS} data-testid={isAgentPlan ? 'seedance15-control-row' : 'seedance-control-row'}>
             <label className={VIDEO_CONTROL_PILL_CLASS}><Film size={12} />
                 <select aria-label="Seedance 生成模式" value={mode} onChange={event => setMode(event.target.value as 'reference' | 'first_last')} disabled={disabled || !omni} className={VIDEO_CONTROL_SELECT_CLASS}>
-                    {omni && <option value="reference">全能参考</option>}<option value="first_last">首尾帧</option>
+                    {omni && <option value="reference">全能参考</option>}{!isJimeng && <option value="first_last">首尾帧</option>}
                 </select>
             </label>
             <VideoControlPopover title="画面规格" disabled={disabled} label={<><Maximize2 size={12} />{ratio === 'adaptive' ? '自动' : ratio}<span className="text-n40">|</span>{resolution.toUpperCase()}</>}>
                 <label className="flex items-center justify-between gap-3">画面比例
                     <select value={ratio} onChange={event => patch({ ratio: event.target.value as SeedanceParams['ratio'] })} className="rounded-lg border border-n40 px-2 py-1.5" aria-label={isAgentPlan ? 'Seedance 1.5 画面比例' : '选择比例'}>
-                        {RATIOS.filter(item => !isAgentPlan || item !== 'adaptive').map(item => <option key={item} value={item}>{item === 'adaptive' ? '自动' : item}</option>)}
+                        {RATIOS.filter(item => !(isAgentPlan || isJimeng) || item !== 'adaptive').map(item => <option key={item} value={item}>{item === 'adaptive' ? '自动' : item}</option>)}
                     </select>
                 </label>
                 <label className="flex items-center justify-between gap-3">清晰度
                     <select value={resolution} onChange={event => patch({ resolution: event.target.value as SeedanceParams['resolution'] })} className="rounded-lg border border-n40 px-2 py-1.5" aria-label={isAgentPlan ? 'Seedance 1.5 清晰度' : '选择清晰度'}>
-                        {(isAgentPlan ? ['720p', '1080p'] : ['480p', '720p', '1080p']).map(item => <option key={item} value={item} disabled={item === '1080p' && (value.sub_model === 'mini' || value.sub_model === 'fast')}>{item.toUpperCase()}</option>)}
+                        {(isJimeng ? ['720p'] : isAgentPlan ? ['720p', '1080p'] : ['480p', '720p', '1080p']).map(item => <option key={item} value={item} disabled={item === '1080p' && (value.sub_model === 'mini' || value.sub_model === 'fast')}>{item.toUpperCase()}</option>)}
                     </select>
                 </label>
             </VideoControlPopover>
@@ -231,12 +234,12 @@ export const SeedanceMultimodalPanel: React.FC<Props> = ({
                 {mode === 'first_last' && videos.length > 0 && <p className="text-[10px] text-warning">视频参考暂存，首尾帧模式不提交。</p>}
             </VideoControlPopover>
             <VideoControlPopover title="声音与参考配音" disabled={disabled} label={<><Volume2 size={12} />声音 {value.generate_audio !== false ? '开' : '关'}{audios.length > 0 && <span className="text-primary">· {audios.length}</span>}</>}>
-                <label className="flex items-center gap-2"><input type="checkbox" checked={value.generate_audio !== false} onChange={event => patch({ generate_audio: event.target.checked })} />AI 生成配音</label>
+                {isJimeng ? <p>声音由即梦模型生成，官方 CLI 暂无声音开关。</p> : <label className="flex items-center gap-2"><input type="checkbox" checked={value.generate_audio !== false} onChange={event => patch({ generate_audio: event.target.checked })} />AI 生成配音</label>}
                 <div className="font-semibold">参考配音</div>
                 {omni && <>
                     <p className="text-[10px] leading-5 text-n100">每段 2–15 秒，最多 3 段，合计不超过 15 秒；与输出视频时长分别计算。合并卡片也按全部配音累计，由服务器读取原始文件复核。</p>
-                    <label className="flex items-center gap-2"><input type="checkbox" checked={trimAudio} disabled={disabled} onChange={event => patch({ reference_audio_policy: event.target.checked ? 'trim_to_15' : 'preserve' })} />仅裁剪参考副本至 15 秒内</label>
-                    <p className="text-[10px] leading-5 text-n100">勾选后，仅在生成视频时取各段配音的开头作为音色参考：按原时长占比分配，每段至少保留 2 秒，合计不超过 15 秒。原始完整配音、台词、合并镜头和历史结果均不变；不变速、不拆视频、不增加生成次数。不勾选则超限时提示调整。</p>
+                    {!isJimeng && <label className="flex items-center gap-2"><input type="checkbox" checked={trimAudio} disabled={disabled} onChange={event => patch({ reference_audio_policy: event.target.checked ? 'trim_to_15' : 'preserve' })} />仅裁剪参考副本至 15 秒内</label>}
+                    {isJimeng ? <p className="text-[10px] text-n100">保留完整原始参考配音；超限时请手动裁剪参考副本，不会自动丢弃或截断台词。</p> : <p className="text-[10px] leading-5 text-n100">勾选后，仅在生成视频时取各段配音的开头作为音色参考：按原时长占比分配，每段至少保留 2 秒，合计不超过 15 秒。原始完整配音、台词、合并镜头和历史结果均不变；不变速、不拆视频、不增加生成次数。不勾选则超限时提示调整。</p>}
                     {trimAudio && <p className="text-[10px] text-primary">{audioBudget ? `预计提交参考：${audioBudget.map((d, i) => `配音 ${i + 1} ${d.toFixed(3)} 秒`).join('；')}；合计 ${audioBudget.reduce((s, d) => s + d, 0).toFixed(3)} 秒（以服务器实测为准）` : '提交前将根据原文件真实时长分配参考片段；无法读取或不足 2 秒会提示，不会直接生成。'}</p>}
                 </>}
                 {omni && audios.length > 0 && <p className="text-xs text-primary">参考配音合计：{audios.every(item => typeof item.duration_seconds === 'number' && Number.isFinite(item.duration_seconds) && item.duration_seconds > 0) ? audioDurationLabel(audios.reduce((sum, item) => sum + item.duration_seconds!, 0)) : '部分时长待服务器校验'}</p>}
@@ -248,14 +251,15 @@ export const SeedanceMultimodalPanel: React.FC<Props> = ({
                 {audios.map(item => <div key={item.url} className="flex items-center gap-2 rounded-lg bg-n20 p-2"><button type="button" onClick={() => onPreviewMedia?.(item.url, 'audio')} className="min-w-0 flex-1 truncate text-left">{item.url.split('/').pop()}</button><span className="shrink-0 text-[10px] text-n100">{audioDurationLabel(item.duration_seconds)}</span><button type="button" aria-label="移除配音" onClick={() => remove(value.media_inputs.indexOf(item))}><X size={12} /></button></div>)}
                 {audioNotice && <p className="text-[10px] leading-5 text-warning">{audioNotice}</p>}
             </VideoControlPopover>
-            <VideoControlPopover title="高级设置" disabled={disabled} width={280} label={<><Settings2 size={12} />更多</>}>
+            {!isJimeng && <VideoControlPopover title="高级设置" disabled={disabled} width={280} label={<><Settings2 size={12} />更多</>}>
                 <label className="flex items-center justify-between">随机种子<input aria-label="随机种子" type="number" value={value.seed ?? -1} onChange={event => patch({ seed: Number(event.target.value) })} className="w-24 rounded-lg border border-n40 px-2 py-1.5" /></label>
                 <label className="flex items-center gap-2"><input type="checkbox" checked={!!value.watermark} onChange={event => patch({ watermark: event.target.checked })} />添加水印</label>
                 {isAgentPlan && <label className="flex items-center gap-2"><input type="checkbox" checked={!!value.camera_fixed} onChange={event => patch({ camera_fixed: event.target.checked })} />固定镜头</label>}
                 <p className="text-[10px] leading-5 text-n100"><Info size={11} className="mr-1 inline" />{getModelDisplayName(LABELS[value.sub_model])} · 请使用已获授权的素材。随机种子 -1 表示随机生成。</p>
                 {audioNotice && <p className="text-[10px] text-warning">{audioNotice}</p>}
-            </VideoControlPopover>
+            </VideoControlPopover>}
         </div>
+        {isJimeng && <p className="shrink-0 border-t border-n40 px-3 py-2 text-[10px] leading-5 text-n100">实际执行 seedance2.0mini · 4–15 秒整数，不足 4 秒按 4 秒生成，小数向上取整；原剧本、配音和时间轴不变。平台点数为 Seedance 2.0 标准模型同参数的 2 倍。请使用已获授权的素材，真人素材仍受即梦审核限制。</p>}
         {(error || validation) && <div role="alert" className="flex shrink-0 items-start gap-1 border-t border-r100 bg-r50 px-3 py-1.5 text-[10px] text-danger"><AlertCircle size={12} className="shrink-0" />{error || validation}</div>}
         {fileInput(firstInput, 'image', 'first_frame')}{fileInput(lastInput, 'image', 'last_frame')}
         {fileInput(imageInput, 'image')}{fileInput(videoInput, 'video')}{fileInput(audioInput, 'audio')}

@@ -216,6 +216,7 @@ describe('buildVideoModelOptions', () => {
     expect(SELECTABLE_MODELS).toEqual([
       'Seedance15',
       'Seedance2',
+      'JimengSeedance2',
       'Seedance2Fast',
       'Seedance2Mini',
       'MINI',

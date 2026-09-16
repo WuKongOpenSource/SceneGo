@@ -55,6 +55,24 @@ describe('video storyboard shot labels', () => {
     expect(resolveVideoStoryboardShotInfo(staleImage.id, staleImage, lookup)?.label).toBe('镜头1-1');
   });
 
+  it('distinguishes replaced source identities from current shots with the same old number', () => {
+    const image = Object.freeze({ ...staleImage, isStoryboardSegmentStart: true });
+    const current = buildVideoStoryboardShotLookup([
+      { item_id: 'replacement', sort_order: 0, source_video_shot_no: '分镜1-1' },
+    ]);
+    expect(resolveVideoStoryboardShotInfo(image.id, image, current, true)).toMatchObject({
+      itemId: 'persistent-shot', label: '历史镜头1-3', isHistorical: true,
+      segmentKey: 'historical:old-segment', isFirstInSegment: false,
+    });
+    expect(resolveVideoStoryboardShotInfo(image.id, image, current, false)?.label).toBe('镜头1-3');
+    expect(image.storyboardShotLabel).toBe('镜头1-3');
+    expect(resolveVideoStoryboardShotInfo('external', undefined, current, true)).toBeNull();
+    expect(resolveVideoStoryboardShotInfo('replacement', undefined, current, true)?.label).toBe('镜头1-1');
+    expect(resolveVideoStoryboardShotInfo(image.id, image, current, true, new Set(['persistent-shot']))).toMatchObject({
+      label: '镜头1-3', isFirstInSegment: true,
+    });
+  });
+
   it('resolves legacy source IDs but does not label unrelated external uploads', () => {
     const lookup = buildVideoStoryboardShotLookup([{ item_id: 'persistent-shot', sort_order: 0 }]);
     expect(resolveVideoStoryboardShotInfo('persistent-shot', undefined, lookup)?.label).toBe('镜头1-1');

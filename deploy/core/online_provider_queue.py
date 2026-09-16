@@ -301,6 +301,11 @@ class OnlineProviderQueue:
     async def get_external_processing_count(self) -> int:
         return int(await self.redis.zcard(PROCESSING_KEY))
 
+    async def restore_jimeng_task(self, task):
+        from services.jimeng_task_service import restore_queue_task
+        await restore_queue_task(self, task, prefix=TASK_PREFIX, processing_key=PROCESSING_KEY,
+            user_prefix=USER_TASK_PREFIX, ttl=TASK_EXPIRE_SECONDS)
+
     async def _save_task(self, task: OnlineProviderTask) -> None:
         values = task.to_dict()
         values["data"] = json.dumps(values["data"] or {}, ensure_ascii=False)

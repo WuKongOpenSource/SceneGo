@@ -16,6 +16,7 @@ profile when requested.
 from __future__ import annotations
 
 from decimal import Decimal, ROUND_CEILING, ROUND_HALF_UP
+import math
 from typing import Any, Dict, Mapping, Sequence, Tuple
 
 
@@ -259,6 +260,9 @@ def _infer_family(params: Mapping[str, Any]) -> str:
     task_type = _lower(params.get("task_type"))
     model = _lower(params.get("model") or params.get("video_model"))
 
+    if task_type == "jimeng_multimodal" or model == "jimengseedance2":
+        return "jimeng"
+
     if task_type.startswith("happyhorse_") or model == "happyhorse":
         return "happyhorse"
     if task_type.startswith("vidu_") or model == "vidu":
@@ -404,6 +408,24 @@ def quote_video_credits(params: Mapping[str, Any] | None) -> Dict[str, Any]:
         return _quote_minimax(data)
     if family == "seedance":
         return _quote_seedance(data)
+    if family == "jimeng":
+        # Compare the same effective output duration, resolution and reference
+        # video inputs against the live Standard product rule, not Mini pricing
+        # or the provider account's unrelated point denomination.
+        raw_duration = data.get("duration_seconds")
+        requested = float(data.get("duration", 5) if raw_duration is None else raw_duration)
+        if not math.isfinite(requested) or requested <= 0 or requested > 15:
+            raise ValueError("即梦生成时长无效")
+        reference = _quote_seedance({**data, "model": "Seedance2", "sub_model": "standard",
+                                    "duration_seconds": max(4, math.ceil(requested)),
+                                    "duration": max(4, math.ceil(requested))})
+        return _fixed_quote(reference["credits"] * 2, "jimeng-seedance-mini",
+                            duration_seconds=reference["duration_seconds"], resolution=reference["resolution"],
+                            reference_video_count=reference.get("reference_video_count", 0),
+                            reference_video_seconds=reference.get("reference_video_seconds", "0"),
+                            reference_video_duration_defaulted=reference.get("reference_video_duration_defaulted", False),
+                            reference_model="Seedance2", reference_credits=reference["credits"],
+                            multiplier=2, basis="double-seedance-standard-product-price")
 
     duration_defaults = {"sora2": 15, "veo": 8}
     duration = _positive_int(data.get("duration_seconds") or data.get("duration"), duration_defaults.get(family, 5))

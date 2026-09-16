@@ -769,6 +769,7 @@ def build_video_model_manifest(
 
 async def get_video_capabilities(
     usage_scope: str = MODEL_USAGE_SCOPE_WORKFLOW,
+    *, user_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Return legacy feature flags plus a versioned model capability manifest."""
     model_scope = normalize_model_usage_scope(usage_scope)
@@ -900,7 +901,7 @@ async def get_video_capabilities(
     )
     happyhorse_options = _resolve_dashscope_model_options(["happyhorse"], usage_scope=model_scope)
 
-    return {
+    result = {
         "seedance_omni": seedance_omni,
         "comfyui_available": comfyui_available,
         **build_video_model_manifest(
@@ -945,3 +946,5 @@ async def get_video_capabilities(
             local_instances=local_instances,
         ),
     }
+    from services.jimeng_account_service import attach_capability
+    return await attach_capability(result, user_id=user_id)

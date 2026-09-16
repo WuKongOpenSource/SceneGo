@@ -250,6 +250,22 @@ export const VideoGenPage: React.FC = () => {
   const totalStoryboardCount = Math.max(storyboardTotalCount || 0, allStoryboardItems.length);
   const isStoryboardPagePartial = totalStoryboardCount > allStoryboardItems.length;
 
+  const [episodeStoryboardIdentity, setEpisodeStoryboardIdentity] = useState<{ episodeId: string; ids: string[] } | null>(null);
+  useEffect(() => {
+    let active = true;
+    setEpisodeStoryboardIdentity(null);
+    if (episodeId) {
+      // The workspace spans all script files. A shot missing from the selected
+      // file alone is not proof that its source was deleted or replaced.
+      void getStoryboardItems(episodeId, undefined, { fields: 'video' }).then(result => {
+        if (active && result?.success && Array.isArray(result.items)) {
+          setEpisodeStoryboardIdentity({ episodeId, ids: result.items.map(getStoryboardItemId).filter(Boolean) });
+        }
+      }).catch(() => { /* Keep snapshot labels until source identity is confirmed. */ });
+    }
+    return () => { active = false; };
+  }, [episodeId, allStoryboardItems]);
+
   // Shot labels and segment-start markers require the complete ordered list,
   // including when an existing workspace is opened without re-importing it.
   useEffect(() => {
@@ -822,6 +838,8 @@ export const VideoGenPage: React.FC = () => {
             projectId={projectId || ''}
             episodeId={episodeId || ''}
             storyboardItems={allStoryboardItems}
+            storyboardItemsComplete={episodeStoryboardIdentity?.episodeId === episodeId}
+            knownEpisodeStoryboardIds={episodeStoryboardIdentity?.episodeId === episodeId ? episodeStoryboardIdentity.ids : undefined}
             materialLibrary={materialLibrary}
             onRefreshProjectMaterials={refreshProjectMaterials}
             onRegisterSessionSave={registerWorkspaceSave}

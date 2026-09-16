@@ -36,6 +36,7 @@ export interface VideoStoryboardShotInfo {
   localShotNo: number;
   label: string;
   isFirstInSegment: boolean;
+  isHistorical?: boolean;
 }
 
 /** Resolve by persistent identity; imported labels are only an offline fallback. */
@@ -43,26 +44,34 @@ export function resolveVideoStoryboardShotInfo(
   imageId: string,
   image: UploadedImage | undefined,
   current: ReadonlyMap<string, VideoStoryboardShotInfo>,
+  sourceComplete = false,
+  knownEpisodeItemIds?: ReadonlySet<string>,
 ): VideoStoryboardShotInfo | null {
   const itemId = String(image?.storyboardItemId || imageId || '').trim();
   const live = current.get(itemId);
   if (live) return live;
+  // Missing identities are historical only after the entire source is loaded.
+  // Never relink by a reused shot number: its original media may be different.
+  const historical = sourceComplete && Boolean(image?.storyboardItemId) && !knownEpisodeItemIds?.has(itemId);
+  const historyFields = historical ? { isHistorical: true } : {};
   const label = String(image?.storyboardShotLabel || '').trim();
   if (label && image?.storyboardSegmentNo && image.storyboardLocalShotNo) {
     return {
       itemId,
-      segmentKey: image.storyboardSegmentKey || `storyboard-segment-${image.storyboardSegmentNo}`,
+      segmentKey: `${historical ? 'historical:' : ''}${image.storyboardSegmentKey || `storyboard-segment-${image.storyboardSegmentNo}`}`,
       segmentNo: image.storyboardSegmentNo,
       localShotNo: image.storyboardLocalShotNo,
-      label,
-      isFirstInSegment: Boolean(image.isStoryboardSegmentStart),
+      label: historical ? `历史${label.replace(/^历史/, '')}` : label,
+      isFirstInSegment: !historical && Boolean(image.isStoryboardSegmentStart),
+      ...historyFields,
     };
   }
   if (image?.storyboardItemId && image.sortOrder != null) {
     return {
-      itemId, segmentKey: 'storyboard-segment-unassigned', segmentNo: 1,
-      localShotNo: image.sortOrder + 1, label: `镜头1-${image.sortOrder + 1}`,
-      isFirstInSegment: image.sortOrder === 0,
+      itemId, segmentKey: historical ? 'historical:unassigned' : 'storyboard-segment-unassigned', segmentNo: 1,
+      localShotNo: image.sortOrder + 1, label: `${historical ? '历史' : ''}镜头1-${image.sortOrder + 1}`,
+      isFirstInSegment: !historical && image.sortOrder === 0,
+      ...historyFields,
     };
   }
   return null;

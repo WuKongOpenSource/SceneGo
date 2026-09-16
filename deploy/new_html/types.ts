@@ -476,7 +476,7 @@ export type SourcePage =
 
 export type TaskKind =
 
-  | 'seedance' | 'seedance-fast' | 'seedance-mini' | 'seedance-1.5'
+  | 'seedance' | 'seedance-fast' | 'seedance-mini' | 'seedance-1.5' | 'jimeng'
   | 'wan2' | 'wan2-fast'
   | 'kling' | 'vidu' | 'happyhorse'
   | 'sora2' | 'veo'

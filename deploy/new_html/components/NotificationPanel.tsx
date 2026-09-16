@@ -35,7 +35,7 @@ const STATUS_THEME = {
 
 
 const KIND_ICON: Record<string, React.FC<{ size?: number; className?: string }>> = {
-    seedance: Video, 'seedance-fast': Video, 'seedance-mini': Video, 'seedance-1.5': Video,
+    seedance: Video, 'seedance-fast': Video, 'seedance-mini': Video, 'seedance-1.5': Video, jimeng: Video,
     wan2: Video, 'wan2-fast': Video, kling: Video, vidu: Video, happyhorse: Video, sora2: Video, veo: Video,
     'video-i2v': Video, 'video-comfy': Video,
     'comfyui-image': ImageIcon, 'gemini-image': ImageIcon, 'doubao-image': ImageIcon,
@@ -59,6 +59,7 @@ function getKindIcon(kind: TaskKind): React.FC<{ size?: number; className?: stri
 
 const KIND_LABEL: Record<string, string> = {
     seedance: 'Seedance 视频生成',
+    jimeng: getModelDisplayName('JimengSeedance2'),
     'seedance-fast': getModelDisplayName('Seedance2Fast'),
     'seedance-mini': getModelDisplayName('Seedance2Mini'),
     'seedance-1.5': getModelDisplayName('Seedance15'),

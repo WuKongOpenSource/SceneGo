@@ -34,6 +34,8 @@ export function formatPublicTaskText(value: unknown, kind?: TaskKind): string {
   const replace = (pattern: RegExp, label: string): void => {
     text = text.replace(pattern, () => protect(label));
   };
+  replace(/Jimeng(?:[·\s_-]*Seedance[\s_-]*2(?:\.0)?(?:\s*·\s*真人视频模型)?)?|jimeng_multimodal/gi,
+    getModelDisplayName('JimengSeedance2'));
 
   const videoContext = String(kind || '').startsWith('seedance') || /seedance/i.test(text);
   const imageContext = !videoContext && (String(kind || '').includes('image')

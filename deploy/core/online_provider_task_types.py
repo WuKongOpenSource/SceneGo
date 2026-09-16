@@ -17,6 +17,7 @@ ONLINE_PROVIDER_TASK_TYPES_EXACT = frozenset(
         "veo_morph",
         "wan26_i2v",
         "video_reverse_prompt",
+        "jimeng_multimodal",
     }
 )
 ONLINE_PROVIDER_TASK_TYPE_PREFIXES = ("seedance_", "kling_", "vidu_", "happyhorse_")

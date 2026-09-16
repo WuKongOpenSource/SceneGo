@@ -168,6 +168,10 @@ class OnlineProviderWorker(OnlineProviderTaskHandlers):
             )
             return False
 
+        if task.task_type == "jimeng_multimodal":
+            from services.jimeng_task_service import process_jimeng
+            return await process_jimeng(self.task_queue, task)
+
         if not await self.task_queue.begin_submission(task.task_id):
             return True
         await self._record_task_start(task)

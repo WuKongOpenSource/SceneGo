@@ -85,6 +85,7 @@ function inferRuntimeTaskKind(task: GlobalTask): TaskKind {
   if (toolKind) return toolKind;
   if (task.taskType === 'upscale') return 'video-upscale';
   const videoModel = String(task.modelName || '').toLowerCase();
+  if (videoModel === 'jimengseedance2' || /jimeng/.test(name)) return 'jimeng';
   if (videoModel === 'seedance15') return 'seedance-1.5';
   if (videoModel === 'seedance2fast') return 'seedance-fast';
   if (videoModel === 'seedance2mini') return 'seedance-mini';
