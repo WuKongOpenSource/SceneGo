@@ -564,12 +564,6 @@ async def generate_doubao_images(
             )
         except SeedanceInputProvenanceError as exc:
             raise AIProxyConfigError(str(exc), status_code=422) from exc
-    if reference_purpose:
-        from services.api_provider_runtime import resolve_seedance_model_name
-        video_model = resolve_seedance_model_name('standard', usage_scope=usage_scope or 'workflow')
-        video_config = resolve_provider('seedance', video_model, usage_scope=usage_scope or 'workflow')
-        if video_model != 'doubao-seedance-2-0-260128' or video_config.model_name != video_model:
-            raise AIProxyConfigError('真人参考素材需要匹配 Seedance 2.0 标准版通道，本次未提交生图。', status_code=422)
     generated_at = int(time.time())
     resolved_size = (
         _normalize_agent_plan_size(size)

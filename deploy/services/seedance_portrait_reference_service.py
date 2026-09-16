@@ -10,6 +10,7 @@ from typing import Any
 
 from services.seedance_image_provenance import (
     PROVENANCE_KEY, REFERENCE_PURPOSES, SeedanceInputProvenanceError, verify_original,
+    PORTRAIT_VIDEO_MODELS, resolve_portrait_video_config,
 )
 from services.generation_access_service import GenerationAccessDenied, require_generation_request_access
 from services.media_reference_service import resolve_media_file_record
@@ -34,7 +35,6 @@ async def portrait_reference_badge(record: dict[str, Any] | None) -> dict[str, A
     This does not grant model access or claim provider moderation approval.
     Submission still validates the chosen mode, purpose pair and current bytes.
     """
-    from services.api_provider_runtime import resolve_provider, resolve_seedance_model_name
     from services.seedance_image_provenance import verified_text_to_image_source
 
     metadata = (record or {}).get("metadata") or {}
@@ -52,17 +52,16 @@ async def portrait_reference_badge(record: dict[str, Any] | None) -> dict[str, A
         return {}
     scopes = []
     for scope in ("workflow", "studio"):
-        try:
-            model = resolve_seedance_model_name("standard", usage_scope=scope)
-            config = resolve_provider("seedance", model, usage_scope=scope)
-            if model != "doubao-seedance-2-0-260128" or config.model_name != model or not config.api_key:
+        for sub_model in PORTRAIT_VIDEO_MODELS:
+            try:
+                config = resolve_portrait_video_config(sub_model, usage_scope=scope)
+                verify_original(proof, content, api_key=config.api_key, endpoint=config.endpoint,
+                    account_binding=str((getattr(config, "extra", None) or {}).get("account_binding") or ""))
+                scopes.append(scope)
+                break
+            except Exception:
+                # A star requires at least one configured variant; submission rechecks the selected variant.
                 continue
-            verify_original(proof, content, api_key=config.api_key, endpoint=config.endpoint,
-                account_binding=str((getattr(config, "extra", None) or {}).get("account_binding") or ""))
-            scopes.append(scope)
-        except Exception:
-            # Unknown credentials, expired or changed originals never receive a star.
-            continue
     return {"portrait_reference_scopes": scopes, "portrait_reference_expires_at": proof["expires_at"]} if scopes else {}
 
 
@@ -71,8 +70,8 @@ async def validate_portrait_references(task_type: str, data: dict[str, Any], use
     if not mode:
         return {}
     if (mode != "character_background" or task_type not in {"seedance_i2v", "seedance_multi"}
-            or data.get("sub_model") != "standard" or data.get("reference_mode") != "reference"):
-        raise SeedanceInputProvenanceError("真人四视图与纯背景模式仅支持 Seedance 2.0 标准版的全能参考。")
+            or data.get("sub_model") not in PORTRAIT_VIDEO_MODELS or data.get("reference_mode") != "reference"):
+        raise SeedanceInputProvenanceError("仿真人参考仅支持 Seedance 2.0、Fast、Mini 的全能参考。")
     inputs = data.get("media_inputs") or []
     images = [(index, item) for index, item in enumerate(inputs) if isinstance(item, dict) and item.get("kind") == "image"]
     if not 2 <= len(images) <= 9:
@@ -92,12 +91,7 @@ async def validate_portrait_references(task_type: str, data: dict[str, Any], use
             [str(item['file_id']) for _, item in images], file_dao=file_dao)
     except GenerationAccessDenied as exc:
         raise SeedanceInputProvenanceError("参考素材不存在或无权访问，请重新选择。") from exc
-    from services.api_provider_runtime import resolve_provider, resolve_seedance_model_name
-    model = resolve_seedance_model_name("standard", usage_scope=data.get("model_scope") or "workflow")
-    config = resolve_provider("seedance", model, usage_scope=data.get("model_scope") or "workflow")
-    # A configured alias must not redirect this policy into Fast, Mini or 1.5.
-    if model != "doubao-seedance-2-0-260128" or config.model_name != model or not config.api_key:
-        raise SeedanceInputProvenanceError("当前通道不是已核实的 Seedance 2.0 标准版，本次未提交。")
+    config = resolve_portrait_video_config(data['sub_model'], usage_scope=data.get("model_scope") or "workflow")
     purposes = set()
     prepared = {}
     for index, item in images:

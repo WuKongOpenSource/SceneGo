@@ -22,6 +22,7 @@ export interface ModelPickerOption<T extends string = string> {
   badge?: string;
   available?: boolean;
   unavailableReason?: string;
+  unavailableLabel?: string;
 }
 
 interface ModelPickerProps<T extends string = string> {
@@ -198,15 +199,15 @@ export function ModelPicker<T extends string = string>({
                             )}
                             {!available && (
                               <span className="inline-flex shrink-0 items-center gap-0.5 rounded bg-n30 px-1.5 py-0.5 text-[9px] font-medium text-n100">
-                                <Info className="h-2.5 w-2.5" />不可用
+                                <Info className="h-2.5 w-2.5" />{option.unavailableLabel || '不可用'}
                               </span>
                             )}
                           </span>
-                          <span className="mt-0.5 block text-[10px] leading-4 text-n100">
+                          {(available || !option.unavailableLabel || option.unavailableReason !== option.unavailableLabel) && <span className="mt-0.5 block text-[10px] leading-4 text-n100">
                             {available
                               ? (option.description || label.description || option.runtimeLabel || `${title}选项`)
                               : (option.unavailableReason || '当前暂不可用')}
-                          </span>
+                          </span>}
                         </span>
                         {isSelected && <Check className="mt-1 h-4 w-4 shrink-0 text-primary" />}
                       </button>

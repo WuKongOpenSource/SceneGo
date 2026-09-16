@@ -1,7 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { SeedanceMultimodalPanel } from '../../components/SeedanceMultimodalPanel';
-import { buildVideoModelOptions, getModelDisplayName, getVideoCreditFallbackCost, prepareJimengComposerParams, SELECTABLE_MODELS, seedanceModelForSubModel, type SeedanceParams } from '../../services/videoModelService';
+import { buildVideoModelOptions, withCurrentVideoModelOption, getModelDisplayName, getVideoCreditFallbackCost, prepareJimengComposerParams, SELECTABLE_MODELS, seedanceModelForSubModel, type SeedanceParams } from '../../services/videoModelService';
 import { submitSeedanceTask } from '@runtime/videoTaskService';
 import { getVideoTaskModel } from '../../services/videoTaskReconciliation';
 import { formatPublicTaskText } from '../../utils/publicTaskTerminology';
@@ -14,15 +14,20 @@ const params: SeedanceParams = { sub_model: 'standard', prompt: '保留所有台
     ], resolution: '1080p', reference_audio_policy: 'trim_to_15', generate_audio: false };
 
 describe('independent Jimeng connector', () => {
-    it('disables the real-person model with the server admin-only reason', () => {
+    it('uses only the generic not-enabled hint for authorized users', () => {
         const options = buildVideoModelOptions([
             { key: 'Seedance2', available: true },
             { key: 'JimengSeedance2', available: false, unavailable_reason: '该真人视频模型仅限管理员使用。' },
         ] as any, SELECTABLE_MODELS);
         expect(options.find(option => option.value === 'JimengSeedance2')).toMatchObject({
-            available: false, unavailableReason: '该真人视频模型仅限管理员使用。',
+            available: false, unavailableReason: '未启用',
         });
         expect(options.find(option => option.value === 'Seedance2')?.available).toBe(true);
+    });
+    it.each([{ capabilities: null }, { capabilities: [] }, { capabilities: [{ key: 'Seedance2', available: true }] }])('does not reveal Jimeng without a capability or restore a historical selection', ({ capabilities }) => {
+        const options = buildVideoModelOptions(capabilities, SELECTABLE_MODELS);
+        expect(options.some(option => option.value === 'JimengSeedance2')).toBe(false);
+        expect(withCurrentVideoModelOption(options, 'JimengSeedance2', capabilities)).toEqual(options);
     });
     it('has the exact label and follows Standard with twice its fallback quote', () => {
         expect(getModelDisplayName('JimengSeedance2')).toBe('Jimeng·Seedance 2.0 · 真人视频模型');

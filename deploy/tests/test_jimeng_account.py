@@ -8,6 +8,11 @@ from fastapi.testclient import TestClient
 from services import jimeng_account_service as service
 
 
+@pytest.fixture(autouse=True)
+def model_access(monkeypatch):
+    monkeypatch.setattr(service, 'require_user_model_access', AsyncMock())
+
+
 @pytest.mark.asyncio
 async def test_public_capabilities_never_expose_account_or_private_state(monkeypatch):
     monkeypatch.setattr(service, 'require_jimeng_admin', AsyncMock())
@@ -33,9 +38,8 @@ async def test_capabilities_do_not_reuse_admin_access_for_next_user(monkeypatch)
     normal = await service.attach_capability(base, user_id='ordinary-id')
     unknown = await service.attach_capability(base, user_id='unknown-id')
     assert admin['models'][1]['available'] is True
-    assert normal['models'][1]['available'] is False
-    assert normal['models'][1]['unavailable_reason'] == ADMIN_ONLY_MESSAGE
-    assert unknown['models'][1]['available'] is False and 'private-error' not in str(unknown)
+    assert normal['models'] == base['models']
+    assert unknown['models'] == base['models'] and 'private-error' not in str(unknown)
     assert normal['models'][0] == base['models'][0]
     assert len(base['models']) == 1
     status.assert_awaited_once()
@@ -46,8 +50,21 @@ async def test_missing_identity_never_probes_provider(monkeypatch):
     status = AsyncMock()
     monkeypatch.setattr(service, 'account_status', status)
     result = await service.attach_capability({'models': []})
-    assert result['models'][0]['available'] is False
-    assert '仅限管理员' in result['models'][0]['unavailable_reason']
+    assert result['models'] == []
+    status.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_admin_disabled_hint_is_generic_and_model_restrictions_hide_option(monkeypatch):
+    monkeypatch.setattr(service, 'require_jimeng_admin', AsyncMock())
+    status = AsyncMock(return_value={'available': False, 'message': 'private authorization detail'})
+    monkeypatch.setattr(service, 'account_status', status)
+    result = await service.attach_capability({'models': []}, user_id='admin')
+    assert result['models'][0]['unavailable_reason'] == '未启用'
+    assert 'private authorization' not in str(result)
+    service.require_user_model_access.side_effect = RuntimeError('access unavailable')
+    status.reset_mock()
+    assert (await service.attach_capability({'models': result['models']}, user_id='admin'))['models'] == []
     status.assert_not_awaited()
 
 

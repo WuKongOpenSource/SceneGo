@@ -3,7 +3,7 @@ import { PortraitReferenceStar } from './SeedreamSourceBadge';
 import { createPortal } from 'react-dom';
 import { AlertCircle, Film, ImagePlus, Info, Loader2, Maximize2, Plus, Settings2, Upload, Volume2, X } from 'lucide-react';
 import { uploadAudio, uploadImage, uploadVideoFile } from '@runtime/videoMediaService';
-import { getModelDisplayName, getSeedanceOutputError, normalizeSeedanceOutputResolution, type SeedanceMediaInput, type SeedanceParams } from '../services/videoModelService';
+import { getModelDisplayName, getSeedanceOutputError, normalizeSeedanceOutputResolution, supportsSeedancePortraitReference, type SeedanceMediaInput, type SeedanceParams } from '../services/videoModelService';
 import { removeMediaInput, type SeedanceAssetCandidate } from '../utils/seedanceMedia';
 import { audioDurationLabel, probeUploadedAudioDuration, seedanceAudioBudget, seedanceAudioError } from '../utils/seedanceAudio';
 import { SeedanceMentionPromptEditor } from './SeedanceMentionPromptEditor';
@@ -197,13 +197,15 @@ export const SeedanceMultimodalPanel: React.FC<Props> = ({
                 </div>
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{editor()}</div>
             </div>
-            {(value.sub_model === 'standard' && mode === 'reference' || value.portrait_reference_mode) && <label className="shrink-0 text-[11px] leading-5 text-n300">
-                <input type="checkbox" className="mr-1" checked={!!value.portrait_reference_mode} disabled={disabled}
+            {(supportsSeedancePortraitReference(value.sub_model) && mode === 'reference' || value.portrait_reference_mode) && <div className="shrink-0 space-y-1 py-1" data-testid="portrait-reference-control">
+              <label className="inline-flex min-h-5 cursor-pointer items-center gap-2 text-[11px] leading-5 text-n300">
+                <input type="checkbox" className="m-0 h-3.5 w-3.5 shrink-0 accent-primary" checked={!!value.portrait_reference_mode} disabled={disabled}
                     onChange={event => patch({ portrait_reference_mode: event.target.checked ? 'character_background' : undefined,
                         ...(event.target.checked ? { reference_mode: 'reference' } : {}) })} />
-                真人文生图参考（人物四视图 + 纯背景）
-                {value.portrait_reference_mode && <span className="block text-[10px]">仅限标准版全能参考；从素材库选取 30 天内专用入口生成的原图。图生图、上传图和参考视频不可用，已有素材不会被自动替换。</span>}
-            </label>}
+                <span>生成仿真人视频（人物四视图 + 纯背景）</span>
+              </label>
+              {value.portrait_reference_mode && <p className="pl-[22px] text-[10px] leading-4 text-n300">支持 Seedance 2.0、Fast、Mini 全能参考；请选择 30 天内的专用文生图原图。图生图、上传图和参考视频不可用，不自动替换现有素材。</p>}
+            </div>}
             {mode === 'reference' && value.media_inputs.length > 0 && <div className="flex h-12 min-h-12 w-full shrink-0 flex-nowrap items-center gap-1.5 overflow-x-auto overflow-y-hidden pb-1" data-testid="seedance-reference-strip" aria-label="已选参考素材">
                 {value.media_inputs.map((item, index) => <div key={`${item.url}-${index}`} className="flex h-10 shrink-0 items-center gap-1 overflow-hidden rounded-lg border border-n40 bg-n20/50 px-1 py-0.5 text-[9px]">
                     <button type="button" title={`预览素材 ${index + 1}`} onClick={() => onPreviewMedia?.(item.url, item.kind)} className="flex min-w-0 items-center gap-1">

@@ -4,7 +4,9 @@ import time
 
 from services.jimeng_cli_runtime import CliConfig, JimengCli
 from services.jimeng_contract import MODEL_KEY, capability, JimengError
-from services.jimeng_access_service import JimengAccessDenied, require_jimeng_admin
+from services.jimeng_access_service import require_jimeng_admin
+from services.model_access_service import require_user_model_access
+from dao_user import UserDAO
 
 _cache = (0.0, None, {})
 _lock = asyncio.Lock()
@@ -35,16 +37,15 @@ async def account_status(*, refresh=False):
 
 async def attach_capability(manifest, *, user_id=None):
     # Never cache per-user authorization with the shared provider status.
+    models = [m for m in manifest.get("models", []) if m.get("key") != MODEL_KEY]
     try:
         await require_jimeng_admin(user_id)
-    except JimengAccessDenied as exc:
-        state = {"available": False, "message": str(exc)}
+        await require_user_model_access(user_id, user_dao=UserDAO, model=MODEL_KEY, task_type='jimeng_multimodal')
     except Exception:
-        state = {"available": False, "message": "暂时无法核实管理员权限，请稍后重试。"}
-    else:
-        state = await account_status()
-    entry = capability(available=state["available"], reason=state["message"])
-    models = [m for m in manifest.get("models", []) if m.get("key") != MODEL_KEY]
+        return {**manifest, "models": models}
+    state = await account_status()
+    # Detailed operational diagnostics remain in the super-admin status screen.
+    entry = capability(available=state["available"], reason="未启用")
     index = next((i + 1 for i, m in enumerate(models) if m.get("key") == "Seedance2"), len(models))
     models.insert(index, entry)
     return {**manifest, "models": models}

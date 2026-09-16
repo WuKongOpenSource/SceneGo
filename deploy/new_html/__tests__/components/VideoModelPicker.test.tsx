@@ -26,6 +26,18 @@ const options: VideoModelOption[] = [
 ];
 
 describe('VideoModelPicker', () => {
+  it('shows only one generic not-enabled hint for an authorized Jimeng option', () => {
+    const onChange = vi.fn();
+    const entries = buildVideoModelOptions([{ key: 'JimengSeedance2', available: false, unavailable_reason: 'private authorization detail' }], ['JimengSeedance2']);
+    render(<VideoModelPicker value="JimengSeedance2" options={entries} onChange={onChange} />);
+    fireEvent.click(screen.getByLabelText('选择视频生成模型'));
+    const option = screen.getByRole('option');
+    expect(screen.getAllByText('未启用')).toHaveLength(1);
+    expect(option).not.toHaveTextContent('private authorization');
+    expect(option).not.toHaveTextContent('不可用');
+    fireEvent.click(option);
+    expect(onChange).not.toHaveBeenCalled();
+  });
   it('hides retired local profiles without silently changing historical selections', () => {
     const onChange = vi.fn();
     const createOptions = (fastAvailable: boolean) => buildVideoModelOptions([

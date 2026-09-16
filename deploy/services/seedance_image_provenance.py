@@ -10,13 +10,27 @@ import time
 from typing import Any
 from urllib.parse import urlsplit
 
-from services.api_provider_registry import DOUBAO_IMAGE_STANDARD_ENDPOINT
+from services.api_provider_registry import DOUBAO_IMAGE_STANDARD_ENDPOINT, SEEDANCE_DEFAULT_MODEL_MAP
 
 PROVENANCE_KEY = "seedance_provenance"
 TRUST_SECONDS = 30 * 24 * 60 * 60
 SEEDREAM_PRO_MODEL = "doubao-seedream-5-0-pro-260628"
 SUPPORTED_MODELS = {SEEDREAM_PRO_MODEL, "doubao-seedream-5-0-lite-260128", "doubao-seedream-5.0-lite"}
 REFERENCE_PURPOSES = {"character_four_view", "pure_background"}
+PORTRAIT_VIDEO_MODELS = {key: SEEDANCE_DEFAULT_MODEL_MAP[key] for key in ("standard", "fast", "mini")}
+
+
+def resolve_portrait_video_config(sub_model: str, *, usage_scope: str | None = None):
+    """Keep the selected variant and official channel fixed; never fall back."""
+    from services.api_provider_runtime import resolve_provider, resolve_seedance_model_name
+    expected = PORTRAIT_VIDEO_MODELS.get(sub_model)
+    if not expected:
+        raise SeedanceInputProvenanceError("仿真人参考仅支持 Seedance 2.0、Fast、Mini 的全能参考。")
+    model = resolve_seedance_model_name(sub_model, usage_scope=usage_scope or "workflow")
+    config = resolve_provider("seedance", model, usage_scope=usage_scope or "workflow")
+    if model != expected or config.model_name != expected or not config.api_key or not is_official_ark_endpoint(config.endpoint):
+        raise SeedanceInputProvenanceError("所选 Seedance 2.0 通道未正确配置或模型不匹配，本次未提交。")
+    return config
 
 
 def reference_purpose_prompt(prompt: str, purpose: str) -> str:
@@ -210,25 +224,28 @@ class SeedreamImageBatch(list):
 
 
 def validate_portrait_generation(config: Any, model: str, references: list[str], *, usage_scope: str | None) -> str:
-    from services.api_provider_runtime import resolve_provider, resolve_seedance_model_name
-
     if references:
         raise SeedanceInputProvenanceError("Seedance 人像分镜必须使用纯文生图，不能携带参考图；请关闭此模式后使用图生图。")
     if model not in SUPPORTED_MODELS or not is_official_ark_endpoint(config.endpoint):
         raise SeedanceInputProvenanceError("Seedance 人像分镜需要火山方舟官方 Seedream 5.0 Lite/Pro 接口，不支持第三方转发通道。")
-    video_model = resolve_seedance_model_name("standard", usage_scope=usage_scope or "workflow")
-    video_config = resolve_provider("seedance", video_model, usage_scope=usage_scope or "workflow")
-    if not config.api_key or not video_config.api_key or not is_official_ark_endpoint(video_config.endpoint):
+    if not config.api_key:
         raise SeedanceInputProvenanceError("Seedream 生图或 Seedance 视频通道未完整配置，本次未提交生成。")
     image_binding = _account_binding(config)
-    video_binding = _account_binding(video_config)
-    same_key = hmac.compare_digest(config.api_key, video_config.api_key)
-    same_binding = bool(image_binding and video_binding and hmac.compare_digest(image_binding, video_binding))
-    if not same_key and not same_binding:
-        raise SeedanceInputProvenanceError("请为同一火山账号下的 Seedream Plan/按量付费通道与 Seedance 通道配置相同的账号绑定标识；本次未提交生成。")
-    if same_binding and not _account_signature({"preflight": True}):
-        raise SeedanceInputProvenanceError("可信原图签名服务尚未配置，本次未提交生成。")
-    return image_binding if same_binding else ""
+    for sub_model in PORTRAIT_VIDEO_MODELS:
+        try:
+            video_config = resolve_portrait_video_config(sub_model, usage_scope=usage_scope)
+        except Exception:
+            continue
+        video_binding = _account_binding(video_config)
+        same_key = hmac.compare_digest(config.api_key, video_config.api_key)
+        same_binding = bool(image_binding and video_binding and hmac.compare_digest(image_binding, video_binding))
+        if same_binding:
+            if not _account_signature({"preflight": True}):
+                raise SeedanceInputProvenanceError("可信原图签名服务尚未配置，本次未提交生成。")
+            return image_binding
+        if same_key:
+            return ""
+    raise SeedanceInputProvenanceError("请配置同账号的 Seedream 与 Seedance 2.0、Fast 或 Mini 官方通道及可信账号绑定；本次未提交生成。")
 
 
 def verify_original(

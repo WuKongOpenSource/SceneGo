@@ -27,14 +27,21 @@ const agentPlanValue: SeedanceParams = {
 };
 
 describe('Seedance 1.5 Pro controls', () => {
-  it('persists all-reference mode when enabling portrait references from the default mode', () => {
+  it.each(['standard', 'fast', 'mini'] as const)('aligns the portrait control and preserves references for %s', sub_model => {
     const onChange = vi.fn();
-    const value = { ...agentPlanValue, sub_model: 'standard', media_inputs: [] } as SeedanceParams;
-    render(<SeedanceMultimodalPanel value={value} onChange={onChange} candidates={[]} />);
-    fireEvent.click(screen.getByLabelText('真人文生图参考（人物四视图 + 纯背景）'));
+    const value = { ...agentPlanValue, sub_model, media_inputs: [] } as SeedanceParams;
+    const { rerender } = render(<SeedanceMultimodalPanel value={value} onChange={onChange} candidates={[]} />);
+    const checkbox = screen.getByLabelText('生成仿真人视频（人物四视图 + 纯背景）');
+    expect(checkbox).toHaveClass('m-0', 'shrink-0');
+    expect(checkbox.closest('label')).toHaveClass('inline-flex', 'items-center', 'gap-2');
+    fireEvent.click(checkbox);
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({
-      reference_mode: 'reference', portrait_reference_mode: 'character_background',
+      sub_model, media_inputs: [], reference_mode: 'reference', portrait_reference_mode: 'character_background',
     }));
+    rerender(<SeedanceMultimodalPanel value={{ ...value, portrait_reference_mode: 'character_background' }} onChange={onChange} candidates={[]} />);
+    const description = screen.getByTestId('portrait-reference-control').querySelector('p');
+    expect(description).toBeInTheDocument();
+    expect(description?.closest('label')).toBeNull();
   });
   it.each(['首帧', '尾帧'])('selects %s directly from the card pool without changing the other frame, prompt or audio', label => {
     const onChange = vi.fn();

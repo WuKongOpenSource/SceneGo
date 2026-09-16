@@ -300,7 +300,7 @@ describe('buildVideoModelOptions', () => {
       },
     ]);
 
-    expect(new Set(options.map(option => option.value))).toEqual(new Set(SELECTABLE_MODELS));
+    expect(new Set(options.map(option => option.value))).toEqual(new Set(SELECTABLE_MODELS.filter(model => model !== 'JimengSeedance2')));
     expect(options.filter(option => option.provider === 'processing_cluster').slice(0, 3).map(option => option.value)).toEqual(['MiniMaxH3', 'MiniMaxH3Fast', 'MiniMaxH3Mini']);
     expect(options.find(option => option.value === 'Seedance2')).toMatchObject({
       available: false,
@@ -332,7 +332,7 @@ describe('buildVideoModelOptions', () => {
 
   it('keeps the complete model catalog visible while capability status is loading', () => {
     const options = buildVideoModelOptions(null);
-    expect(options.map(option => option.value)).toEqual(SELECTABLE_MODELS);
+    expect(options.map(option => option.value)).toEqual(SELECTABLE_MODELS.filter(model => model !== 'JimengSeedance2'));
     expect(options.every(option => !option.available)).toBe(true);
     expect(options[0].unavailableReason).toBe('后台尚未配置该模型');
   });

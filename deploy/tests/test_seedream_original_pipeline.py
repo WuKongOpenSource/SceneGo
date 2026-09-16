@@ -17,7 +17,7 @@ from services import provider_media_input_service as media
 from services.ai_proxy_image_persistence_service import persist_generated_ai_images
 from services.ai_proxy_types import AIProxyConfigError, AIProxyUpstreamError
 from services.seedance_image_provenance import (
-    PROVENANCE_KEY, SEEDREAM_PRO_MODEL, TRUST_SECONDS,
+    PROVENANCE_KEY, SEEDREAM_PRO_MODEL, TRUST_SECONDS, PORTRAIT_VIDEO_MODELS,
     SeedanceInputProvenanceError, SeedreamImageBatch,
     is_official_ark_endpoint, verify_original,
 )
@@ -49,8 +49,9 @@ def no_external_requests(monkeypatch):
 def providers(monkeypatch):
     config = SimpleNamespace(api_key=KEY, endpoint=ENDPOINT, model_name=SEEDREAM_PRO_MODEL)
     monkeypatch.setattr(generation, 'resolve_provider', lambda *args, **kwargs: config)
-    monkeypatch.setattr(runtime, 'resolve_provider', lambda *args, **kwargs: config)
-    monkeypatch.setattr(runtime, 'resolve_seedance_model_name', lambda *args, **kwargs: 'seedance-test')
+    monkeypatch.setattr(runtime, 'resolve_provider', lambda provider, model, **kwargs:
+        SimpleNamespace(**{**vars(config), 'model_name': model}) if provider == 'seedance' else config)
+    monkeypatch.setattr(runtime, 'resolve_seedance_model_name', lambda sub, **kwargs: PORTRAIT_VIDEO_MODELS[sub])
     return config
 
 
@@ -151,12 +152,12 @@ async def test_preflight_accepts_distinct_keys_with_same_account_binding(monkeyp
         extra={'account_binding': 'volc-account-1'},
     )
     video_config = SimpleNamespace(
-        api_key='test-payg-key', endpoint=ENDPOINT, model_name='seedance-test',
+        api_key='test-payg-key', endpoint=ENDPOINT, model_name=PORTRAIT_VIDEO_MODELS['standard'],
         extra={'account_binding': 'volc-account-1'},
     )
     monkeypatch.setattr(generation, 'resolve_provider', lambda *args, **kwargs: image_config)
     monkeypatch.setattr(runtime, 'resolve_provider', lambda *args, **kwargs: video_config)
-    monkeypatch.setattr(runtime, 'resolve_seedance_model_name', lambda *args, **kwargs: 'seedance-test')
+    monkeypatch.setattr(runtime, 'resolve_seedance_model_name', lambda sub, **kwargs: PORTRAIT_VIDEO_MODELS[sub])
     post = AsyncMock(return_value=['data:image/png;base64,' + base64.b64encode(b'original').decode()])
     monkeypatch.setattr(generation, '_post_doubao_image_generation', post)
 

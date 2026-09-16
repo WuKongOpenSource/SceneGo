@@ -4,6 +4,22 @@ import {
     submitTask,
 } from '@runtime/videoTaskService';
 
+describe('portrait variant submission', () => {
+    it.each(['standard', 'fast', 'mini'] as const)('keeps %s and original media when the portrait flag is enabled', async sub_model => {
+        const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ task_id: 'portrait' }), { status: 200 }));
+        try {
+            await submitSeedanceTask({ sub_model, prompt: 'dialogue', duration: 5, reference_mode: 'reference',
+                portrait_reference_mode: 'character_background', media_inputs: [
+                    { kind: 'image', url: '/original.png', file_id: 'file_original' },
+                    { kind: 'image', url: '/background.png', file_id: 'file_background' },
+                ] });
+            const body = JSON.parse(String(fetchSpy.mock.calls[0][1]?.body));
+            expect(body).toMatchObject({ sub_model, portrait_reference_mode: 'character_background', reference_mode: 'reference' });
+            expect(body.media_inputs[0]).toMatchObject({ url: '/original.png', file_id: 'file_original' });
+        } finally { fetchSpy.mockRestore(); }
+    });
+});
+
 describe('normalizeVideoMediaRef', () => {
     it('preserves persistent application URLs for MiniMax frames', () => {
         expect(normalizeVideoMediaRef('/storage/image/storyboard-real.png'))

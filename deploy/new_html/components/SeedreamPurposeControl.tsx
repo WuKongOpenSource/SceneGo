@@ -14,6 +14,6 @@ export function SeedreamPurposeControl({ value, onChange }: {
         <option value="pure_background">真人参考 · 纯背景（纯文生图）</option>
       </select>
     </label>
-    {value && <p className="leading-5 text-n300">单张纯文生图，不发送任何参考图片、不自动切换模型。原图保存后可用于 Seedance 2.0 标准版全能参考；需同时选人物四视图与纯背景，30 天内有效。已有素材保持不变，最终仍以上游审核为准。</p>}
+    {value && <p className="leading-5 text-n300">单张纯文生图，不发送任何参考图片、不自动切换模型。原图保存后可用于 Seedance 2.0、Fast、Mini 全能参考；需同时选人物四视图与纯背景，30 天内有效。已有素材保持不变，最终仍以上游审核为准。</p>}
   </div>;
 }

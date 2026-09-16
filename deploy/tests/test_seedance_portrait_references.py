@@ -49,14 +49,30 @@ def context(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_preserves_original_bytes_and_checks_permissions_twice(context):
+@pytest.mark.parametrize('sub_model', ['standard', 'fast', 'mini'])
+async def test_preserves_original_bytes_and_checks_permissions_twice(context, monkeypatch, sub_model):
     c = context
+    c.data['sub_model'] = sub_model
+    c.config.model_name = provenance.PORTRAIT_VIDEO_MODELS[sub_model]
+    monkeypatch.setattr(runtime, 'resolve_seedance_model_name', lambda sub, **kw: provenance.PORTRAIT_VIDEO_MODELS[sub])
     assert await policy.validate_portrait_references('seedance_multi', c.data, 'user', file_dao=c.dao) == {}
     actual = await policy.validate_portrait_references('seedance_multi', c.data, 'user', file_dao=c.dao, prepare=True)
     assert len(actual) == 2
     assert all(base64.b64decode(value.split(',')[1]) == c.content for value in actual.values())
     assert policy.require_generation_request_access.await_count == 2
     assert policy._require_current_model_access.await_count == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('sub_model', ['fast', 'mini'])
+async def test_reference_badge_and_generation_allow_only_configured_variant(context, monkeypatch, sub_model):
+    c = context
+    c.config.model_name = provenance.PORTRAIT_VIDEO_MODELS[sub_model]
+    monkeypatch.setattr(runtime, 'resolve_seedance_model_name', lambda sub, **kw: provenance.PORTRAIT_VIDEO_MODELS[sub])
+    result = await policy.portrait_reference_badge(c.rows['file_character'])
+    assert result['portrait_reference_scopes'] == ['workflow', 'studio']
+    image_config = SimpleNamespace(api_key=KEY, endpoint=ENDPOINT, model_name=MODEL)
+    assert provenance.validate_portrait_generation(image_config, MODEL, [], usage_scope='workflow') == ''
 
 
 @pytest.mark.asyncio

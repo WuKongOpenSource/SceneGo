@@ -106,6 +106,10 @@ export interface SeedanceParams {
 // Shared composer shape only; Jimeng has its own provider and submit route.
 export type SeedanceVideoModel = 'Seedance15' | 'Seedance2' | 'Seedance2Fast' | 'Seedance2Mini' | 'JimengSeedance2';
 
+export function supportsSeedancePortraitReference(subModel: SeedanceParams['sub_model']): boolean {
+  return subModel === 'standard' || subModel === 'fast' || subModel === 'mini';
+}
+
 export function prepareJimengComposerParams(params: SeedanceParams): SeedanceParams {
   // Explicit model selection changes provider controls, never source media or editorial duration.
   return { ...params, sub_model: 'jimeng_mini', reference_mode: 'reference', resolution: '720p',
@@ -632,13 +636,14 @@ export function buildVideoModelOptions(
     if (isVideoModelKey(key)) capabilityByKey.set(key, capability);
   }
 
-  return sortVideoModelOptions(fallbackModels.filter(model => !isRetiredLocalVideoModel(model)).map((model) => {
+  return sortVideoModelOptions(fallbackModels.filter(model => !isRetiredLocalVideoModel(model)
+    && (model !== 'JimengSeedance2' || capabilityByKey.has(model))).map((model) => {
     const capability = capabilityByKey.get(model);
     const published = capability?.published !== false;
     const available = Boolean(capability && published && capability.available === true);
     const runtimeLabel = formatVideoModelRuntimeLabel(capability);
     const label = formatVideoModelOptionLabel(model, capability);
-    const unavailableReason = available
+    const unavailableReason = model === 'JimengSeedance2' && !available ? '未启用' : available
       ? undefined
       : !capability
         ? isComfyUIModel(model) ? '本地节点能力尚未确认，请检查节点状态与工作流' : '后台尚未配置该模型'
@@ -677,6 +682,9 @@ export function withCurrentVideoModelOption(
   currentModel: VideoModel,
   capabilities: readonly VideoCapabilityModelLike[] | null | undefined,
 ): VideoModelOption[] {
+  if (currentModel === 'JimengSeedance2' && !capabilities?.some(item => item.key === currentModel)) {
+    return options.filter(option => option.value !== currentModel);
+  }
   if (isRetiredLocalVideoModel(currentModel)) return options.filter(option => !isRetiredLocalVideoModel(option.value));
   if (options.some(option => option.value === currentModel)) return [...options];
   const capability = (capabilities || []).find(item => item.key === currentModel);

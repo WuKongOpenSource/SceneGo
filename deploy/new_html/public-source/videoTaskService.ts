@@ -14,6 +14,7 @@ import {
   getSeedanceDurationError,
   seedanceModelForSubModel,
   seedanceSubModelForVideoModel,
+  supportsSeedancePortraitReference,
   type DashScopeVideoParams,
   type SeedanceMediaInput,
   type SeedanceParams,
@@ -321,8 +322,8 @@ export async function submitSeedanceTask(
     || getSeedanceDurationError(params.sub_model, params.duration);
   if (outputError) throw new Error(outputError);
   const mediaInputs = normalizeSeedanceMediaForSubmission(params.media_inputs, agentPlanCompat);
-  if (params.portrait_reference_mode && (params.sub_model !== 'standard' || params.reference_mode !== 'reference')) {
-    throw new Error('真人参考仅支持 Seedance 2.0 标准版全能参考，请切换模式或手动关闭真人参考。');
+  if (params.portrait_reference_mode && (!supportsSeedancePortraitReference(params.sub_model) || params.reference_mode !== 'reference')) {
+    throw new Error('仿真人参考仅支持 Seedance 2.0、Fast、Mini 的全能参考，请切换模式或手动关闭仿真人参考。');
   }
   const audioError = params.sub_model !== 'agent_plan' && seedanceAudioError(mediaInputs, params.reference_audio_policy);
   if (audioError) throw new Error(audioError);

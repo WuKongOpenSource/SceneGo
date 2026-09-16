@@ -27,7 +27,8 @@ export const VideoModelPicker: React.FC<VideoModelPickerProps> = ({
       group: isComfyUIModel(option.value) || option.provider === 'processing_cluster' ? '本地节点' : '在线 API',
       badge: isComfyUIModel(option.value) || option.provider === 'processing_cluster' ? '本地节点' : undefined,
       available: option.available,
-      unavailableReason: option.unavailableReason,
+      unavailableReason: option.value === 'JimengSeedance2' && !option.available ? '未启用' : option.unavailableReason,
+      unavailableLabel: option.value === 'JimengSeedance2' ? '未启用' : undefined,
     }))
   ), [options]);
   return (
