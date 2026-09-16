@@ -1,4 +1,4 @@
-/** Offline native-range regression. Install Playwright and its WebKit/Chromium engines first.
+/** Offline explicit-drag regression. Install Playwright and its WebKit/Chromium engines first.
  * PLAYWRIGHT_MODULE may name an existing package; CHROMIUM_CHANNEL may select installed Edge.
  * All challenges/proofs are fixtures: this never contacts or bypasses a live captcha.
  */
@@ -16,7 +16,7 @@ for (const [name, engine] of [['webkit', webkit], ['chromium', chromium]]) {
   const browser = await engine.launch({ headless: true,
     ...(name === 'chromium' && process.env.CHROMIUM_CHANNEL ? { channel: process.env.CHROMIUM_CHANNEL } : {}) });
   try {
-    for (const width of [390, 1280]) for (const action of actions) {
+    for (const width of [390, 1280]) for (const action of actions) for (const interaction of ['pointer', 'mouse-fallback', 'touch-fallback']) {
       const page = await browser.newPage({ viewport: { width, height: 900 } });
       try {
         await page.setContent('<button id="origin">登录或注册</button>');
@@ -47,19 +47,46 @@ for (const [name, engine] of [['webkit', webkit], ['chromium', chromium]]) {
         const x = box.x + 22, y = box.y + box.height / 2;
         await page.mouse.click(x, y);
         assert.equal(await page.evaluate(() => window.checks.length), 0, 'A stationary click must not consume a challenge');
-        await page.mouse.move(x, y); await page.mouse.down();
-        await page.mouse.move(x + (box.width - 44) / 2, y, { steps: 10 });
+        if (interaction === 'pointer') {
+          // Reproduce environments where the native range default never moves.
+          await range.evaluate(el => el.addEventListener('pointerdown', event => event.preventDefault(), { capture: true }));
+          await page.mouse.move(x, y); await page.mouse.down();
+          await page.mouse.move(x + (box.width - 44) / 2, y, { steps: 10 });
+        } else {
+          await range.evaluate((el, { x, y, dx, interaction }) => {
+            window.dispatchSliderInput = (type, clientX, target) => {
+              if (interaction === 'mouse-fallback') target.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, button: 0, clientX, clientY: y }));
+              else {
+                const event = new Event(type, { bubbles: true, cancelable: true });
+                const touch = { identifier: 9, clientX, clientY: y };
+                Object.defineProperties(event, { touches: { value: type === 'touchend' ? [] : [touch] }, changedTouches: { value: [touch] } });
+                target.dispatchEvent(event);
+              }
+            };
+            const touch = interaction === 'touch-fallback';
+            window.dispatchSliderInput(touch ? 'touchstart' : 'mousedown', x, el);
+            window.dispatchSliderInput(touch ? 'touchmove' : 'mousemove', x + dx, window);
+          }, { x, y, dx: (box.width - 44) / 2, interaction });
+        }
         const moved = Number(await range.inputValue());
-        assert(moved >= 129 && moved <= 135, `${name}: native range did not follow the drag (${moved})`);
-        // Native thumb continues receiving events; release can happen outside the track.
-        await page.mouse.move(x + (box.width - 44) / 2, box.y - 12);
-        await page.mouse.up();
+        assert(moved >= 129 && moved <= 135, `${name}/${interaction}: range did not follow the drag (${moved})`);
+        if (interaction === 'pointer') {
+          await page.mouse.move(x + (box.width - 44) / 2, box.y - 12);
+          await page.mouse.up();
+        } else await page.evaluate(({ type, x }) => window.dispatchSliderInput(type, x, window), {
+          type: interaction === 'mouse-fallback' ? 'mouseup' : 'touchend', x: x + (box.width - 44) / 2,
+        });
         await page.waitForFunction(() => window.checks.length === 1);
         assert.equal(await range.isDisabled(), true, 'Consumed challenges must remain unusable');
         assert.deepEqual(await page.evaluate(() => window.checks[0]), { action, challenge_id: 'B'.repeat(43), x: moved });
         await page.locator('[data-refresh]').click();
         await page.waitForFunction(() => !document.querySelector('[data-slider]').disabled);
         assert.equal(await range.inputValue(), '0');
+        // A cancelled gesture must not consume a fresh challenge.
+        await range.dispatchEvent('pointerdown', { pointerId: 22, isPrimary: true, button: 0, clientX: x });
+        await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+        await page.evaluate(() => window.dispatchEvent(new PointerEvent('pointerup', { pointerId: 22, clientX: 1000 })));
+        assert.equal(await page.evaluate(() => window.checks.length), 1);
         await range.press('ArrowRight');
         await range.press('Enter');
         await page.waitForFunction(() => Boolean(window.proof));
@@ -69,7 +96,7 @@ for (const [name, engine] of [['webkit', webkit], ['chromium', chromium]]) {
         cases++;
       } finally { await page.close(); }
     }
-    console.log(`${name}: native drag, outside release, no-move click, failure refresh and keyboard confirmation passed`);
+    console.log(`${name}: explicit pointer/mouse/touch drag, outside release, cancellation, no-move click, failure refresh and keyboard confirmation passed`);
   } finally { await browser.close(); }
 }
 console.log(`Slider browser regression passed: ${cases} cases; no live API requests`);

@@ -76,7 +76,7 @@ async def test_reference_badge_and_generation_allow_only_configured_variant(cont
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize('bad', ['i2i', 'old', 'unknown_model', 'purpose_tamper', 'expired', 'sha', 'account', 'permission', 'missing', 'url', 'base64', 'fast', 'first_last', 'video', 'one_purpose', 'model_redirect'])
+@pytest.mark.parametrize('bad', ['i2i', 'unknown_model', 'purpose_tamper', 'expired', 'sha', 'account', 'permission', 'missing', 'url', 'base64', 'fast', 'first_last', 'video', 'model_redirect'])
 async def test_rejects_invalid_references(context, monkeypatch, bad):
     c = context
     row = c.rows['file_character']
@@ -86,7 +86,6 @@ async def test_rejects_invalid_references(context, monkeypatch, bad):
         signed = row['metadata'][provenance.PROVENANCE_KEY]
         signed['purpose'] = 'character_four_view'
         signed['signature'] = provenance._signature({k: v for k, v in signed.items() if k != 'signature'}, KEY)
-    elif bad == 'old': row['metadata'] = c.metadata(None)
     elif bad == 'unknown_model': row['metadata'] = c.metadata(None, model_verified=False)
     elif bad == 'purpose_tamper': row['metadata'][provenance.PROVENANCE_KEY]['purpose'] = 'pure_background'
     elif bad == 'expired': row['metadata'] = c.metadata('character_four_view', created_at=int(time.time()) - provenance.TRUST_SECONDS)
@@ -95,11 +94,12 @@ async def test_rejects_invalid_references(context, monkeypatch, bad):
     elif bad == 'permission': policy.require_generation_request_access.side_effect = policy.GenerationAccessDenied()
     elif bad == 'missing': del c.rows['file_character']
     elif bad == 'url': c.data['media_inputs'][0]['url'] = 'file_background'
-    elif bad == 'base64': c.data['media_inputs'][0].pop('file_id')
+    elif bad == 'base64':
+        c.data['media_inputs'][0].pop('file_id')
+        c.data['media_inputs'][0]['url'] = 'data:image/png;base64,AA'
     elif bad == 'fast': c.data['sub_model'] = 'fast'
     elif bad == 'first_last': c.data['media_inputs'][0]['role'] = 'first_frame'
     elif bad == 'video': c.data['media_inputs'].append(dict(kind='video', url='video.mp4'))
-    elif bad == 'one_purpose': row['metadata'] = c.metadata('pure_background')
     elif bad == 'model_redirect': c.config.model_name = 'doubao-seedance-1.5-pro'
     with pytest.raises(provenance.SeedanceInputProvenanceError):
         await policy.validate_portrait_references('seedance_multi', c.data, 'user', file_dao=c.dao, prepare=True)
@@ -202,7 +202,7 @@ async def test_reference_star_checks_original_and_current_scope_without_generati
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize('bad', ['i2i', 'upload', 'unsigned', 'unknown', 'expired', 'sha', 'missing', 'unprotected', 'account', 'redirect'])
+@pytest.mark.parametrize('bad', ['i2i', 'upload', 'unsigned', 'unknown', 'expired', 'sha', 'missing', 'account', 'redirect'])
 async def test_reference_star_fails_closed(context, monkeypatch, bad):
     c = context
     row = c.rows['file_character']
@@ -213,10 +213,107 @@ async def test_reference_star_fails_closed(context, monkeypatch, bad):
     elif bad == 'expired': row['metadata'] = c.metadata(None, created_at=int(time.time()) - provenance.TRUST_SECONDS)
     elif bad == 'sha': monkeypatch.setattr(policy, '_read_local_record', lambda *a, **kw: b'changed')
     elif bad == 'missing': row = None
-    elif bad == 'unprotected': row['metadata'] = c.metadata(None, protected=False)
     elif bad == 'account': c.config.api_key = 'test-another-key'
     elif bad == 'redirect': c.config.model_name = 'doubao-seedance-1.5-pro'
-    assert await policy.portrait_reference_badge(row) == {}
+    result = await policy.portrait_reference_badge(row)
+    assert not result.get('portrait_reference_scopes')
+    assert result['portrait_reference_status'] in {'unsupported', 'unverified'}
+    assert result['portrait_reference_reason']
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('legacy', [False, True])
+async def test_registered_url_only_historical_originals_share_badge_and_submission_policy(context, monkeypatch, legacy):
+    import copy
+    c = context
+    for row in c.rows.values():
+        row['metadata'] = c.metadata(None, protected=False)
+        row['metadata'].update(source='doubao', model=MODEL, reference_snapshot=[])
+        if legacy:
+            proof = row['metadata'][provenance.PROVENANCE_KEY]
+            proof.pop('model_verified')
+            proof['signature'] = provenance._signature({k: v for k, v in proof.items() if k != 'signature'}, KEY)
+    original_records = copy.deepcopy(c.rows)
+    c.data['media_inputs'] = [dict(kind='image', url='/original/'+key) for key in c.rows]
+    monkeypatch.setattr(policy, 'resolve_media_file_record', AsyncMock(side_effect=lambda ref, dao: c.rows.get(ref.rsplit('/', 1)[-1])))
+    for row in c.rows.values():
+        badge = await policy.portrait_reference_badge(row, sub_model='standard')
+        assert badge['portrait_reference_status'] == 'eligible'
+        assert badge['file_id'] == row['file_id']
+    prepared = await policy.validate_portrait_references('seedance_multi', c.data, 'user', file_dao=c.dao, prepare=True)
+    assert [item['file_id'] for item in c.data['media_inputs']] == list(c.rows)
+    assert all(base64.b64decode(item.split(',')[1]) == c.content for item in prepared.values())
+    assert c.rows == original_records
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('bad', ['missing_snapshot', 'different_model', 'explicit_false', 'signature'])
+async def test_legacy_compatibility_does_not_invent_trust(context, bad):
+    c = context
+    row = c.rows['file_character']
+    row['metadata'] = c.metadata(None, protected=False)
+    row['metadata'].update(source='doubao', model=MODEL, reference_snapshot=[])
+    proof = row['metadata'][provenance.PROVENANCE_KEY]
+    proof.pop('model_verified')
+    if bad == 'explicit_false': proof['model_verified'] = False
+    proof['signature'] = provenance._signature({k: v for k, v in proof.items() if k != 'signature'}, KEY)
+    if bad == 'signature': proof['signature'] = '0' * 64
+    if bad == 'missing_snapshot': row['metadata'].pop('reference_snapshot')
+    if bad == 'different_model': row['metadata']['model'] = 'unknown'
+    assert (await policy.portrait_reference_badge(row))['portrait_reference_status'] == 'unverified'
+    with pytest.raises(provenance.SeedanceInputProvenanceError):
+        await policy.validate_portrait_references('seedance_multi', c.data, 'user', file_dao=c.dao)
+
+
+@pytest.mark.asyncio
+async def test_failed_request_never_partially_rewrites_client_inputs(context):
+    import copy
+    c = context
+    c.data['media_inputs'][0].pop('file_id')
+    c.rows['file_background']['metadata'] = {'source': 'uploaded'}
+    before = copy.deepcopy(c.data)
+    with pytest.raises(provenance.SeedanceInputProvenanceError, match='图片2'):
+        await policy.validate_portrait_references('seedance_multi', c.data, 'user', file_dao=c.dao)
+    assert c.data == before
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('binding_case', ['same', 'missing', 'different', 'wrong_image_key', 'unofficial', 'v2_tamper'])
+async def test_legacy_image_key_requires_explicit_matching_account_binding(context, monkeypatch, binding_case):
+    import copy
+    c = context
+    c.config.api_key = 'test-video-key'
+    c.config.extra = {'account_binding': 'account-a'}
+    image = SimpleNamespace(api_key=KEY, endpoint=ENDPOINT, model_name=MODEL, extra={'account_binding': 'account-a'})
+    if binding_case == 'missing': image.extra = {}
+    if binding_case == 'different': image.extra = {'account_binding': 'account-b'}
+    if binding_case == 'wrong_image_key': image.api_key = 'test-wrong-key'
+    if binding_case == 'unofficial': image.endpoint = 'https://untrusted.invalid/api/v3'
+    if binding_case == 'v2_tamper': c.rows['file_character']['metadata'][provenance.PROVENANCE_KEY]['version'] = 2
+    monkeypatch.setattr(runtime, 'resolve_provider', lambda provider, *a, **kw: image if provider == 'doubao' else c.config)
+    originals = copy.deepcopy(c.rows)
+    badge = await policy.portrait_reference_badge(c.rows['file_character'], sub_model='standard')
+    if binding_case == 'same':
+        assert badge['portrait_reference_status'] == 'eligible'
+        await policy.validate_portrait_references('seedance_multi', c.data, 'user', file_dao=c.dao, prepare=True)
+    else:
+        assert badge['portrait_reference_status'] == 'unverified'
+        with pytest.raises(provenance.SeedanceInputProvenanceError):
+            await policy.validate_portrait_references('seedance_multi', c.data, 'user', file_dao=c.dao, prepare=True)
+    assert c.rows == originals
+
+
+@pytest.mark.asyncio
+async def test_badge_checks_selected_variant_not_another_working_model(context, monkeypatch):
+    c = context
+    original = policy.resolve_portrait_video_config
+    def selected(sub_model, **kwargs):
+        if sub_model == 'mini':
+            raise provenance.SeedanceInputProvenanceError('当前 Mini 配置不可用')
+        return original(sub_model, **kwargs)
+    monkeypatch.setattr(policy, 'resolve_portrait_video_config', selected)
+    assert (await policy.portrait_reference_badge(c.rows['file_character']))['portrait_reference_status'] == 'eligible'
+    assert (await policy.portrait_reference_badge(c.rows['file_character'], sub_model='mini'))['portrait_reference_status'] == 'unverified'
 
 
 @pytest.mark.asyncio

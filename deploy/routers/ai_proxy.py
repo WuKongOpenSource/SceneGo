@@ -786,7 +786,7 @@ def create_ai_proxy_router(
                 metadata = (record or {}).get("metadata")
                 result[reference] = {**image_generation_source(metadata), **verified_text_to_image_source(metadata)}
                 if request.include_portrait_eligibility:
-                    result[reference].update(await portrait_reference_badge(record))
+                    result[reference].update(await portrait_reference_badge(record, sub_model=request.portrait_sub_model))
             except HTTPException as exc:
                 if exc.status_code not in (403, 404):
                     raise

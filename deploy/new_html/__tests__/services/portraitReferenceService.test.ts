@@ -17,20 +17,24 @@ describe('portrait reference eligibility preflight', () => {
   it('uses verified eligibility instead of a model name, retaining valid originals and audio', async () => {
     vi.mocked(apiJson).mockResolvedValue({ items: {
       '/hero': eligible(), '/background': eligible({ purpose: 'pure_background' }),
-      '/gemini': { display_label: 'Gemini · 文生图', generation_mode: 'text_to_image' },
-      '/seedream-i2i': { display_label: 'Seedream 5.0 Lite · 图生图', generation_mode: 'image_to_image' },
-      '/upload': {}, '/expired': eligible({ portrait_reference_expires_at: 1 }),
-      '/other-scope': eligible({ portrait_reference_scopes: ['studio'] }),
+      '/gemini': { portrait_reference_status: 'unsupported', portrait_reference_reason: '非 Seedream 原图' },
+      '/seedream-i2i': { portrait_reference_status: 'unsupported', portrait_reference_reason: '图生图' },
+      '/upload': { portrait_reference_status: 'unsupported' },
+      '/ordinary': eligible(),
+      '/url-only': eligible({ file_id: 'file_resolved' }),
       '/no-purpose': eligible({ purpose: undefined }),
     } });
-    const value = params(['/hero', '/background', '/gemini', '/seedream-i2i', '/upload', '/expired', '/other-scope', '/no-purpose']);
+    const value = params(['/hero', '/background', '/gemini', '/seedream-i2i', '/upload', '/ordinary', '/url-only', '/no-purpose']);
     value.media_inputs.push({ kind: 'video', url: '/video' }, { kind: 'audio', url: '/voice' });
-    expect(await check(value)).toEqual({ unsupportedIndices: [2, 3, 4, 5, 6, 7, 8],
+    const checked = await check(value);
+    expect(checked).toMatchObject({ unsupportedIndices: [2, 3, 4, 8],
       expiresAt: (Math.floor(Date.now() / 1000) + 300) * 1000 });
     expect(JSON.parse(vi.mocked(apiJson).mock.calls[0][1]!.body as string)).toEqual({
-      references: value.media_inputs.slice(0, 8).map(item => item.url), include_portrait_eligibility: true,
+      references: value.media_inputs.slice(0, 8).map(item => item.url), include_portrait_eligibility: true, portrait_sub_model: 'mini',
     });
     expect(value.media_inputs).toHaveLength(10);
+    expect(checked.normalizedInputs?.[6].file_id).toBe('file_resolved');
+    expect(value.media_inputs[6].file_id).toBeUndefined();
   });
 
   it('deduplicates registered file ids, rejects temporary images, and supports studio scope', async () => {
@@ -51,6 +55,13 @@ describe('portrait reference eligibility preflight', () => {
     vi.mocked(apiJson).mockRejectedValue(new Error('offline'));
     await expect(check(params(['/image']))).rejects.toThrow('offline');
   });
+
+  it.each([{}, { portrait_reference_status: 'unverified', portrait_reference_reason: '账号绑定未核实' },
+    eligible({ portrait_reference_expires_at: 1 }), eligible({ portrait_reference_scopes: ['studio'] })])(
+    'does not offer unknown, expired, or wrongly configured images for removal', async source => {
+      vi.mocked(apiJson).mockResolvedValue({ items: { '/image': source } });
+      await expect(check(params(['/image']))).rejects.toThrow('所有素材保持不变');
+    });
 
   it('checks original URLs for legacy UI-only ids, just like the submission normalizer', async () => {
     vi.mocked(apiJson).mockResolvedValue({ items: { '/original': eligible(), '/other': eligible() } });

@@ -100,15 +100,15 @@ describe('portrait reference removal consent', () => {
     expect(checkPortraitReferenceInputs).toHaveBeenCalledTimes(1);
   });
 
-  it('can confirm removal of every unsupported image, leaving audio and editable text', async () => {
+  it('never offers to clear every image, preserving audio, prompt and the unchecked mode', async () => {
     vi.mocked(checkPortraitReferenceInputs).mockResolvedValue(result([0, 1, 3, 4, 5]));
     render(<Harness />);
     fireEvent.click(screen.getByLabelText(checkboxLabel));
-    const dialog = await screen.findByRole('dialog');
-    fireEvent.click(within(dialog).getByRole('button', { name: '确定' }));
-    expect(saved().media_inputs).toEqual([initial.media_inputs[2]]);
-    expect(saved().prompt).toContain('音频1');
-    expect(screen.getByLabelText(checkboxLabel)).toBeChecked();
+    expect(await screen.findByRole('alert')).toHaveTextContent('所有素材和提示词保持不变');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(saved()).toEqual(initial);
+    expect(changed).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(checkboxLabel)).not.toBeChecked();
   });
 
   it('leaves everything unchanged if the server check fails', async () => {
@@ -119,6 +119,28 @@ describe('portrait reference removal consent', () => {
     expect(screen.getByLabelText(checkboxLabel)).not.toBeChecked();
     expect(saved()).toEqual(initial);
     expect(changed).not.toHaveBeenCalled();
+  });
+
+  it('does not delete when only one image would remain', async () => {
+    vi.mocked(checkPortraitReferenceInputs).mockResolvedValue(result([1, 3, 4, 5]));
+    render(<Harness />);
+    fireEvent.click(screen.getByLabelText(checkboxLabel));
+    expect(await screen.findByRole('alert')).toHaveTextContent('不足 2 张');
+    expect(saved()).toEqual(initial);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('preserves all five historical originals and applies only resolved file identities', async () => {
+    const start: SeedanceParams = { ...initial, prompt: '场景图片1 图片2；人物图片3 图片4 图片5',
+      media_inputs: Array.from({ length: 5 }, (_, i) => ({ kind: 'image', url: `/original-${i + 1}` })) };
+    const normalizedInputs = start.media_inputs.map((item, i) => ({ ...item, file_id: `file_original_${i + 1}` }));
+    vi.mocked(checkPortraitReferenceInputs).mockResolvedValue({ ...result([]), normalizedInputs });
+    render(<Harness start={start} />);
+    fireEvent.click(screen.getByLabelText(checkboxLabel));
+    await waitFor(() => expect(screen.getByLabelText(checkboxLabel)).toBeChecked());
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(saved().media_inputs).toEqual(normalizedInputs);
+    expect(saved().prompt).toBe(start.prompt);
   });
 
   it('prevents duplicate checks and rejects a result for references changed while checking', async () => {

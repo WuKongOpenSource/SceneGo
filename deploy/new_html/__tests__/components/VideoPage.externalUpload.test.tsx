@@ -266,7 +266,7 @@ describe('VideoPage external video persistence', () => {
           ref === 'file_hero' || ref === 'file_bg' ? {
             purpose: ref === 'file_hero' ? 'character_four_view' : 'pure_background',
             portrait_reference_scopes: ['workflow'], portrait_reference_expires_at: Date.now() / 1000 + 3600,
-          } : {},
+          } : { portrait_reference_status: 'unsupported', portrait_reference_reason: '不是 Seedream 文生图原图' },
         ]),
       ) } : { success: true, tasks: [], models: [], balance: 1000 },
     }));
@@ -289,6 +289,41 @@ describe('VideoPage external video persistence', () => {
     const checkbox = await screen.findByLabelText('生成仿真人视频（人物四视图 + 纯背景）');
     expect((checkbox as HTMLInputElement).checked).toBe(confirmRemoval);
     expect(screen.getByTestId('seedance-reference-strip').querySelectorAll('img')).toHaveLength(confirmRemoval ? 2 : 3);
+    expect(fetchMock.mock.calls.some(([url, options]) => String(url).endsWith('/api/generate') || options?.method === 'DELETE')).toBe(false);
+  });
+
+  it('preserves five historical originals and canonical IDs through portrait enable and reload', async () => {
+    const params = { sub_model: 'mini' as const, reference_mode: 'reference' as const,
+      prompt: '原提示词 图片1 图片3 图片4 图片5 图片2', duration: 11,
+      media_inputs: Array.from({ length: 5 }, (_, i) => ({ kind: 'image' as const, url: `/original-${i}.png` })) };
+    const history = { state: 'failed' as const, error: '旧校验失败', pendingVideoPrompt: params.prompt };
+    vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: {
+      ...emptySession, task_groups: [{ uuid: 'card', ids: ['i'], model: 'Seedance2Mini' }],
+      uploaded_images: [{ id: 'i', url: '/original-0.png', filename: 'original.png', uploadTime: 0 }],
+      seedance_params: { card: params }, tasks_status: { card: history },
+    } });
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => ({
+      ok: true, status: 200, headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => url.endsWith('/api/materials/seedream-source') ? { items: Object.fromEntries(
+        JSON.parse(init!.body as string).references.map((ref: string) => [ref, {
+          portrait_reference_status: 'eligible', file_id: `original_${ref.match(/\d+/)?.[0]}`,
+          portrait_reference_scopes: ['workflow'], portrait_reference_expires_at: Date.now() / 1000 + 3600,
+        }]),
+      ) } : { success: true, tasks: [], models: [], balance: 1000 },
+    }));
+    const view = render(<VideoPage sessionScope="ep-1" episodeId="ep-1" />);
+    fireEvent.click(await screen.findByLabelText('生成仿真人视频（人物四视图 + 纯背景）'));
+    await waitFor(() => expect(vi.mocked(saveWorkspaceSession).mock.calls.at(-1)?.[0].seedance_params?.card)
+      .toMatchObject({ prompt: params.prompt, portrait_reference_mode: 'character_background',
+        media_inputs: params.media_inputs.map((item, i) => ({ ...item, file_id: `original_${i}` })) }));
+    expect(screen.queryByRole('dialog', { name: '移除不支持的参考素材？' })).not.toBeInTheDocument();
+    const persisted = vi.mocked(saveWorkspaceSession).mock.calls.at(-1)![0];
+    expect(persisted.tasks_status.card).toMatchObject(history);
+    view.unmount();
+    vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: JSON.parse(JSON.stringify(persisted)) });
+    render(<VideoPage sessionScope="ep-1" episodeId="ep-1" />);
+    expect(await screen.findByLabelText('生成仿真人视频（人物四视图 + 纯背景）')).toBeChecked();
+    expect(screen.getByTestId('seedance-reference-strip').querySelectorAll('img')).toHaveLength(5);
     expect(fetchMock.mock.calls.some(([url, options]) => String(url).endsWith('/api/generate') || options?.method === 'DELETE')).toBe(false);
   });
 

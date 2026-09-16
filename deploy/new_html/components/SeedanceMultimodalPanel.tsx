@@ -91,9 +91,16 @@ export const SeedanceMultimodalPanel: React.FC<Props> = ({
             setError('素材或模式已变化，或素材已过期，请重新勾选并检查。');
             return;
         }
+        const remainingImages = current.current.media_inputs.filter((item, index) => item.kind === 'image' && !check.unsupportedIndices.includes(index)).length;
+        if (remainingImages < 2) {
+            setError('通过校验的图片不足 2 张，未启用仿真人模式，所有素材和提示词保持不变。');
+            return;
+        }
         // Remove from the end so surviving mention numbers still refer to the same originals.
         const next = [...check.unsupportedIndices].sort((a, b) => b - a)
-            .reduce((params, index) => removeMediaInput(params, index), current.current);
+            .reduce((params, index) => removeMediaInput(params, index), {
+                ...current.current, media_inputs: check.normalizedInputs || current.current.media_inputs,
+            });
         onChange({ ...next, reference_mode: 'reference', portrait_reference_mode: 'character_background' });
     };
     const togglePortraitMode = async (enabled: boolean) => {
@@ -117,16 +124,21 @@ export const SeedanceMultimodalPanel: React.FC<Props> = ({
                 setError('素材或模式已变化，请重新勾选并检查。');
                 return;
             }
+            if (snapshot.media_inputs.filter((item, index) => item.kind === 'image' && !check.unsupportedIndices.includes(index)).length < 2) {
+                setError('通过校验的图片不足 2 张，未启用仿真人模式，所有素材和提示词保持不变。');
+                return;
+            }
             if (check.unsupportedIndices.length) {
                 const labels = check.unsupportedIndices.map(index => {
                     const kind = snapshot.media_inputs[index].kind;
                     const rank = snapshot.media_inputs.slice(0, index + 1).filter(item => item.kind === kind).length;
-                    return `${kind === 'image' ? '图片' : '视频'}${rank}`;
+                    return `${kind === 'image' ? '图片' : '视频'}${rank}${check.unsupportedReasons?.[index] ? `（${check.unsupportedReasons[index]}）` : ''}`;
                 });
                 setPortraitConfirmation({ ...check, key, labels });
             } else applyPortraitMode({ ...check, key });
-        } catch {
-            if (!controller.signal.aborted) setError('参考素材检查失败，请重试。未启用仿真人模式，素材保持不变。');
+        } catch (cause) {
+            if (!controller.signal.aborted) setError(cause instanceof Error && cause.message.includes('所有素材保持不变')
+                ? cause.message : '参考素材检查失败，请重试。未启用仿真人模式，素材保持不变。');
         } finally {
             if (!controller.signal.aborted) setPortraitChecking(false);
             if (portraitRequest.current === controller) portraitRequest.current = null;
@@ -271,7 +283,7 @@ export const SeedanceMultimodalPanel: React.FC<Props> = ({
                 <span>生成仿真人视频（人物四视图 + 纯背景）</span>
               </label>
               {portraitChecking && <p role="status" className="pl-[22px] text-[10px] leading-4 text-n300">正在检查参考素材…</p>}
-              {value.portrait_reference_mode && <p className="pl-[22px] text-[10px] leading-4 text-n300">支持 Seedance 2.0、Fast、Mini 全能参考；请选择 30 天内的专用文生图原图。图生图、上传图和参考视频不可用；移除不支持的素材需先确认，不删除原图。</p>}
+              {value.portrait_reference_mode && <p className="pl-[22px] text-[10px] leading-4 text-n300">支持 Seedance 2.0、Fast、Mini 全能参考；请选择同账号 30 天内通过来源校验的 Seedream 文生图原图。图生图、上传图和参考视频不可用；来源未核实不移除，不删除原图。</p>}
             </div>}
             {mode === 'reference' && value.media_inputs.length > 0 && <div className="flex h-12 min-h-12 w-full shrink-0 flex-nowrap items-center gap-1.5 overflow-x-auto overflow-y-hidden pb-1" data-testid="seedance-reference-strip" aria-label="已选参考素材">
                 {value.media_inputs.map((item, index) => <div key={`${item.url}-${index}`} className="flex h-10 shrink-0 items-center gap-1 overflow-hidden rounded-lg border border-n40 bg-n20/50 px-1 py-0.5 text-[9px]">

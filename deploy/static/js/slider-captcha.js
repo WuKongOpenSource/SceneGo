@@ -29,30 +29,98 @@
             overlay.querySelector('[data-close]').onclick = () => this.cancel();
             overlay.querySelector('[data-refresh]').onclick = () => void this.load();
             overlay.querySelector('[data-confirm]').onclick = () => void this.check();
-            this.range.oninput = () => {
+            const renderPosition = () => {
                 if (this.challenge) overlay.querySelector('[data-piece]').style.left = `${Number(this.range.value) / this.challenge.width * 100}%`;
             };
-            this.range.onpointerdown = event => {
-                if (this.range.disabled || event.button !== 0 || event.isPrimary === false) return;
-                this.pointerId = event.pointerId;
-                this.dragValue = this.range.value;
-                // Native range thumbs own their drag. Capturing on the input
-                // steals WebKit's internal thumb events and leaves its value at 0.
+            this.range.oninput = renderPosition;
+            const cancelDrag = () => {
+                const drag = this.drag;
+                this.drag = null;
+                if (drag?.kind === 'pointer' && this.range.hasPointerCapture?.(drag.id)) {
+                    this.range.releasePointerCapture(drag.id);
+                }
             };
-            const finishDrag = event => {
-                if (this.pointerId !== event.pointerId) return;
-                this.pointerId = null;
-                if (this.range.value !== this.dragValue) void this.check();
+            const beginDrag = (event, kind, id, clientX) => {
+                if (this.range.disabled || !this.challenge || this.drag) return;
+                // Own the position update instead of relying on WebKit's native
+                // range-thumb drag. Its default handling varies across Safari.
+                event.preventDefault();
+                this.range.focus();
+                const rect = this.range.getBoundingClientRect();
+                const style = getComputedStyle(this.range);
+                const thumb = parseFloat(style.getPropertyValue('--slider-thumb-size')) || 42;
+                const border = parseFloat(style.borderLeftWidth) || 0;
+                const travel = Math.max(1, rect.width - border * 2 - thumb);
+                const value = Number(this.range.value);
+                const center = rect.left + border + thumb / 2 + value / Number(this.range.max) * travel;
+                const startValue = Math.abs(clientX - center) <= thumb / 2 ? value
+                    : Math.max(0, Math.min(Number(this.range.max), (clientX - rect.left - border - thumb / 2) / travel * Number(this.range.max)));
+                this.drag = { kind, id, startX: clientX, startValue, initialValue: value, travel, moved: false };
+                this.range.value = String(Math.round(startValue));
+                renderPosition();
+                if (kind === 'pointer') {
+                    try { this.range.setPointerCapture(id); } catch { /* Window listeners still handle release. */ }
+                }
             };
-            const cancelDrag = () => { this.pointerId = null; };
-            // Listen at window level so releasing outside the control also ends
-            // the interaction, without overriding native mouse/touch dragging.
-            window.addEventListener('pointerup', finishDrag);
+            const moveDrag = (event, kind, id, clientX) => {
+                const drag = this.drag;
+                if (!drag || drag.kind !== kind || drag.id !== id) return;
+                if (event.cancelable) event.preventDefault();
+                if (Math.abs(clientX - drag.startX) >= 3) drag.moved = true;
+                const value = drag.startValue + (clientX - drag.startX) / drag.travel * Number(this.range.max);
+                this.range.value = String(Math.round(Math.max(0, Math.min(Number(this.range.max), value))));
+                renderPosition();
+            };
+            const finishDrag = (event, kind, id, clientX) => {
+                const drag = this.drag;
+                if (!drag || drag.kind !== kind || drag.id !== id) return;
+                moveDrag(event, kind, id, clientX);
+                const shouldCheck = drag.moved && Number(this.range.value) !== drag.initialValue;
+                cancelDrag();
+                if (shouldCheck) void this.check();
+            };
+            const pointerDown = event => {
+                if (event.button === 0 && event.isPrimary !== false) beginDrag(event, 'pointer', event.pointerId, event.clientX);
+            };
+            const pointerMove = event => moveDrag(event, 'pointer', event.pointerId, event.clientX);
+            const pointerUp = event => finishDrag(event, 'pointer', event.pointerId, event.clientX);
+            // Mouse/touch fallbacks also work when a browser exposes PointerEvent
+            // but does not deliver it to a native range input.
+            const mouseDown = event => { if (event.button === 0) beginDrag(event, 'mouse', 0, event.clientX); };
+            const mouseMove = event => moveDrag(event, 'mouse', 0, event.clientX);
+            const mouseUp = event => finishDrag(event, 'mouse', 0, event.clientX);
+            const touchDown = event => {
+                if (event.touches.length === 1) beginDrag(event, 'touch', event.touches[0].identifier, event.touches[0].clientX);
+            };
+            const touchMove = event => {
+                for (const touch of event.changedTouches) moveDrag(event, 'touch', touch.identifier, touch.clientX);
+            };
+            const touchUp = event => {
+                for (const touch of event.changedTouches) finishDrag(event, 'touch', touch.identifier, touch.clientX);
+            };
+            this.range.addEventListener('pointerdown', pointerDown);
+            this.range.addEventListener('mousedown', mouseDown);
+            this.range.addEventListener('touchstart', touchDown, { passive: false });
+            window.addEventListener('pointermove', pointerMove);
+            window.addEventListener('pointerup', pointerUp);
             window.addEventListener('pointercancel', cancelDrag);
+            window.addEventListener('mousemove', mouseMove);
+            window.addEventListener('mouseup', mouseUp);
+            window.addEventListener('touchmove', touchMove, { passive: false });
+            window.addEventListener('touchend', touchUp);
+            window.addEventListener('touchcancel', cancelDrag);
             window.addEventListener('blur', cancelDrag);
+            this.cancelDrag = cancelDrag;
             this.cleanupDrag = () => {
-                window.removeEventListener('pointerup', finishDrag);
+                cancelDrag();
+                window.removeEventListener('pointermove', pointerMove);
+                window.removeEventListener('pointerup', pointerUp);
                 window.removeEventListener('pointercancel', cancelDrag);
+                window.removeEventListener('mousemove', mouseMove);
+                window.removeEventListener('mouseup', mouseUp);
+                window.removeEventListener('touchmove', touchMove);
+                window.removeEventListener('touchend', touchUp);
+                window.removeEventListener('touchcancel', cancelDrag);
                 window.removeEventListener('blur', cancelDrag);
             };
             overlay.onkeydown = event => {
@@ -91,7 +159,7 @@
         async load() {
             if (!this.pending || this.loading || this.checking) return;
             this.loading = true;
-            this.pointerId = null;
+            this.cancelDrag?.();
             this.challenge = null;
             this.range.disabled = true;
             this.overlay.querySelector('[data-confirm]').disabled = true;
@@ -153,7 +221,8 @@
             } catch (error) {
                 if (this.pending && generation === this.generation) {
                     this.challenge = null;
-                    this.status.textContent = error.message || '验证失败，请换一张重试';
+                    this.status.textContent = `${error.message || '验证失败'}；本张已失效，请点击“换一张”后重新拖动。`;
+                    this.overlay.querySelector('[data-refresh]').textContent = '换一张重试';
                 }
             } finally {
                 if (this.pending && generation === this.generation) {
@@ -176,7 +245,7 @@
             this.challenge = null;
             this.loading = false;
             this.checking = false;
-            this.pointerId = null;
+            this.drag = null;
             if (previousFocus?.isConnected) previousFocus.focus();
         }
 
