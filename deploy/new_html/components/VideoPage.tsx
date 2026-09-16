@@ -82,7 +82,11 @@ import {
 import { AppView, TaskNotification } from '../types';
 import type { VideoVoiceReference, MaterialLibrary } from '../types';
 import { ProjectMaterialPicker, useProjectMaterialPicker, type ProjectMaterialPickerItem } from './ProjectMaterialPicker';
-import { applyVideoProjectMaterial, getVideoCardImages, withVideoCardCandidates, includeVideoCardReferences } from '../utils/videoProjectMaterial';
+import {
+    applyVideoProjectMaterial, getVideoCardImages, getVideoCardSourceImage, withVideoCardSourceImage,
+    removeVideoCardImage, removeVideoImageReferences, persistVideoCardSources,
+    withVideoCardCandidates, includeVideoCardReferences,
+} from '../utils/videoProjectMaterial';
 import {
     getCardHeightClass,
     CARD_MEDIA_HEIGHT_CLASS,
@@ -783,7 +787,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         if (existing) return existing;
 
         // Seedance cards must persist the visible storyboard image as a reference input.
-        const linkedImages = uploadedImages.filter(img =>
+        const linkedImages = uploadedImages.map(img => group ? getVideoCardSourceImage(group, img.id, uploadedImages)! : img).filter(img =>
             img.url
             && !img.isPlaceholder
             && (
@@ -793,12 +797,12 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         );
         const agentPlan = isSeedanceAgentPlanModel(model);
         const selectedLinkedImages = agentPlan ? linkedImages.slice(0, 2) : linkedImages;
-        const seedMedia: SeedanceMediaInput[] = selectedLinkedImages.map((img, index) => ({
+        const seedMedia: SeedanceMediaInput[] = selectedLinkedImages.map(img => ({
             kind: 'image',
             url: img.storageUrl || img.url,
             ...(img.fileId ? { file_id: img.fileId } : {}),
             role: agentPlan
-                ? (index === 0 ? 'first_frame' : 'last_frame')
+                ? (group?.ids.indexOf(img.id) === 1 ? 'last_frame' : 'first_frame')
                 : 'reference_image',
         }));
 
@@ -873,7 +877,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             return prompt === existing.prompt ? existing : { ...existing, prompt };
         }
         const isPair = (group?.ids?.length || 0) === 2 && !group?.mergedFrom?.length;
-        const linkedImages = uploadedImages.filter(img =>
+        const linkedImages = uploadedImages.map(img => group ? getVideoCardSourceImage(group, img.id, uploadedImages)! : img).filter(img =>
             img.url
             && !img.isPlaceholder
             && (
@@ -906,11 +910,11 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 file_id: fileIdOf(img),
                 role: 'reference_image' as const,
             }));
-        } else if (isPair && orderedImgs.length >= 2) {
-            seedMedia = [
-                { kind: 'image', url: orderedImgs[0].url, file_id: fileIdOf(orderedImgs[0]), role: 'first_frame' },
-                { kind: 'image', url: orderedImgs[1].url, file_id: fileIdOf(orderedImgs[1]), role: 'last_frame' },
-            ];
+        } else if (isPair) {
+            seedMedia = (group?.ids || []).flatMap<SeedanceMediaInput>((id, index) => {
+                const image = linkedImages.find(img => img.id === id);
+                return image ? [{ kind: 'image', url: image.url, file_id: fileIdOf(image), role: index === 0 ? 'first_frame' : 'last_frame' }] : [];
+            });
         } else if (orderedImgs.length >= 1) {
             seedMedia = [
                 { kind: 'image', url: orderedImgs[0].url, file_id: fileIdOf(orderedImgs[0]), role: 'first_frame' },
@@ -1535,7 +1539,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         });
 
         return await saveWorkspaceSession({
-            task_groups: (patch?.task_groups ?? taskGroups).map(group => isSeedanceVideoModel(group.model)
+            task_groups: (patch?.task_groups ?? taskGroups).map(persistVideoCardSources).map(group => isSeedanceVideoModel(group.model)
                 ? { ...group, duration: resolveSeedanceDurationForGroup(group) } : group),
             uploaded_images: validImages,
             image_prompts: patch?.image_prompts ?? imagePrompts,
@@ -1560,8 +1564,8 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         if (!projectMaterialTarget || projectMaterialLock.current) return false;
         const { groupUuid } = projectMaterialTarget;
         const group = taskGroupsRef.current.find(candidate => candidate.uuid === groupUuid);
-        const imageId = projectMaterialTarget.imageId || group?.ids.find(id => uploadedImages.some(image => image.id === id && (image.isPlaceholder || !image.url)));
-        const currentImage = uploadedImages.find(candidate => candidate.id === imageId);
+        const imageId = projectMaterialTarget.imageId || (group && getVideoCardImages(group, uploadedImages).find(image => group.ids.includes(image.id) && (image.isPlaceholder || !image.url))?.id);
+        const currentImage = group && imageId ? getVideoCardSourceImage(group, imageId, uploadedImages) : undefined;
         if (!group || (imageId && (!currentImage || !group.ids.includes(imageId)))) {
             setProjectMaterialError('目标卡片已不存在，请关闭弹窗后重新选择。');
             return false;
@@ -1584,7 +1588,10 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 showToast(isSeedanceVideoModel(group.model) && !isSeedanceAgentPlanModel(group.model) ? '画面已保存并加入参考内容' : '画面已保存，请选择首尾帧或参考图');
                 return true;
             }
-            const images = uploadedImages.map(candidate => candidate.id === imageId ? image : candidate);
+            const isLocalSlot = Object.prototype.hasOwnProperty.call(group.sourceImageOverrides || {}, imageId);
+            const images = isLocalSlot ? uploadedImages : uploadedImages.map(candidate => candidate.id === imageId ? image : candidate);
+            const groups = isLocalSlot ? taskGroupsRef.current.map(candidate => candidate.uuid === groupUuid
+                ? withVideoCardSourceImage(candidate, imageId, image) : candidate) : taskGroupsRef.current;
             const seedanceParams = { ...seedanceParamsForSession };
             const dashscopeParams = { ...dashScopeParamsByUuid };
             if (isSeedanceVideoModel(group.model)) {
@@ -1610,8 +1617,10 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 setDashScopeParamsByUuid(dashscopeParams);
             }
             setUploadedImages(images);
+            taskGroupsRef.current = groups;
+            setTaskGroups(groups);
             applied = true;
-            const result = await saveSession({ uploaded_images: images, seedance_params: seedanceParams, dashscope_params: dashscopeParams });
+            const result = await saveSession({ task_groups: groups, uploaded_images: images, seedance_params: seedanceParams, dashscope_params: dashscopeParams });
             if (!result.success) throw new Error('工作区保存失败');
             setProjectMaterialTarget(null);
             showToast('项目素材已填入当前卡片并保存');
@@ -1756,74 +1765,63 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
 
 
-    const clearTaskImage = useCallback((uuid: string) => {
-        const group = taskGroups.find(g => g.uuid === uuid);
-        if (!group) return;
-
-        group.ids.forEach(imgId => {
-            const img = uploadedImages.find(i => i.id === imgId);
-            if (img?.url?.startsWith('blob:')) URL.revokeObjectURL(img.url);
+    const removeCardImage = (uuid: string, image: UploadedImage) => {
+        const group = taskGroupsRef.current.find(g => g.uuid === uuid);
+        if (!group || image.isUploading || ['pending', 'running', 'processing'].includes(tasksStatus[uuid]?.state || '')) return;
+        const groups = taskGroupsRef.current.map(card => card.uuid === uuid ? removeVideoCardImage(card, image) : card);
+        const seed = isSeedanceVideoModel(group.model) ? getSeedanceParams(uuid, group.model) : seedanceParamsByUuid[uuid];
+        const dash = isDashScopeVideoModel(group.model) ? getDashScopeParams(uuid, group.model) : dashScopeParamsByUuid[uuid];
+        const seedance = { ...seedanceParamsForSession, ...(seed ? { [uuid]: removeVideoImageReferences(seed, image) } : {}) };
+        const dashscope = { ...dashScopeParamsByUuid, ...(dash ? { [uuid]: removeVideoImageReferences(dash, image) } : {}) };
+        taskGroupsRef.current = groups;
+        setTaskGroups(groups);
+        setSeedanceParamsByUuid(seedance);
+        setDashScopeParamsByUuid(dashscope);
+        void saveSession({ task_groups: groups, seedance_params: seedance, dashscope_params: dashscope }).then(result => {
+            if (!result.success) showToast('画面已移除，但工作区保存失败，请稍后重试保存');
         });
-        setUploadedImages(prev => prev.map(img =>
-            group.ids.includes(img.id)
-                ? { ...img, url: '', storageUrl: undefined, filename: '', isPlaceholder: true, isUploading: false, uploadProgress: undefined, uploadFailed: false }
-                : img
-        ));
-
-        setSeedanceParamsByUuid(prev => {
-            if (!prev[uuid]) return prev;
-            return { ...prev, [uuid]: { ...prev[uuid], media_inputs: [] } };
-        });
-
-        setDashScopeParamsByUuid(prev => {
-            if (!prev[uuid]) return prev;
-            return { ...prev, [uuid]: { ...prev[uuid], media_inputs: [] } };
-        });
-    }, [taskGroups, uploadedImages, saveSession]);
+    };
 
 
-    const handlePlaceholderUpload = useCallback(async (imageId: string, file: File) => {
+    const handlePlaceholderUpload = useCallback(async (uuid: string, imageId: string, file: File) => {
+        const group = taskGroupsRef.current.find(card => card.uuid === uuid);
+        if (!group || ['pending', 'running', 'processing'].includes(tasksStatus[uuid]?.state || '')) return;
         if (!file.type.startsWith('image/')) {
             showToast('请选择图片文件');
             return;
         }
+        // Refill removed slots locally; another card can still reference the original.
+        const updateImage = (update: (image: UploadedImage) => UploadedImage) => {
+            if (Object.prototype.hasOwnProperty.call(group.sourceImageOverrides || {}, imageId)) {
+                const groups = taskGroupsRef.current.map(card => {
+                    if (card.uuid !== uuid) return card;
+                    const image = getVideoCardSourceImage(card, imageId, uploadedImages);
+                    return image ? withVideoCardSourceImage(card, imageId, update(image)) : card;
+                });
+                taskGroupsRef.current = groups;
+                setTaskGroups(groups);
+            } else setUploadedImages(prev => prev.map(image => image.id === imageId ? update(image) : image));
+        };
         const tempUrl = URL.createObjectURL(file);
-        setUploadedImages(prev => prev.map(img =>
-            img.id === imageId
-                ? { ...img, url: tempUrl, filename: file.name, isPlaceholder: false, isUploading: true, uploadProgress: 0 }
-                : img
-        ));
+        updateImage(img => ({ ...img, url: tempUrl, storageUrl: undefined, fileId: undefined, comfyuiFilename: undefined,
+            filename: file.name, isPlaceholder: false, isUploading: true, uploadFailed: false, uploadProgress: 0 }));
 
         try {
             const result = await uploadImage(file, {
-                onProgress: (p) => setUploadedImages(prev => prev.map(img =>
-                    img.id === imageId ? { ...img, uploadProgress: p.percent } : img
-                ))
+                onProgress: (p) => updateImage(img => ({ ...img, uploadProgress: p.percent }))
             });
-            setUploadedImages(prev => prev.map(img =>
-                img.id === imageId
-                    ? {
-                        ...img,
-                        url: result.url,
-                        storageUrl: result.storage_url || result.url,
-                        filename: result.filename,
-                        isUploading: false,
-                        uploadProgress: undefined,
-                    }
-                    : img
-            ));
-            URL.revokeObjectURL(tempUrl);
+            updateImage(img => ({
+                ...img, url: result.url, storageUrl: result.storage_url || result.url,
+                fileId: result.file_id, filename: result.filename, isUploading: false, uploadProgress: undefined,
+            }));
         } catch (err: any) {
-            if (err?.name === 'AbortError') return;
             console.error('占位卡上传失败:', err);
-            setUploadedImages(prev => prev.map(img =>
-                img.id === imageId
-                    ? { ...img, isUploading: false, uploadFailed: true, uploadProgress: undefined }
-                    : img
-            ));
-            showToast(`上传失败: ${err instanceof Error ? err.message : String(err)}`);
+            updateImage(img => ({ ...img, url: '', isPlaceholder: true, isUploading: false, uploadFailed: true, uploadProgress: undefined }));
+            if (err?.name !== 'AbortError') showToast(`上传失败: ${err instanceof Error ? err.message : String(err)}`);
+        } finally {
+            URL.revokeObjectURL(tempUrl);
         }
-    }, [saveSession, showToast]);
+    }, [uploadedImages, tasksStatus, showToast]);
 
     const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
@@ -2010,7 +2008,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             `${getGroupShotRange([groupA, groupB][offset], index + offset).label.replace(/^#/, '镜头')}\n${child.prompt}`));
         // Frame roles belong to this new pair, not to either child's cached inputs.
         const media = [groupA, groupB].flatMap<SeedanceMediaInput>((g, offset) => {
-            const image = uploadedImages.find(candidate => candidate.id === g.ids[0]);
+            const image = getVideoCardSourceImage(g, g.ids[0], uploadedImages);
             const url = image?.storageUrl || image?.url;
             return url ? [{ kind: 'image', role: offset === 0 ? 'first_frame' : 'last_frame', url }] : [];
         });
@@ -2024,6 +2022,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             shotType: groupA.shotType,
             h3SageAttention: groupA.h3SageAttention,
             candidateImages: [...(groupA.candidateImages || []), ...(groupB.candidateImages || [])],
+            sourceImageOverrides: { ...groupA.sourceImageOverrides, ...groupB.sourceImageOverrides },
             firstLastFrom: children,
         };
         if (isSeedanceVideoModel(newGroup.model)) newGroup.duration = resolveSeedanceDurationForGroup(newGroup);
@@ -2083,8 +2082,8 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             return;
         }
 
-        const newA: TaskGroup = { uuid: generateUUID(), ids: [group.ids[0]], model: group.model, h3SageAttention: group.h3SageAttention, candidateImages: group.candidateImages };
-        const newB: TaskGroup = { uuid: generateUUID(), ids: [group.ids[1]], model: group.model, h3SageAttention: group.h3SageAttention, candidateImages: group.candidateImages };
+        const newA: TaskGroup = { uuid: generateUUID(), ids: [group.ids[0]], model: group.model, h3SageAttention: group.h3SageAttention, candidateImages: group.candidateImages, sourceImageOverrides: group.sourceImageOverrides };
+        const newB: TaskGroup = { uuid: generateUUID(), ids: [group.ids[1]], model: group.model, h3SageAttention: group.h3SageAttention, candidateImages: group.candidateImages, sourceImageOverrides: group.sourceImageOverrides };
 
         setTaskGroups(prev => {
             const next = [...prev];
@@ -2252,7 +2251,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             const seed = isSeedanceModel(g.model) ? getSeedanceParams(g.uuid, g.model) : undefined;
             const dash = ds ? getDashScopeParams(g.uuid, g.model as DashScopeVideoModel) : undefined;
             const fallbackMedia = (g.ids || []).flatMap<SeedanceMediaInput>((imageId) => {
-                const image = uploadedImages.find(candidate => candidate.id === imageId);
+                const image = getVideoCardSourceImage(g, imageId, uploadedImages);
                 const url = String(image?.storageUrl || image?.url || '').split('?')[0];
                 return url ? [{
                     kind: 'image' as const,
@@ -2276,6 +2275,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 durationUserOverride: g.durationUserOverride,
                 h3SageAttention: g.h3SageAttention,
                 candidateImages: g.candidateImages,
+                sourceImageOverrides: g.sourceImageOverrides,
                 prompt: dash?.prompt || seed?.prompt || getEffectiveGroupPrompt(g),
                 mediaInputs,
                 seedanceParams: seed,
@@ -2370,6 +2370,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 mergedFrom,
                 firstLastFrom: undefined,
                 candidateImages: groupsToMerge.flatMap(group => group.candidateImages || []),
+                sourceImageOverrides: Object.assign({}, ...groupsToMerge.map(group => group.sourceImageOverrides)),
                 h3LongVideo: mergedFrom.length <= 8 ? current.h3LongVideo : false,
                 h3Upscale720p: current.h3Upscale720p,
             });
@@ -2425,6 +2426,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             durationUserOverride: c.durationUserOverride,
             h3SageAttention: c.h3SageAttention,
             candidateImages: [...(c.candidateImages || []), ...(g.candidateImages || [])],
+            sourceImageOverrides: c.sourceImageOverrides,
         }));
         setImagePrompts(prev => ({ ...prev, ...Object.fromEntries(children.map(c => [c.ids[0], c.prompt || ''])) }));
 
@@ -2503,6 +2505,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 h3SageAttention: first.h3SageAttention,
                 mergedFrom: range.length > 1 ? range.map(snapshot => ({ ...snapshot })) : undefined,
                 candidateImages: [...range.flatMap(snapshot => snapshot.candidateImages || []), ...(current.candidateImages || [])],
+                sourceImageOverrides: Object.assign({}, ...range.map(snapshot => snapshot.sourceImageOverrides)),
             };
             return {
                 group,
@@ -3155,10 +3158,10 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
 
 
-        const img1 = uploadedImages.find(i => i.id === group.ids[0]);
+        const img1 = getVideoCardSourceImage(group, group.ids[0], uploadedImages);
         // Merged ids preserve shot membership; only a first/last-frame pair supplies a tail.
         const isFramePair = group.ids.length === 2 && !group.mergedFrom?.length;
-        const img2 = isFramePair ? uploadedImages.find(i => i.id === group.ids[1]) : null;
+        const img2 = isFramePair ? getVideoCardSourceImage(group, group.ids[1], uploadedImages) : null;
 
         if (!img1) {
             console.error('找不到图片');
@@ -3220,7 +3223,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             const h3LongVideoSegments = isMiniMaxH3Model(group.model) && group.h3LongVideo === true
                 ? (group.mergedFrom || []).map((snapshot, segmentIndex) => {
                     const segmentImages = (snapshot.ids || [])
-                        .map(id => uploadedImages.find(candidate => candidate.id === id))
+                        .map(id => getVideoCardSourceImage(group, id, uploadedImages))
                         .filter((candidate): candidate is UploadedImage => Boolean(candidate));
                     const firstFrame = segmentImages[0]
                         ? getImageIdentifier(segmentImages[0], false)
@@ -3793,7 +3796,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
         const videoUrl = getVideoByIndexOrLatest(status.videos, selectedVideoIndex);
         const videoFilename = videoUrl;
-        const img = uploadedImages.find(i => i.id === group.ids[0]);
+        const img = getVideoCardSourceImage(group, group.ids[0], uploadedImages);
         const imageFilename = img ? resolveVideoImageIdentifier(img, false) : '';
         if (!imageFilename) {
             showToast('图片缺少真实存储地址，请重新同步分镜或重新上传图片');
@@ -4322,8 +4325,8 @@ export const VideoPage: React.FC<VideoPageProps> = ({
     const renderListViewCard = (group: TaskGroup, index: number) => {
         if (!group.ids) return null;
         const isPair = group.ids.length === 2 && !group.mergedFrom?.length;
-        const img1 = uploadedImages.find(i => i.id === group.ids[0]);
-        const img2 = isPair ? uploadedImages.find(i => i.id === group.ids[1]) : null;
+        const img1 = getVideoCardSourceImage(group, group.ids[0], uploadedImages);
+        const img2 = isPair ? getVideoCardSourceImage(group, group.ids[1], uploadedImages) : null;
         const status = tasksStatus[group.uuid] || { state: 'idle' };
         const promptText = getEffectiveGroupPrompt(group);
         const shotRange = getGroupShotRange(group, index);
@@ -4624,7 +4627,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
     const renderStoryboardCard = (group: TaskGroup, index: number) => {
         if (!group.ids) return null;
         const isPair = group.ids.length === 2 && !group.mergedFrom?.length;
-        const img1 = uploadedImages.find(i => i.id === group.ids[0]);
+        const img1 = getVideoCardSourceImage(group, group.ids[0], uploadedImages);
 
         if (!img1) return null;
 
@@ -4632,7 +4635,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         const sourcePlaceholderCount = getVideoResultPlaceholderCount(sourceImages.length);
 
 
-        const isPlaceholderCard = !!img1.isPlaceholder;
+        const isPlaceholderCard = !group.sourceImageOverrides && !!img1.isPlaceholder;
         const cardHeight = getCardHeightClass(group.model, isPlaceholderCard);
         const seedanceCard = isSeedanceModel(group.model);
         const activeVideoVoiceReference = getVideoVoiceReferenceForGroup(group);
@@ -4789,7 +4792,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                                         hidden
                                         onChange={(event) => {
                                             const file = event.target.files?.[0];
-                                            if (file) handlePlaceholderUpload(image.id, file);
+                                            if (file) handlePlaceholderUpload(group.uuid, image.id, file);
                                             event.target.value = '';
                                         }}
                                     />
@@ -4819,13 +4822,14 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                                 {sourceLabel && (
                                     <div className="absolute bottom-0 left-0 rounded-tr bg-n900/60 px-1 text-[9px] text-white">{sourceLabel}</div>
                                 )}
-                                {!group.ids.includes(image.id) && <button type="button" title="移除备选画面（保留已选首尾帧）" onClick={event => { event.stopPropagation(); patchTaskGroup(group.uuid, { candidateImages: (group.candidateImages || []).filter(candidate => candidate.id !== image.id) }); }} className="absolute right-1 top-1 rounded bg-n900/70 p-1 text-white"><X className="h-3 w-3" /></button>}
-                                {sourceIndex === 0 && !isPair && !group.mergedFrom?.length && !image.isUploading && (
+                                {!image.isUploading && (
                                     <button
                                         type="button"
-                                        title="清空图（恢复为空卡）"
-                                        onClick={(event) => { event.stopPropagation(); clearTaskImage(group.uuid); }}
-                                        className="absolute right-1 top-1 rounded bg-n900/70 p-1 text-white opacity-0 transition-opacity hover:bg-danger group-hover/img:opacity-100"
+                                        title="移除当前画面及对应引用（保留素材库原图）"
+                                        aria-label={`移除画面${sourceIndex + 1}`}
+                                        disabled={['pending', 'running', 'processing'].includes(tasksStatus[group.uuid]?.state || '')}
+                                        onClick={(event) => { event.stopPropagation(); removeCardImage(group.uuid, image); }}
+                                        className="absolute right-1 top-1 rounded bg-n900/70 p-1 text-white hover:bg-danger disabled:opacity-40"
                                     >
                                         <X className="h-3 w-3" />
                                     </button>
@@ -5021,8 +5025,8 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
 
 
-        const img1 = uploadedImages.find(i => i.id === group.ids[0]);
-        const isPlaceholderCard = !!img1?.isPlaceholder;
+        const img1 = getVideoCardSourceImage(group, group.ids[0], uploadedImages);
+        const isPlaceholderCard = !group.sourceImageOverrides && !!img1?.isPlaceholder;
         const cardHeight = getCardHeightClass(group.model, isPlaceholderCard);
         const seedanceCard = isSeedanceModel(group.model);
         const activeVideoVoiceReference = getVideoVoiceReferenceForGroup(group);

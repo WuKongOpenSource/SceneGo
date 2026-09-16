@@ -81,3 +81,20 @@ def test_failed_read_is_not_an_empty_workspace():
     client, dao = client_and_store()
     dao.load_session.side_effect = RuntimeError('temporary unavailable')
     assert client.get('/api/workspace/load-session?scope=ep-1').status_code == 503
+
+
+def test_removed_and_refilled_card_sources_roundtrip_without_changing_originals():
+    client, _ = client_and_store()
+    data = payload()
+    original = {'id': 'first', 'url': '/original.png', 'fileId': 'file_original'}
+    replacement = {'id': 'last', 'url': '/replacement.png', 'fileId': 'file_replacement'}
+    data['uploaded_images'] = [original]
+    data['task_groups'][0].update({
+        'ids': ['first', 'last'], 'sourceImageOverrides': {'first': None, 'last': replacement},
+        'mergedFrom': [{'uuid': 'child', 'ids': ['first'], 'prompt': 'keep action',
+                        'sourceImageOverrides': {'first': None}}],
+    })
+    assert client.post('/api/workspace/save-session', json=data).status_code == 200
+    restored = client.get('/api/workspace/load-session?scope=ep-1').json()['session']
+    assert restored['task_groups'] == data['task_groups']
+    assert restored['uploaded_images'] == [original]

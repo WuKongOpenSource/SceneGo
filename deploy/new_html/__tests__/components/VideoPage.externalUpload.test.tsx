@@ -110,6 +110,101 @@ describe('VideoPage Hailuo frame submission', () => {
     return session;
   }
 
+  it.each(['merged', 'pair', 'single'] as const)('removes any %s source image locally without clearing other images, history or shot membership', async kind => {
+    const session = prepareHailuoSession(kind, true);
+    session.uploaded_images[0] = { ...session.uploaded_images[0], fileId: 'file_first_original', comfyuiFilename: 'old.png' } as any;
+    const view = render(<VideoPage sessionScope="ep-1" episodeId="ep-1" />);
+    const grid = await screen.findByTestId('video-source-grid');
+    fireEvent.click(within(grid).getByRole('button', { name: '移除画面1' }));
+    expect(grid.querySelector('img[src*="file_first_original"]')).toBeNull();
+    expect(grid.querySelector('img[src*="candidate-not-selected"]')).not.toBeNull();
+    await waitFor(() => expect(vi.mocked(saveWorkspaceSession).mock.calls.at(-1)?.[0].task_groups[0].sourceImageOverrides?.first).toBeNull());
+    const saved = JSON.parse(JSON.stringify(vi.mocked(saveWorkspaceSession).mock.calls.at(-1)![0]));
+    expect(saved.task_groups[0].ids).toEqual(session.task_groups[0].ids);
+    expect(saved.uploaded_images).toEqual(session.uploaded_images);
+    expect(saved.image_prompts).toEqual(session.image_prompts);
+    expect(saved.tasks_status['hailuo-card'].videos).toEqual(['/existing.mp4']);
+    expect(fetchMock.mock.calls.some(([, options]) => options?.method === 'DELETE')).toBe(false);
+    view.unmount();
+    vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: saved });
+    render(<VideoPage sessionScope="ep-1" episodeId="ep-1" />);
+    expect((await screen.findByTestId('video-source-grid')).querySelector('img[src*="file_first_original"]')).toBeNull();
+    fireEvent.click(await screen.findByRole('button', { name: /^重做$/ }));
+    await screen.findByText('任务提交失败: 图片缺少真实存储地址，请重新同步分镜或重新上传图片');
+    expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/api/generate'))).toBe(false);
+  });
+
+  it('can remove both original images of an H3 merged card without removing the card or its extra reference', async () => {
+    const session = prepareHailuoSession('merged', true);
+    session.task_groups[0].model = 'MiniMaxH3';
+    render(<VideoPage sessionScope="ep-1" />);
+    const grid = await screen.findByTestId('video-source-grid');
+    fireEvent.click(within(grid).getByRole('button', { name: '移除画面1' }));
+    fireEvent.click(within(grid).getByRole('button', { name: '移除画面2' }));
+    expect(grid.querySelectorAll('img')).toHaveLength(1);
+    expect(within(grid).getAllByRole('button', { name: '项目素材' })).toHaveLength(2);
+    await waitFor(() => expect(vi.mocked(saveWorkspaceSession).mock.calls.at(-1)?.[0].task_groups[0]).toMatchObject({
+      ids: ['first', 'second'], sourceImageOverrides: { first: null, second: null }, mergedFrom: [
+        { ids: ['first'], sourceImageOverrides: { first: null } }, { ids: ['second'], sourceImageOverrides: { second: null } },
+      ],
+    }));
+  });
+
+  it('removes matching Seedance references and mention tokens while retaining another card using the same original', async () => {
+    const session = prepareHailuoSession('merged', true, true);
+    session.task_groups.push({ uuid: 'other', ids: ['first'], model: 'MINI' });
+    session.seedance_params = { 'hailuo-card': { sub_model: 'mini', prompt: '图片1 与 图片2 动作，音频1', media_inputs: [
+      { kind: 'image', url: session.uploaded_images[0].url }, { kind: 'image', url: session.uploaded_images[1].url },
+      { kind: 'audio', url: '/audio.mp3', role: 'reference_audio' },
+    ] } };
+    render(<VideoPage sessionScope="ep-1" />);
+    const grids = await screen.findAllByTestId('video-source-grid');
+    fireEvent.click(within(grids[0]).getByRole('button', { name: '移除画面1' }));
+    expect(grids[0].querySelector('img[src*="file_first_original"]')).toBeNull();
+    expect(grids[1].querySelector('img[src*="file_first_original"]')).not.toBeNull();
+    const shelf = screen.getByTestId('seedance-reference-shelf');
+    expect(shelf.querySelector('img[src*="file_first_original"]')).toBeNull();
+    await waitFor(() => {
+      const saved = vi.mocked(saveWorkspaceSession).mock.calls.at(-1)?.[0];
+      expect(saved?.seedance_params?.['hailuo-card'].prompt).toBe(' 与 图片1 动作，音频1');
+      expect(saved?.seedance_params?.['hailuo-card'].media_inputs).toEqual([
+        session.seedance_params!['hailuo-card'].media_inputs[1], session.seedance_params!['hailuo-card'].media_inputs[2],
+        { kind: 'image', role: 'reference_image', url: '/candidate-not-selected.png' },
+      ]);
+      expect(saved?.task_groups[1].sourceImageOverrides).toBeUndefined();
+    });
+  });
+
+  it('refills a removed slot from project materials without changing the shared original or restoring old frame inputs', async () => {
+    const session = prepareHailuoSession('merged', true);
+    const library = { 角色: [{ id: 'new-person', type: 'image' as const, name: '新角色', fileId: 'file_new',
+      assetType: 'character' as const, url: '/api/files/file_new/download', thumbnail: '/thumb.jpg', source: 'asset', timestamp: 0 }] };
+    render(<VideoPage sessionScope="ep-1" episodeId="ep-1" projectId="project-1" materialLibrary={library} />);
+    fireEvent.click(await screen.findByRole('button', { name: '移除画面1' }));
+    fireEvent.click(screen.getByRole('button', { name: '项目素材' }));
+    fireEvent.click(await screen.findByTitle('选择 角色'));
+    fireEvent.click(within(screen.getByRole('dialog', { name: '项目素材' })).getByRole('button', { name: '完成' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: '项目素材' })).not.toBeInTheDocument());
+    expect(screen.getByTestId('video-source-grid').querySelector('img[src*="file_new"]')).not.toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /^重做$/ }));
+    await screen.findByText('任务已提交');
+    const submits = fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/api/generate'));
+    expect(JSON.parse(submits[0][1].body).first_frame_image).toBe('file_new');
+    const saved = vi.mocked(saveWorkspaceSession).mock.calls.at(-1)![0];
+    expect(saved.uploaded_images).toEqual(session.uploaded_images);
+    expect(saved.task_groups[0].sourceImageOverrides?.first).toMatchObject({ url: library.角色[0].url, fileId: 'file_new' });
+  });
+
+  it('disables source removal while a card is processing', async () => {
+    const session = prepareHailuoSession('merged', true);
+    session.tasks_status['hailuo-card'] = { state: 'processing', taskId: 'running-task', progress: 30 };
+    render(<VideoPage sessionScope="ep-1" />);
+    const remove = await screen.findByRole('button', { name: '移除画面1' });
+    expect(remove).toBeDisabled();
+    fireEvent.click(remove);
+    expect(screen.getByTestId('video-source-grid').querySelectorAll('img')).toHaveLength(3);
+  });
+
   it.each([
     ['merged', false, true, 'card'], ['merged', true, false, 'card'], ['pair', true, false, 'card'],
     ['legacy-pair', true, false, 'card'], ['single', false, false, 'card'], ['merged', false, false, 'list'],

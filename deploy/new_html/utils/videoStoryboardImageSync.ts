@@ -1,7 +1,13 @@
 import type { DashScopeVideoParams, SeedanceParams } from '../services/videoModelService';
 import type { WorkspaceSession } from '../services/videoWorkspaceService';
+import type { TaskGroup } from '../services/videoTaskTypes';
 
 type PromptParams = SeedanceParams | DashScopeVideoParams;
+
+// Card-local removal/replacement is an explicit choice, not an outdated storyboard reference.
+function syncableIds(group: TaskGroup): string[] {
+  return (group.ids || []).map(id => Object.prototype.hasOwnProperty.call(group.sourceImageOverrides || {}, id) ? '' : id);
+}
 
 function normalizeUrl(value: unknown): string {
   return typeof value === 'string' ? value.split('?')[0] : '';
@@ -82,7 +88,7 @@ export function countOutdatedStoryboardImages(
   for (const group of session.task_groups || []) {
     for (const params of [session.seedance_params?.[group.uuid], session.dashscope_params?.[group.uuid]]) {
       if (!params) continue;
-      const ids = group.ids || [];
+      const ids = syncableIds(group);
       const firstUrl = latestImageById[ids[0]];
       const firstIndex = primaryStoryboardImageIndex(params);
       if (firstUrl && (firstIndex < 0 || normalizeUrl(params.media_inputs?.[firstIndex]?.url) !== firstUrl)) {
@@ -118,14 +124,14 @@ export function buildStoryboardImageSyncPatch(
     if (seedanceParams[group.uuid]) {
       seedanceParams[group.uuid] = syncStoryboardImagesForGroup(
         seedanceParams[group.uuid],
-        group.ids || [],
+        syncableIds(group),
         latestImageById,
       );
     }
     if (dashScopeParams[group.uuid]) {
       dashScopeParams[group.uuid] = syncStoryboardImagesForGroup(
         dashScopeParams[group.uuid],
-        group.ids || [],
+        syncableIds(group),
         latestImageById,
       );
     }

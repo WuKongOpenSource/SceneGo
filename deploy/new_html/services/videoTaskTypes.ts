@@ -39,6 +39,8 @@ export interface TaskGroup {
   ids: string[];
   /** Available card images, separate from storyboard membership and submitted provider inputs. */
   candidateImages?: UploadedImage[];
+  /** Card-local replacements; null removes an image without deleting its storyboard anchor or original. */
+  sourceImageOverrides?: Record<string, UploadedImage | null>;
   model: VideoModel;
   createdAt?: number;
   shotType?: ShotType;
@@ -62,6 +64,7 @@ export interface MergedCardSnapshot {
   uuid: string;
   ids: string[];
   candidateImages?: UploadedImage[];
+  sourceImageOverrides?: Record<string, UploadedImage | null>;
   model: VideoModel;
   prompt: string;
   shotType?: ShotType;
