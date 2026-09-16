@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { SeedreamPurposeControl, type SeedreamPurpose } from '../components/SeedreamPurposeControl';
-import { ImageSourceBadgeOverlay, PortraitReferenceStar } from '../components/SeedreamSourceBadge';
+import { ImageSourceBadgeOverlay } from '../components/SeedreamSourceBadge';
 import { useNavigate } from 'react-router-dom';
 import { buildHorizontalCameraOrbitInstruction, CAMERA_ORBIT_HELP } from '../utils/cameraAnglePrompt';
 import {
@@ -277,7 +277,6 @@ const AssetImageRow: React.FC<{
           >
             <X size={10} />
           </button>
-          <PortraitReferenceStar reference={img.fileId || img.rawUrl} />
         </div>
       ))}
     </div>

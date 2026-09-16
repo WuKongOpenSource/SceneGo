@@ -6,7 +6,7 @@ import { checkPortraitReferenceInputs } from '../../services/portraitReferenceSe
 import type { SeedanceParams } from '../../services/videoModelService';
 
 vi.mock('../../hooks/useScriptModelOptions', () => ({ useScriptModelOptions: () => [] }));
-vi.mock('../../components/SeedreamSourceBadge', () => ({ PortraitReferenceStar: () => null, SeedreamSourceBadge: () => null }));
+vi.mock('../../components/SeedreamSourceBadge', () => ({ SeedreamSourceBadge: () => null }));
 vi.mock('../../services/portraitReferenceService', async original => ({
   ...await original<typeof import('../../services/portraitReferenceService')>(), checkPortraitReferenceInputs: vi.fn(),
 }));

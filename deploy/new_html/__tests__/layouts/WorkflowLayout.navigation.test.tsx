@@ -80,10 +80,10 @@ describe('third-stage navigation order', () => {
   });
 });
 
-describe('thumbnail-only portrait legend', () => {
-  it.each(['design', 'materials', 'storyboard'])('keeps the legend in the %s thumbnail workspace', async page => {
+describe('retired portrait star legend', () => {
+  it.each(['design', 'materials', 'storyboard'])('omits the legend in the %s thumbnail workspace', async page => {
     await openWorkflow(page);
-    expect(screen.getByText('可用于仿真人视频的 Seedream 文生图')).toBeInTheDocument();
+    expect(screen.queryByText('可用于仿真人视频的 Seedream 文生图')).not.toBeInTheDocument();
   });
 
   it.each(['script', 'audio', 'video', 'enhance', 'final', 'image-upscale', 'history', 'recycle-bin', 'canvas'])('omits the thumbnail legend from %s', async page => {
@@ -91,13 +91,13 @@ describe('thumbnail-only portrait legend', () => {
     expect(screen.queryByText('可用于仿真人视频的 Seedream 文生图')).not.toBeInTheDocument();
   });
 
-  it('removes the legend when navigating to video and restores it when returning to design', async () => {
+  it('does not restore the legend after navigating from video back to design', async () => {
     await openWorkflow('design');
     fireEvent.click(screen.getByRole('button', { name: /生成短片/ }));
     expect(await screen.findByTestId('page-video')).toBeInTheDocument();
     expect(screen.queryByText('可用于仿真人视频的 Seedream 文生图')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /定角色和场景/ }));
     expect(await screen.findByTestId('page-design')).toBeInTheDocument();
-    expect(screen.getByText('可用于仿真人视频的 Seedream 文生图')).toBeInTheDocument();
+    expect(screen.queryByText('可用于仿真人视频的 Seedream 文生图')).not.toBeInTheDocument();
   });
 });

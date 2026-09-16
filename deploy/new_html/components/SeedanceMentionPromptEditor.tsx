@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { PortraitReferenceStar } from './SeedreamSourceBadge';
 import { createPortal } from 'react-dom';
 import { Sparkles } from 'lucide-react';
 import type { SeedanceParams, SeedanceMediaInput } from '../services/videoModelService';
@@ -410,7 +409,6 @@ export const SeedanceMentionPromptEditor: React.FC<SeedanceMentionPromptEditorPr
                                     >
                                         {c.thumbnailUrl && (
                                             <span className="relative shrink-0 w-6 h-6"><img src={c.thumbnailUrl} alt="" className="w-full h-full object-cover rounded" />
-                                                {c.kind === 'image' && <PortraitReferenceStar reference={c.fileId || c.url} />}
                                             </span>
                                         )}
                                         <span className="text-n700">{c.label}</span>

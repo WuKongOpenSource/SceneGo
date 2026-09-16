@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import { Film, Volume2, X } from 'lucide-react';
 import type { SeedanceMediaInput, SeedanceParams } from '../services/videoModelService';
 import { TOKEN_PREFIX, removeMediaInput } from '../utils/seedanceMedia';
-import { PortraitReferenceStar } from './SeedreamSourceBadge';
 import { ConfirmDialog } from './ConfirmDialog';
 
 interface Props {
@@ -40,7 +39,6 @@ export function SeedanceReferenceShelf({ value, onChange, disabled, addControl, 
             </span>
             <span className="w-full shrink-0 py-0.5 text-center text-[10px] text-n300">{label}</span>
           </button>
-          {item.kind === 'image' && <PortraitReferenceStar reference={item.file_id || item.url} />}
           <button type="button" aria-label={`移除${label}`} disabled={disabled} onClick={() => onChange(removeMediaInput(value, index))} className="absolute -right-1 -top-1 rounded-full bg-n900/75 p-0.5 text-white disabled:opacity-40"><X size={12} /></button>
         </div>;
       })}

@@ -9,7 +9,6 @@ import type { SeedanceAssetCandidate } from '../../utils/seedanceMedia';
 import { baseParams } from '../utils/_fixtures/seedance';
 
 vi.mock('../../hooks/useScriptModelOptions', () => ({ useScriptModelOptions: () => [] }));
-vi.mock('../../components/SeedreamSourceBadge', () => ({ PortraitReferenceStar: () => null }));
 
 const candidates: SeedanceAssetCandidate[] = [
   { id: 'existing', group: 'assets', kind: 'image', label: '原图', url: '/original.png' },

@@ -13,7 +13,6 @@ import {
 } from '../services/scriptModelCatalogService';
 import { BrandLogo } from './BrandLogo';
 import AccountMenu from './AccountMenu';
-import { PortraitReferenceLegend } from './SeedreamSourceBadge';
 import { getStoredUsername } from '../services/accountStorage';
 
 interface HeaderProps {
@@ -253,7 +252,6 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="h-6 w-px bg-n40 mx-2"></div>
 
         <div className="flex items-center gap-4 text-sm text-n300">
-          {[AppView.Design, AppView.Materials, AppView.Generation].includes(currentView) && <PortraitReferenceLegend />}
 
           <WorkspaceSwitcher />
 

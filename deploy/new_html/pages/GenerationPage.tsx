@@ -417,7 +417,6 @@ export const GenerationPage: React.FC = () => {
                   >
                     <div className="flex gap-2.5">
                       <div className="relative w-[72px] h-[72px] rounded-lg overflow-hidden shrink-0 bg-n30">
-                        {img && <PortraitReferenceStar reference={img} />}
                         {img ? (
                           <MediaImage
                             src={withAuthParam(img)}
@@ -625,4 +624,3 @@ export const GenerationPage: React.FC = () => {
     </div>
   );
 };
-import { PortraitReferenceStar } from '../components/SeedreamSourceBadge';

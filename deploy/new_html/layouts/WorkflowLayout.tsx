@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { PortraitReferenceLegend } from '../components/SeedreamSourceBadge';
 import { Outlet, useParams, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Clock, Brush, Library, Coins, Download, ScanLine, Trash2 } from 'lucide-react';
 import { EpisodeProvider } from '../contexts/EpisodeContext';
@@ -261,7 +260,6 @@ export const WorkflowLayout: React.FC = () => {
                   );
                 })}
               </div>
-              {['design', 'materials', 'storyboard'].includes(segment) && <div className="ml-auto pl-4"><PortraitReferenceLegend /></div>}
             </nav>
           )}
 

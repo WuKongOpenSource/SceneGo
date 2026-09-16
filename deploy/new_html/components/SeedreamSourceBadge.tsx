@@ -1,14 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { apiJson } from '../services/httpClient';
 import { compactImageSourceLabel } from '../utils/imageSourceDisplay';
-import { Star } from 'lucide-react';
 
 type Source = { label?: string; display_label?: string; purpose?: string; mode_label?: string; generation_mode?: string; portrait_reference_scopes?: string[]; portrait_reference_expires_at?: number };
-type Subscriber = { active: boolean; eligibility: boolean; update: (source: Source) => void };
+type Subscriber = { active: boolean; update: (source: Source) => void };
 const pending = new Map<string, Subscriber[]>();
 let timer: ReturnType<typeof setTimeout> | undefined;
-function load(reference: string, update: (source: Source) => void, eligibility = false): () => void {
-  const subscriber = { active: true, eligibility, update };
+function load(reference: string, update: (source: Source) => void): () => void {
+  const subscriber = { active: true, update };
   pending.set(reference, [...(pending.get(reference) || []), subscriber]);
   if (!timer) {
     timer = setTimeout(async () => {
@@ -21,9 +20,7 @@ function load(reference: string, update: (source: Source) => void, eligibility =
         const timeout = setTimeout(() => controller.abort(), 8000);
         try {
           const data = await apiJson<{ items: Record<string, Source> }>('/api/materials/seedream-source', {
-            method: 'POST', body: JSON.stringify({ references: batch.map(([ref]) => ref),
-              ...(batch.some(([, subscribers]) => subscribers.some(item => item.active && item.eligibility)) ? { include_portrait_eligibility: true } : {}),
-            }), signal: controller.signal,
+            method: 'POST', body: JSON.stringify({ references: batch.map(([ref]) => ref) }), signal: controller.signal,
           }, '图片生成来源');
           batch.forEach(([ref, callbacks]) => callbacks.forEach(item => { if (item.active) item.update(data.items[ref] || {}); }));
         } catch { batch.forEach(([, callbacks]) => callbacks.forEach(item => { if (item.active) item.update({}); })); }
@@ -58,45 +55,9 @@ export function SeedreamSourceBadge({ reference, modeOnly = false, showUnknown =
   </span>;
 }
 
-const STAR_LABEL = '可用于仿真人视频的 Seedream 文生图';
-const STAR_HELP = '星号表示原图已通过来源、30天有效期与完整性校验；生成时仍需校验账号权限、所选模式和上游审核。';
-
-export function PortraitReferenceLegend() {
-  return <span className="inline-flex items-center gap-1 whitespace-nowrap text-[11px] text-n300" title={STAR_HELP}>
-    <Star size={13} className="shrink-0 fill-amber-400 text-amber-600" aria-hidden="true" />
-    {STAR_LABEL}
-  </span>;
-}
-
-export function PortraitReferenceStar({ reference, scope = 'workflow' }: { reference?: string; scope?: 'workflow' | 'studio' }) {
-  const [loaded, setLoaded] = useState<{ reference: string; source: Source } | null>(null);
-  const [clock, expire] = useState(0);
-  const source = loaded && loaded.reference === reference ? loaded.source : undefined;
-  useEffect(() => {
-    setLoaded(null);
-    if (reference && !/^(data:|blob:)/.test(reference)) {
-      return load(reference, source => setLoaded({ reference, source }), true);
-    }
-  }, [reference]);
-  const expires = source?.portrait_reference_expires_at || 0;
-  useEffect(() => {
-    if (!expires) return;
-    const delay = expires * 1000 - Date.now();
-    if (delay <= 0) return;
-    const timer = setTimeout(() => expire(value => value + 1), Math.min(delay, 2147483647));
-    return () => clearTimeout(timer);
-  }, [expires, clock]);
-  if (!source?.portrait_reference_scopes?.includes(scope) || expires * 1000 <= Date.now()) return null;
-  return <span role="img" aria-label={STAR_LABEL} title={`${STAR_LABEL}。${STAR_HELP}`}
-    className="pointer-events-none absolute bottom-0.5 right-0.5 z-10 inline-flex h-3 w-3 items-center justify-center rounded-full bg-white/90 shadow-sm">
-    <Star size={10} className="fill-amber-400 text-amber-600" aria-hidden="true" />
-  </span>;
-}
-
-export function ImageSourceBadgeOverlay({ reference, scope = 'workflow', fallbackLabel }: { reference?: string; scope?: 'workflow' | 'studio'; fallbackLabel?: string }) {
+export function ImageSourceBadgeOverlay({ reference, fallbackLabel }: { reference?: string; scope?: 'workflow' | 'studio'; fallbackLabel?: string }) {
   const host = useRef<HTMLSpanElement>(null);
   const [visible, setVisible] = useState(false);
-  const [compact, setCompact] = useState(false);
   useEffect(() => {
     const parent = host.current?.parentElement;
     if (!parent) return;
@@ -104,7 +65,6 @@ export function ImageSourceBadgeOverlay({ reference, scope = 'workflow', fallbac
     const measure = () => {
       const { width, height } = parent.getBoundingClientRect();
       setVisible(width >= 160 && height >= 120);
-      setCompact(width > 0 && height > 0 && width <= 96 && height <= 96);
     };
     measure();
     const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(measure);
@@ -112,7 +72,7 @@ export function ImageSourceBadgeOverlay({ reference, scope = 'workflow', fallbac
     window.addEventListener('resize', measure);
     return () => { observer?.disconnect(); window.removeEventListener('resize', measure); };
   }, []);
-  return <>{compact && <PortraitReferenceStar reference={reference} scope={scope} />}<span ref={host} className="pointer-events-none absolute bottom-0 left-0 z-10 max-w-full">
+  return <span ref={host} className="pointer-events-none absolute bottom-0 left-0 z-10 max-w-full">
     {visible && <span className="block max-w-full rounded-tr bg-white/95 px-1.5 py-0.5"><SeedreamSourceBadge reference={reference} fallbackLabel={fallbackLabel} /></span>}
-  </span></>;
+  </span>;
 }

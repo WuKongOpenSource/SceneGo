@@ -1,7 +1,7 @@
 // Mentions stay plain text so IME, clipboard, and deletion semantics remain
 // native. This companion row owns visual previews without coupling rich media
 // behavior to textarea editing.
-import { SeedreamSourceBadge, PortraitReferenceStar } from './SeedreamSourceBadge';
+import { SeedreamSourceBadge } from './SeedreamSourceBadge';
 import React, { useState } from 'react';
 import { ImageIcon, Music, Video as VideoIcon, X } from 'lucide-react';
 import type { SeedanceParams, SeedanceMediaInput } from '../services/videoModelService';
@@ -108,7 +108,6 @@ const TokenChip: React.FC<TokenChipProps> = ({ token, hovering, onHoverStart, on
                     className="relative block w-12 h-9 rounded overflow-hidden bg-n0 border border-n40 cursor-zoom-in"
                 >
                     <img src={token.url} alt={token.label} className="w-full h-full object-cover" />
-                    <PortraitReferenceStar reference={token.url} />
                 </button>
             ) : isVideo ? (
                 <button
