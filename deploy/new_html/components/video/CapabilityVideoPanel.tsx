@@ -15,6 +15,8 @@ import { VideoControlPopover } from './VideoControlPopover';
 import { VideoDurationControl } from './VideoDurationControl';
 
 interface CapabilityVideoPanelProps {
+    promptEditor?: React.ReactNode;
+    modeControl?: React.ReactNode;
     capability?: VideoModelCapability;
     value?: Record<string, string | number | boolean>;
     prompt: string;
@@ -59,6 +61,8 @@ export const CapabilityVideoPanel: React.FC<CapabilityVideoPanelProps> = ({
     prompt,
     onChange,
     onPromptChange,
+    promptEditor,
+    modeControl,
 }) => {
     const rules = capability?.parameter_rules || {};
     const fieldEntries = Object.entries(rules).filter(([key]) => key !== 'normalization_policy');
@@ -163,11 +167,11 @@ export const CapabilityVideoPanel: React.FC<CapabilityVideoPanelProps> = ({
 
     return (
         <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-n40 bg-n0 shadow-card" data-testid="capability-video-panel">
-            <VideoPromptField value={prompt} onChange={onPromptChange} hint="输入文字描述画面、动作和运镜；使用上方分镜图作为参考" />
+            {promptEditor ?? <VideoPromptField value={prompt} onChange={onPromptChange} hint="输入文字描述画面、动作和运镜；使用上方分镜图作为参考" />}
             <div className={VIDEO_CONTROL_BAR_CLASS} data-testid="capability-control-row">
-                <span className={VIDEO_CONTROL_PILL_CLASS}>
+                {modeControl ?? <span className={VIDEO_CONTROL_PILL_CLASS}>
                     <AtSign className="h-3 w-3" />分镜图参考
-                </span>
+                </span>}
             {fieldEntries.length > 0 ? (
                 <>
                     {fieldEntries.filter(([key]) => primary.has(key)).map(renderField)}

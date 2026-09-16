@@ -34,6 +34,8 @@ export interface UploadedImage {
 }
 
 export interface TaskGroup {
+  h3ReferenceMode?: 'first_last' | 'reference';
+  h3ReferenceContent?: import('../utils/h3Reference').H3ReferenceContent;
   uuid: string;
   videoSegmentId?: string;
   ids: string[];
@@ -61,6 +63,8 @@ export interface TaskGroup {
 }
 
 export interface MergedCardSnapshot {
+  h3ReferenceMode?: 'first_last' | 'reference';
+  h3ReferenceContent?: import('../utils/h3Reference').H3ReferenceContent;
   uuid: string;
   ids: string[];
   candidateImages?: UploadedImage[];

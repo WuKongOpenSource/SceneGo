@@ -9,19 +9,20 @@ interface Props {
   value: SeedanceParams;
   onChange: (next: SeedanceParams) => void;
   disabled?: boolean;
+  imageOnly?: boolean;
   addControl: React.ReactNode;
   onPreviewMedia?: (url: string, kind: SeedanceMediaInput['kind']) => void;
 }
 
 /** The reference shelf, mentions and submitted media all use the same ordered input array. */
-export function SeedanceReferenceShelf({ value, onChange, disabled, addControl, onPreviewMedia }: Props) {
+export function SeedanceReferenceShelf({ value, onChange, disabled, imageOnly, addControl, onPreviewMedia }: Props) {
   const [filter, setFilter] = useState<'all' | SeedanceMediaInput['kind']>('all');
   const [confirmClear, setConfirmClear] = useState(false);
   const tabs = [['all', '全部'], ['image', '图片'], ['video', '视频'], ['audio', '音频']] as const;
   return <section aria-label="参考内容" data-testid="seedance-reference-shelf" className="shrink-0 space-y-2">
     <div className="flex flex-wrap items-center justify-between gap-2">
       <div role="tablist" aria-label="参考内容分类" className="flex gap-1">
-        {tabs.map(([kind, label]) => <button key={kind} type="button" role="tab" aria-selected={filter === kind}
+        {tabs.filter(([kind]) => !imageOnly || kind === 'all' || kind === 'image').map(([kind, label]) => <button key={kind} type="button" role="tab" aria-selected={filter === kind}
           onClick={() => setFilter(kind)} className={`rounded-lg px-2 py-1.5 text-[11px] ${filter === kind ? 'bg-primary/10 text-primary' : 'text-n300 hover:bg-n20'}`}>
           {label} ({kind === 'all' ? value.media_inputs.length : value.media_inputs.filter(item => item.kind === kind).length})
         </button>)}

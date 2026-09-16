@@ -157,6 +157,8 @@ export function canCreateFirstLastPair(groups: TaskGroup[], index: number): bool
     current
     && next
     && current.model === next.model
+    && !(current.model === 'MiniMaxH3' && current.h3ReferenceMode === 'reference')
+    && !(next.model === 'MiniMaxH3' && next.h3ReferenceMode === 'reference')
     && current.ids.length === 1
     && next.ids.length === 1,
   );

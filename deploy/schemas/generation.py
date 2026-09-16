@@ -6,6 +6,13 @@ from services.seedance_task_identity import seedance_task_identity
 
 
 class GenerateRequest(BaseModel):
+    @model_validator(mode='after')
+    def validate_h3_mode(self):
+        if self.h3_reference_mode or self.h3_reference_images:
+            from services.h3_reference_contract import validate_h3_reference
+            validate_h3_reference(self.model_dump())
+        return self
+
     @model_validator(mode='before')
     @classmethod
     def validate_seedance_output(cls, values):
@@ -31,6 +38,8 @@ class GenerateRequest(BaseModel):
     negative_prompt: str = Field("bad quality", description="负面提示词")
     image_path: Optional[str] = Field(None, description="图片文件路径")
     image_path_end: Optional[str] = Field(None, description="结束帧路径（morph）")
+    h3_reference_mode: Optional[Literal['first_last', 'reference']] = None
+    h3_reference_images: Optional[List[str]] = None
     video_filename: Optional[str] = Field(None, description="视频文件名（upscale/voice）")
     audio_filename: Optional[str] = Field(None, description="音频文件名（voice）")
     target_fps: Optional[int] = Field(60, description="Target frame rate for interpolate tasks")

@@ -9,7 +9,7 @@ import { ALL_MODELS, getModelDisplayName, makeDefaultDashScopeParams } from '../
 import { ensureVideoCharacterUniqueness } from '../../utils/scriptPromptStandards';
 
 vi.mock('../../hooks/useSeedanceCandidates', () => ({ useSeedanceCandidates: () => ({ candidates: [], isLoading: false }) }));
-vi.mock('../../components/video/CapabilityVideoPanel', () => ({ CapabilityVideoPanel: () => null }));
+vi.mock('../../components/video/CapabilityVideoPanel', () => ({ CapabilityVideoPanel: ({ promptEditor, modeControl }: { promptEditor?: React.ReactNode; modeControl?: React.ReactNode }) => <>{promptEditor}{modeControl}</> }));
 vi.mock('@runtime/GpuNodeSelector', () => ({ GpuNodeSelector: () => null }));
 vi.mock('../../services/videoWorkspaceService', async importOriginal => ({
   ...await importOriginal<typeof import('../../services/videoWorkspaceService')>(),
@@ -26,6 +26,9 @@ vi.mock('../../services/videoVoiceReferenceService', () => ({
 }));
 const fetchMock = vi.fn();
 async function findPortraitCheckbox() {
+  // Settle lazy panel initialization before opening its portal; an initial
+  // Suspense remount otherwise discards the just-opened popover in full suites.
+  await act(async () => { await vi.dynamicImportSettled(); });
   const label = '生成仿真人视频（人物四视图 + 纯背景）';
   if (!screen.queryByLabelText(label)) fireEvent.click(await screen.findByRole('button', { name: '高级设置' }));
   return screen.findByLabelText(label);
@@ -55,6 +58,30 @@ async function uploadToPage() {
 }
 
 describe('VideoPage Hailuo frame submission', () => {
+  it('persists H3 reference mode separately and restores removals without changing first-last sources', async () => {
+    const source = { id: 'first', url: '/h3-original.png', filename: '画面', uploadTime: 0 };
+    vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: {
+      ...emptySession, task_groups: [{ uuid: 'h3-card', ids: ['first'], model: 'MiniMaxH3' }],
+      uploaded_images: [source], image_prompts: { first: '首尾帧的原提示词' },
+    } });
+    const view = render(<VideoPage sessionScope="ep-1" />);
+    fireEvent.change(await screen.findByLabelText('H3 参考模式'), { target: { value: 'reference' } });
+    const shelf = await screen.findByTestId('seedance-reference-shelf');
+    fireEvent.click(within(shelf).getByLabelText('移除图片1'));
+    await waitFor(() => {
+      const saved = vi.mocked(saveWorkspaceSession).mock.calls.at(-1)?.[0];
+      expect(saved?.task_groups[0]).toMatchObject({ h3ReferenceMode: 'reference', h3ReferenceContent: { media_inputs: [] } });
+      expect(saved?.image_prompts.first).toBe('首尾帧的原提示词');
+      expect(saved?.uploaded_images).toEqual([source]);
+    });
+    const saved = JSON.parse(JSON.stringify(vi.mocked(saveWorkspaceSession).mock.calls.at(-1)![0]));
+    view.unmount();
+    vi.mocked(loadWorkspaceSession).mockResolvedValue({ success: true, session: saved });
+    render(<VideoPage sessionScope="ep-1" />);
+    expect(await screen.findByLabelText('H3 参考模式')).toHaveValue('reference');
+    expect(screen.getByTestId('seedance-reference-shelf').querySelectorAll('img')).toHaveLength(0);
+    expect(screen.getByTestId('video-source-grid').querySelectorAll('img')).toHaveLength(1);
+  });
   it('defaults old card pool originals into unified references, persists removal and does not re-add them on reload', async () => {
     const source = { id: 'first', url: '/pool-original.png', filename: '画面', uploadTime: 0 };
     const params = { sub_model: 'mini' as const, reference_mode: 'reference' as const, prompt: '人物图片1运动', media_inputs: [{ kind: 'image' as const, url: '/person-original.png' }] };
@@ -63,6 +90,8 @@ describe('VideoPage Hailuo frame submission', () => {
       uploaded_images: [source], seedance_params: { card: params },
     } });
     const view = render(<VideoPage sessionScope="ep-1" />);
+    await screen.findByTestId('video-source-grid');
+    await act(async () => { await vi.dynamicImportSettled(); });
     const shelf = await screen.findByTestId('seedance-reference-shelf');
     expect(within(shelf).getByAltText('图片2')).toHaveAttribute('src', '/pool-original.png');
     fireEvent.click(within(shelf).getByLabelText('移除图片2'));
@@ -162,7 +191,8 @@ describe('VideoPage Hailuo frame submission', () => {
     fireEvent.click(within(grids[0]).getByRole('button', { name: '移除画面1' }));
     expect(grids[0].querySelector('img[src*="file_first_original"]')).toBeNull();
     expect(grids[1].querySelector('img[src*="file_first_original"]')).not.toBeNull();
-    const shelf = screen.getByTestId('seedance-reference-shelf');
+    await act(async () => { await vi.dynamicImportSettled(); });
+    const shelf = await screen.findByTestId('seedance-reference-shelf');
     expect(shelf.querySelector('img[src*="file_first_original"]')).toBeNull();
     await waitFor(() => {
       const saved = vi.mocked(saveWorkspaceSession).mock.calls.at(-1)?.[0];

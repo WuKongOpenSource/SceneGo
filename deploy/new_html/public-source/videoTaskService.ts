@@ -38,6 +38,8 @@ export interface H3LongVideoSegment {
 }
 
 export interface VideoGenerationOptions {
+  h3_reference_mode?: 'first_last' | 'reference';
+  h3_reference_images?: string[];
   duration?: number;
   resolution?: string;
   seed?: number;

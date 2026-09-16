@@ -101,6 +101,8 @@ import {
 } from './video/VideoCard';
 import { MiniMaxVideoPanel } from './video/MiniMaxVideoPanel';
 import { CapabilityVideoPanel } from './video/CapabilityVideoPanel';
+import { H3VideoPanel } from './video/H3VideoPanel';
+import { h3Composer, h3ReferenceSubmission, isH3Reference } from '../utils/h3Reference';
 import { MediaBadges } from './video/MediaBadges';
 import { VideoModelPicker } from './video/VideoModelPicker';
 import { VideoUploadModal } from './video/VideoUploadModal';
@@ -675,6 +677,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
     }, [storyboardItemById, uploadedImages]);
 
     const getEffectiveGroupPrompt = useCallback((group: TaskGroup | undefined): string => {
+        if (group && isH3Reference(group) && group.h3ReferenceContent) return group.h3ReferenceContent.prompt;
         if (!group?.ids?.[0]) return '';
         let current = imagePrompts[group.ids[0]] || '';
         const firstSnapshot = group.mergedFrom?.[0];
@@ -2227,6 +2230,10 @@ export const VideoPage: React.FC<VideoPageProps> = ({
         if (!plan.canMerge || plan.groups.length < 2) return;
 
         const groupsToMerge = plan.groups;
+        if (groupsToMerge.some(isH3Reference)) {
+            showToast('请先切回首尾帧模式再合并镜头，已编辑的 H3 多图参考会保留');
+            return;
+        }
         const isDS = isDashScopeVideoModel(A.model);
         const snapshotDuration = (snapshot: MergedCardSnapshot): number | undefined => {
             const ownDuration = Number(snapshot.duration);
@@ -2274,6 +2281,8 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                 duration: getGroupMergeDuration(g),
                 durationUserOverride: g.durationUserOverride,
                 h3SageAttention: g.h3SageAttention,
+                h3ReferenceMode: g.h3ReferenceMode,
+                h3ReferenceContent: g.h3ReferenceContent,
                 candidateImages: g.candidateImages,
                 sourceImageOverrides: g.sourceImageOverrides,
                 prompt: dash?.prompt || seed?.prompt || getEffectiveGroupPrompt(g),
@@ -2425,6 +2434,8 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             duration: c.duration,
             durationUserOverride: c.durationUserOverride,
             h3SageAttention: c.h3SageAttention,
+            h3ReferenceMode: c.h3ReferenceMode,
+            h3ReferenceContent: c.h3ReferenceContent,
             candidateImages: [...(c.candidateImages || []), ...(g.candidateImages || [])],
             sourceImageOverrides: c.sourceImageOverrides,
         }));
@@ -3160,7 +3171,8 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
         const img1 = getVideoCardSourceImage(group, group.ids[0], uploadedImages);
         // Merged ids preserve shot membership; only a first/last-frame pair supplies a tail.
-        const isFramePair = group.ids.length === 2 && !group.mergedFrom?.length;
+        const h3Reference = isH3Reference(group);
+        const isFramePair = !h3Reference && group.ids.length === 2 && !group.mergedFrom?.length;
         const img2 = isFramePair ? getVideoCardSourceImage(group, group.ids[1], uploadedImages) : null;
 
         if (!img1) {
@@ -3206,13 +3218,14 @@ export const VideoPage: React.FC<VideoPageProps> = ({
 
         try {
 
-            const filename1 = getImageIdentifier(img1, isExternalAPI);
+            const h3Inputs = h3Reference ? h3ReferenceSubmission(h3Composer(group.h3ReferenceContent, getEffectiveGroupPrompt(group), getVideoCardImages(group, uploadedImages))) : undefined;
+            const filename1 = h3Inputs?.images[0] || getImageIdentifier(img1, isExternalAPI);
             const filename2 = img2 ? getImageIdentifier(img2, isExternalAPI) : null;
             if (!filename1 || (isFramePair && !filename2)) {
                 throw new Error('图片缺少真实存储地址，请重新同步分镜或重新上传图片');
             }
 
-            const prompt = getEffectiveGroupPrompt(group);
+            const prompt = h3Inputs?.prompt ?? getEffectiveGroupPrompt(group);
             const minimaxParams = group.model === 'MINI'
                 ? normalizeMiniMaxVideoParams(group.minimaxParams, defaultMiniMaxVideoModel)
                 : undefined;
@@ -3220,7 +3233,8 @@ export const VideoPage: React.FC<VideoPageProps> = ({
             const capabilityParams = group.videoParams || {};
             const capabilityDuration = Number(capabilityParams.duration);
             const capabilitySeed = Number(capabilityParams.seed);
-            const h3LongVideoSegments = isMiniMaxH3Model(group.model) && group.h3LongVideo === true
+            if (h3Reference && modelCapability?.h3_reference_available !== true) throw new Error('H3 多图参考节点尚未就绪，需要已验证的 Ref2VA 模型和参考节点');
+            const h3LongVideoSegments = !h3Reference && isMiniMaxH3Model(group.model) && group.h3LongVideo === true
                 ? (group.mergedFrom || []).map((snapshot, segmentIndex) => {
                     const segmentImages = (snapshot.ids || [])
                         .map(id => getVideoCardSourceImage(group, id, uploadedImages))
@@ -3285,7 +3299,9 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                     minimax_model: minimaxParams?.model,
                     minimax_resolution: minimaxParams?.resolution,
                     minimax_prompt_optimizer: minimaxParams?.promptOptimizer,
-                    h3_long_video: isMiniMaxH3Model(group.model) && group.h3LongVideo === true,
+                    h3_reference_mode: h3Reference ? 'reference' : undefined,
+                    h3_reference_images: h3Inputs?.images,
+                    h3_long_video: !h3Reference && isMiniMaxH3Model(group.model) && group.h3LongVideo === true,
                     h3_long_video_segments: h3LongVideoSegments,
                     h3_upscale_720p: isMiniMaxH3Model(group.model) && group.h3Upscale720p === true,
                 }
@@ -4426,7 +4442,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                             <input
                                 type="checkbox"
                                 checked={group.h3LongVideo === true}
-                                disabled={!group.mergedFrom || group.mergedFrom.length < 2 || group.mergedFrom.length > 8}
+                                disabled={isH3Reference(group) || !group.mergedFrom || group.mergedFrom.length < 2 || group.mergedFrom.length > 8}
                                 onChange={(event) => patchTaskGroup(group.uuid, {
                                     h3LongVideo: event.target.checked,
                                 })}
@@ -4485,6 +4501,10 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                                 </>
                             );
                         })()
+                    ) : isH3Reference(group) ? (
+                        <button type="button" onClick={() => setViewMode('card')} className="flex-1 truncate rounded border border-n40 px-2 py-2 text-left text-xs text-primary" title={promptText}>
+                            H3 多图参考 · 切到卡片视图编辑 @ 图片
+                        </button>
                     ) : group.model === 'MINI' ? (
                         <MiniMaxVideoPanel
                             compact
@@ -4704,7 +4724,7 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                                 <input
                                     type="checkbox"
                                     checked={group.h3LongVideo === true}
-                                    disabled={!group.mergedFrom || group.mergedFrom.length < 2 || group.mergedFrom.length > 8}
+                                    disabled={isH3Reference(group) || !group.mergedFrom || group.mergedFrom.length < 2 || group.mergedFrom.length > 8}
                                     onChange={(event) => patchTaskGroup(group.uuid, {
                                         h3LongVideo: event.target.checked,
                                     })}
@@ -4879,7 +4899,12 @@ export const VideoPage: React.FC<VideoPageProps> = ({
                     selectedSeconds={getGroupSelectedSeconds(group)}
                     multimodal={!isPlaceholderCard && seedanceCard}
                 >
-                    {isPlaceholderCard ? (
+                    {group.model === 'MiniMaxH3' ? (
+                        <H3VideoPanel group={group} prompt={getEffectiveGroupPrompt(group)} cardImages={sourceImages}
+                            capability={getVideoCapability(videoCapabilities, group.model)} storyboardItemId={getStoryboardItemId(group.uuid)}
+                            onPatch={patch => patchTaskGroup(group.uuid, patch)} onPromptChange={next => updatePrompt(group.ids[0], next)}
+                            onPreview={url => { setLightboxUrl(url); setLightboxType('image'); }} />
+                    ) : isPlaceholderCard ? (
                         <textarea
                             value={getEffectiveGroupPrompt(group)}
                             onChange={(e) => updatePrompt(group.ids[0], e.target.value)}

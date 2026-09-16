@@ -49,11 +49,13 @@ export function removeVideoCardImage(group: TaskGroup, image: UploadedImage): Ta
     const refs = removeVideoImageReferences({ prompt: snapshot.prompt,
       media_inputs: snapshot.mediaInputs || snapshot.seedanceParams?.media_inputs || snapshot.dashScopeParams?.media_inputs || [] }, image);
     return { ...snapshot, prompt: refs.prompt, mediaInputs: refs.media_inputs,
+      h3ReferenceContent: snapshot.h3ReferenceContent && removeVideoImageReferences(snapshot.h3ReferenceContent, image),
       candidateImages: snapshot.candidateImages?.filter(candidate => candidate.id !== image.id),
       seedanceParams: snapshot.seedanceParams && removeVideoImageReferences(snapshot.seedanceParams, image),
       dashScopeParams: snapshot.dashScopeParams && removeVideoImageReferences(snapshot.dashScopeParams, image) };
   };
   return { ...removed, candidateImages: group.candidateImages?.filter(candidate => candidate.id !== image.id),
+    h3ReferenceContent: group.h3ReferenceContent && removeVideoImageReferences(group.h3ReferenceContent, image),
     mergedFrom: removed.mergedFrom?.map(cleanSnapshot), firstLastFrom: removed.firstLastFrom?.map(cleanSnapshot) };
 }
 

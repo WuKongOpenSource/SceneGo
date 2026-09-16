@@ -62,6 +62,8 @@ def generation_source_references(request: Any) -> list[str]:
         # URL could be paired with a different unauthorized database object.
         add(item.get("url"))
         add(item.get("file_id"))
+    for image in getattr(request, "h3_reference_images", None) or []:
+        add(image)
     for segment in getattr(request, "h3_long_video_segments", None) or []:
         if isinstance(segment, dict):
             add(segment.get("image_path"))

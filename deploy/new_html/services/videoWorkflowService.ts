@@ -26,6 +26,7 @@ export interface VideoModelCapability {
   requires_gpu_node?: boolean;
   requires_processing_node?: boolean;
   available?: boolean;
+  h3_reference_available?: boolean;
   preferred_agent_id?: string | null;
   preferred_node_id?: string | null;
   preferred_comfyui_port?: number | null;
