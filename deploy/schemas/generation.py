@@ -41,6 +41,7 @@ class GenerateRequest(BaseModel):
     h3_reference_mode: Optional[Literal['first_last', 'reference']] = None
     h3_reference_images: Optional[List[str]] = None
     video_filename: Optional[str] = Field(None, description="视频文件名（upscale/voice）")
+    video_temporal_frames: Optional[Literal[5, 9]] = Field(None, description="仅视频高清使用的时序窗口；不修改帧率或图片放大配置")
     audio_filename: Optional[str] = Field(None, description="音频文件名（voice）")
     target_fps: Optional[int] = Field(60, description="Target frame rate for interpolate tasks")
     seed: int = Field(-1, description="随机种子")
