@@ -25,7 +25,7 @@ def _run(args):
 
 def probe_video(path):
     raw = json.loads(_run(['ffprobe', '-v', 'error', '-show_entries',
-        'stream=codec_type,codec_name,width,height,r_frame_rate,avg_frame_rate,time_base,nb_frames,duration,start_time,sample_rate,channels:format=duration',
+        'stream=codec_type,codec_name,width,height,r_frame_rate,avg_frame_rate,time_base,nb_frames,duration,duration_ts,start_time,start_pts,sample_rate,channels:format=duration',
         '-of', 'json', str(path)]))
     video = next((s for s in raw.get('streams', []) if s.get('codec_type') == 'video'), None)
     if not video:
@@ -70,6 +70,27 @@ def audio_packet_hashes(path, count):
             for index in range(count)]
 
 
+def _audio_tail_options(source, audios):
+    """Keep the source edit-list end when an older muxer expands AAC padding."""
+    options = []
+    for index, audio in enumerate(audios):
+        packets = json.loads(_run(['ffprobe', '-v', 'error', '-select_streams', f'a:{index}',
+            '-show_entries', 'packet=pts,duration', '-of', 'json', str(source)])).get('packets', [])
+        try:
+            end = int(audio['start_pts']) + int(audio['duration_ts'])
+            last = packets[-1]
+            tail = end - int(last['pts'])
+            if not 0 < tail <= int(last['duration']):
+                raise ValueError('Unsupported audio edit boundary')
+            # Copy every encoded packet; change only its container duration.
+            if tail < int(last['duration']):
+                options += [f'-bsf:a:{index}',
+                    f"setts=duration='if(eq(N,{len(packets)-1}),{tail},DURATION)'"]
+        except (KeyError, IndexError, TypeError, ValueError) as exc:
+            raise UpscaleTimingError('原声音轨时间边界无法可靠校验，已保留原视频') from exc
+    return options
+
+
 def preserve_upscale_timing(source, upscale, destination):
     source, upscale, destination = map(Path, (source, upscale, destination))
     if destination.exists() or destination.resolve() in {source.resolve(), upscale.resolve()}:
@@ -80,12 +101,13 @@ def preserve_upscale_timing(source, upscale, destination):
     fps = original['fps']
     timescale = fps.numerator * 1000
     frame_ticks = fps.denominator * 1000
+    audio_options = _audio_tail_options(source, original['audio'])
     # Audio may outlast the picture. Never turn that difference into a held frame.
     ratio = float(enhanced['fps'] / fps)
     with tempfile.TemporaryDirectory(prefix='upscale-clock-') as scratch:
         stage = Path(scratch) / 'clock.mp4'
         _run(['ffmpeg', '-v', 'error', '-n', '-itsscale', format(ratio, '.17g'), '-i', str(upscale),
-              '-i', str(source), '-map', '0:v:0', '-map', '1:a?', '-c', 'copy',
+              '-map', '0:v:0', '-c', 'copy',
               '-map_metadata', '-1', '-video_track_timescale', str(timescale),
               '-movflags', '+faststart', str(stage)])
         # Preserve B-frame PTS/DTS ordering, with exactly one tick span per frame.
@@ -93,7 +115,8 @@ def preserve_upscale_timing(source, upscale, destination):
         pts = f'round(PTS/{frame_ticks})*{frame_ticks}'
         dts = f'round(DTS/{frame_ticks})*{frame_ticks}'
         bsf = f"setts=pts='{pts}':dts='{dts}':duration={frame_ticks}"
-        _run(['ffmpeg', '-v', 'error', '-n', '-i', str(stage), '-map', '0', '-c', 'copy',
+        _run(['ffmpeg', '-v', 'error', '-n', '-i', str(stage), '-i', str(source),
+              '-map', '0:v:0', '-map', '1:a?', '-c', 'copy', *audio_options,
               '-bsf:v', bsf, '-video_track_timescale', str(timescale),
               '-map_metadata', '-1', '-movflags', '+faststart', str(destination)])
     output = probe_video(destination)

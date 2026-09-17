@@ -58,11 +58,12 @@ def test_refuses_overwrite_or_frame_loss(media):
     assert not (media / 'out.mp4').exists()
 
 
-def test_preserves_delayed_and_multiple_original_audio_tracks(media):
+@pytest.mark.parametrize('delay,sample_rate', [('0.12', '44100'), ('0.257', '48000')])
+def test_preserves_delayed_and_multiple_original_audio_tracks(media, delay, sample_rate):
     from utils.video_upscale_clock import audio_packet_hashes
     source, high, output = [media / name for name in ('source.mp4', 'high.mp4', 'out.mp4')]
     ffmpeg('-f', 'lavfi', '-i', 'testsrc2=size=64x64:rate=30:duration=1',
-           '-itsoffset', '0.12', '-f', 'lavfi', '-i', 'sine=frequency=440:duration=1.2',
+           '-itsoffset', delay, '-f', 'lavfi', '-i', f'sine=frequency=440:duration=1.2:sample_rate={sample_rate}',
            '-f', 'lavfi', '-i', 'sine=frequency=880:duration=0.5',
            '-map', '0:v', '-map', '1:a', '-map', '2:a', '-c:v', 'libx264', '-c:a', 'aac', source)
     ffmpeg('-i', source, '-an', '-vf', 'settb=1/25,setpts=N', '-r', '25', '-fps_mode', 'cfr', '-c:v', 'libx264', high)
@@ -70,6 +71,9 @@ def test_preserves_delayed_and_multiple_original_audio_tracks(media):
     assert probe_video(output)['video_duration_ms'] == 1000
     assert probe_video(output)['duration_ms'] == probe_video(source)['duration_ms']
     assert audio_packet_hashes(source, 2) == audio_packet_hashes(output, 2)
+    for before, after in zip(probe_video(source)['audio'], probe_video(output)['audio']):
+        assert before['start_pts'] == after['start_pts']
+        assert before['duration_ts'] == after['duration_ts']
 
 
 def test_variable_frame_timestamps_are_not_silently_resampled(media):
