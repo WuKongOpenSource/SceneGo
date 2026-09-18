@@ -1,12 +1,30 @@
 {
   "schemaVersion": 1,
-  "version": "2026.9.16.6",
-  "updatedAt": "2026-09-16",
+  "version": "2026.9.18.1",
+  "updatedAt": "2026-09-18",
   "period": {
-    "from": "2026-09-08",
-    "to": "2026-09-16"
+    "from": "2026-09-16",
+    "to": "2026-09-18"
   },
   "records": [
+    {
+      "date": "2026-09-18",
+      "title": "H3 multi-image reference routing and public deployment fixes",
+      "changes": [
+        {
+          "kind": "fix",
+          "text": "H3 multi-image reference mode: when the local agent sidecar has not yet surfaced the reference capability marker, the router now falls back to the GPU2 runtime directly instead of returning an unavailable signal. The H3 multi-image reference workflow no longer gets blocked by a stale capability heartbeat."
+        },
+        {
+          "kind": "fix",
+          "text": "Local MiniMax H3 nodes (H3 / H3 Fast / H3 Mini) no longer display the local GPU under maintenance gate for deployments where the runtime is available."
+        },
+        {
+          "kind": "fix",
+          "text": "Jimeng (Official AIGC CLI) independent account channel: documented the required environment variables (JIMENG_CLI_ENABLED, UID, GID, SHA256, HOME) and the recommended directory layout that keeps the pinned binary outside the writable home directory. Operators following the deployment guide will get a working channel on first boot instead of hitting a channel not yet enabled error."
+        }
+      ]
+    },
     {
       "date": "2026-09-16",
       "title": "视频编辑、素材引用与浏览器兼容优化",
