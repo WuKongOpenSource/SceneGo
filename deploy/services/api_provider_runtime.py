@@ -1134,7 +1134,15 @@ def seedance_user_facing_error(exc: BaseException, *, contents: Optional[List[Di
     response_text = str(getattr(response, "text", "") or "")
     error_text = f"{exc} {response_text}"
     status_code = getattr(response, "status_code", None)
-    plan_mode = seedance_access_mode(resolve_provider("seedance").endpoint) == "agent_plan"
+    # Error ownership follows the submitted request, not a mutable default
+    # provider (the installation can enable both Plan and PAYG accounts).
+    endpoint = getattr(exc, "seedance_endpoint", "") or getattr(response, "url", "") or ""
+    plan_mode = bool(endpoint) and seedance_access_mode(endpoint) == "agent_plan"
+    if "InvalidEndpointOrModel.NotFound" in error_text or "model or endpoint" in error_text.casefold() and "does not exist" in error_text.casefold():
+        return (
+            "Seedance 模型 ID 不存在或当前 API Key 无访问权限；"
+            "请核对该任务通道的官方模型 ID 和模型开通权限，已停止自动重试。"
+        )
     if "ModelNotOpen" in error_text or "not activated the model" in error_text:
         if plan_mode:
             return (

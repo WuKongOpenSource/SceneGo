@@ -262,10 +262,16 @@ class SeedanceClient:
             return task_id
         except Exception as exc:
             logger.error("Seedance task create failed: %s", exc)
+            exc.seedance_endpoint = self.base_url
+            exc.seedance_model = model_name
             if _is_model_availability_error(exc):
-                raise RuntimeError(
+                unavailable = RuntimeError(
                     "ModelNotOpen: the configured Seedance model is not supported by the active channel."
-                ) from exc
+                )
+                unavailable.seedance_endpoint = self.base_url
+                unavailable.seedance_model = model_name
+                unavailable.response = getattr(exc, "response", None)
+                raise unavailable from exc
             raise
 
     def _submit_create_request(self, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -306,6 +312,8 @@ class SeedanceClient:
             )
         except Exception as exc:
             logger.error("Seedance query failed: %s", exc)
+            exc.seedance_endpoint = config.endpoint
+            exc.seedance_model = config.model_name
             raise
 
     def _task_context(self, task_id: str) -> tuple[ResolvedProviderConfig, str]:
